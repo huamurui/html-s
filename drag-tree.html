@@ -19,6 +19,7 @@
     /* i want to prevent the hover pop up  */
     .hover {
       background-color: #ddd;
+      cursor: pointer;
     }
     .dragging {
       background-color: #ccc;
@@ -105,11 +106,9 @@
     function updateData(movedNode, targetNode){
       // find the movedNode and its children in the data
       let movedNodeData = findNode(movedNode, tree)
-      console.log('cur',movedNodeData)
       let movedNodeChildren = movedNodeData.children
       // find the targetNode in the data
       let targetNodeData = findNode(targetNode, tree)
-      console.log('tar',targetNodeData)
 
 
       // 子节点在向包含自己的父节点提升时失效。
@@ -178,9 +177,6 @@
       }
     }
 
-    
-
-
     // render the tree according to the data, add event listeners and so on to enable the dnd, and add btn to each node
     function renderTree(node) {
       if(node.name==='root'){
@@ -212,6 +208,7 @@
         li.addEventListener('drop', drop)
 
         // 移动端的事件适配... md，完全不是一套。...不知道怎么做了，而且  dataTransfer 只在 dnd 里有
+        // 除了 drag-drop这一套，pc端还有 mouse 的一套，这里面关键的 dragover | mouseover 在移动端是没有的对应的，也许可以通过计算 touch 的偏移量可以完成大小结构较为固定列表的拖拽，但对于树... 可能不太行。
 
         li.addEventListener('mouseover', (e) => {
           e.target.classList.add('hover')
@@ -263,20 +260,55 @@
     }
 
     function drop(e) {
-      // e.preventDefault() // Event 接口的 preventDefault() 方法，告诉用户代理：如果此事件没有被显式处理，它默认的动作也不应该照常执行。此事件还是继续传播，除非碰到事件监听器调用 stopPropagation() 或 stopImmediatePropagation()，才停止传播。
       e.stopPropagation()
       e.target.classList.remove('dragging-over')
       const movedNode = e.dataTransfer.getData('text/plain')
       const targetNode = e.target.firstChild.nodeValue
       updateData(movedNode, targetNode)
       playground.innerHTML = ''
-      // 嗯...因为渲染也是递归着做的，所以...更新的时候，会根据层数渲染好多次..貌似有点点不好。 e.preventDefault() 是会把整个这个箭头函数调用许多次的...
-      // 而且这里的 tree 不是整层的那个，而是本层的那个，所以...这里的渲染，只是渲染了本层的，而不是整个树，也因为这样，需要 e.preventDefault() 
       playground.appendChild(renderTree(tree))
+      
+      playground.appendChild(renderArr(treeToArr(tree)))
     }
     // render the tree
     const playground = document.getElementById('playground')
     playground.appendChild(renderTree(tree))
+
+
+    // tree to arr and display the data in arr in form of name:xxx,parent:xxx
+    function treeToArr(node, arr = []) {
+      if(node.name==='root'){
+        return treeToArr(node.children, arr)
+      }
+      for (const item of node) {
+        arr.push({
+          name: item.name,
+          parent: findParent(item.name, tree)?.name || 'root',
+        })
+        if (item.children) {
+          treeToArr(item.children, arr)
+        }
+      }
+      return arr
+    }
+
+    function renderArr(arr) {
+      const ul = document.createElement('ul')
+      for (const item of arr) {
+        const li = document.createElement('li')
+        li.style.display = 'inline-block'
+        li.style.margin = '10px'
+        li.innerHTML = `<div>name:${item.name}</div> <div>parent:${item.parent}</div>`
+        ul.appendChild(li)
+      }
+      return ul
+    }
+
+    playground.appendChild(renderArr(treeToArr(tree)))
+
+    
+    
+
 
   </script>
 </body>
