@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    #playground {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      background-color: #f1f1f1;
+    }
+
+    .floating-action-button {
+      position: fixed;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: #000;
+      color: #fff;
+      font-size: 30px;
+      font-weight: bold;
+    
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      
+      cursor: pointer;
+
+      z-index: 999;
+    }
+    .floating-action-button:hover {
+      background-color: #333;      
+    }
+
+    .action {
+      position: fixed;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background-color: #000;
+      color: #fff;
+      font-size: 10px;
+      font-weight: bold;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      
+      cursor: pointer;
+
+      z-index: 999;
+
+      opacity: 0;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="playground">
+    <div class="floating-action-button">+</div>
+    <div class="action">1</div>
+    <div class="action">2</div>
+    <div class="action">3</div>
+    <!-- <div class="action">4</div>
+    <div class="action">5</div>
+    <div class="action">6</div>
+    <div class="action">7</div> -->
+
+  </div>
+  <script>
+    // i want to create a fab which is draggable and can stick to the edges of the screen when it is dragged closed to the edges of the screen
+    // and when the fab is clicked or touched, the sub actions should appear
+
+
+    /* 
+      一些小小的技术选型问题。
+      1.  
+      drag drop 事件是 html5 的，这些新出的事件，也是基于原本的 mouse 事件的。这些事件目前依旧... 有些问题，移动端是一回事，click 和 drop 事件冲突又是一回事，好吧现在并不会冲突。但我想说的是，click 事件或者 drag 事件，它们都是 mouse 事件的组合继承而来的...
+
+      我们完全可以只用 mouse 事件就把这些实现了，并且能掌握更多细节可能反而更方便。
+      mdn 上已经明确说 click 事件会在 mousedown 和 mouseup 事件依次触发后触发。
+      而 drag 事件可以看成是 mousedown 和 mousemove 的组合。 以下链接就是对如何区分事件的一个讨论。可以给 mousemove 一个阈值，比如 7px，超过了就视为移动；当然还有笨蛋建议用计时器的。 
+      https://stackoverflow.com/questions/6042202/how-to-distinguish-mouse-click-and-drag
+      
+      2.  
+      可能你之前写 drag-tree 的时候，只给单元素加那些事件，一条顺看着很爽，为什么这么爽？因为事件流状态转换啥的给的就已经很完善了，还附送一个数据传输。 但是，但是如果使用基本的 mouse 事件去搞，那事件流以及传数据就不得不自己去用回调去接起来... 这很烦。
+      (在另外，你之前的那个joy-stick，mousemove事件监听是tmd一直挂在document上的...傻冒！)
+      
+      (还有一件事，就选型和代码工程质量的问题，用该用的方法做该做的事，而不是各种 trick 去各种糊；代码可读性某种时候也是思路的清晰明确性，只要能把事情说清楚说出一套道理来怎么写都好。猜想，css 容易搞成屎山的一个原因就是，web 发展需要新功能了却依旧用过去的api，用旧 api 上的一堆堆的 trick 去实现新功能，tmd 用 float 这个做文字环绕效果的东西去做布局，用 html 的标题元素去搞字体... 可能对代码而言有些悲伤，但我们确实是希望每个功能都是局限住，可控制的；太跳了的话真的会难理解...或者说，难以控制)
+
+
+      3.  
+      目前的问题... 一个是上面两个，一个是重复代码太多。你tmd神经病啊...
+    */
+
+    const fab = document.querySelector('.floating-action-button')
+    const states =['default','active','dragging','sticky']
+    let state = 'default'
+
+    const actions = document.querySelectorAll('.action')
+
+    function toggleActions(toState) {
+      if(toState == 'active') {
+        for (let i = 0; i < actions.length; i++) {
+
+          // coollllllllllllllllll!
+          let unit = 2 * Math.PI / actions.length
+          let angle = unit * i
+          let x = Math.cos(angle) * 40
+          let y = Math.sin(angle) * 40
+          actions[i].style.top = fab.offsetTop + fab.clientHeight/2 - actions[i].clientHeight/2 + 'px'
+          actions[i].style.left = fab.offsetLeft + fab.clientWidth/2- actions[i].clientWidth/2 + 'px'
+
+          actions[i].style.opacity = 1
+          actions[i].style.transition = 'all 0.3s ease-in-out 0s'
+          actions[i].style.transform = `translate(${x}px, ${y}px)`
+        }
+        state = 'active'
+      } else if(toState === 'default') {
+        for (let i = 0; i < actions.length; i++) {
+          
+          actions[i].style.transform = `opacity 0.3s ease-in-out 0s`
+          actions[i].style.opacity = 0
+        }
+        state = 'default'
+      }
+    }
+
+
+    // enable the fab drag and drop
+    fab.addEventListener('mousedown', onMousedown)
+    fab.addEventListener('touchstart', touchstart)
+
+    // 全局变量很坏！但我也不知道怎么办了呜呜
+    let shiftX, shiftY 
+
+    function onMousedown(e) {
+      if(state==='default' || state==='active'){
+        shiftX = e.clientX - fab.getBoundingClientRect().left
+        shiftY = e.clientY - fab.getBoundingClientRect().top
+
+        document.addEventListener('mousemove', onMousemove)
+        document.addEventListener('mouseup', onMouseup)
+      }
+    }
+    function onMousemove(e) {
+      if(state==='default' || state==='active'){
+        if(Math.abs(e.clientX) > 7 || Math.abs(e.clientY) > 7){
+          if(state==='active'){
+            toggleActions('default')
+          }
+          state = 'dragging'
+        }
+      } else if(state==='dragging'){
+        fab.style.left = e.clientX - shiftX + 'px'
+        fab.style.top = e.clientY - shiftY + 'px'
+      }
+    }
+
+    function onMouseup(e) {
+      document.removeEventListener('mousemove', onMousemove)
+      document.removeEventListener('mouseup', onMouseup)
+      if(state==='dragging'){
+        state = 'default'
+        toggleActions('default')
+      } else if(state==='default'){
+        toggleActions('active')
+      } else if(state==='active'){
+        toggleActions('default')
+      }
+    }
+
+/* function touch */
+
+    function touchstart(e) {
+      if(state==='default' || state==='active'){
+        shiftX = e.touches[0].clientX - fab.getBoundingClientRect().left
+        shiftY = e.touches[0].clientY - fab.getBoundingClientRect().top
+
+        document.addEventListener('touchmove', touchmove)
+        document.addEventListener('touchend', touchend)
+      }
+    }
+    function touchmove(e) {
+      if(state==='default' || state==='active'){
+        if(Math.abs(e.touches[0].clientX) > 7 || Math.abs(e.touches[0].clientY) > 7){
+          if(state==='active'){
+            toggleActions('default')
+          }
+          state = 'dragging'
+        }
+      } else if(state==='dragging'){
+        fab.style.left = e.touches[0].clientX - shiftX + 'px'
+        fab.style.top = e.touches[0].clientY - shiftY + 'px'
+      }
+    }
+
+    function touchend(e) {
+      console.log('touchend')
+      document.removeEventListener('touchmove', touchmove)
+      document.removeEventListener('touchend', touchend)
+      if(state==='dragging'){
+        state = 'default'
+        toggleActions('default')
+      } else if(state==='default'){
+        toggleActions('active')
+      } else if(state==='active'){
+        toggleActions('default')
+      }
+    }
+
+
+    // detecting the edges of the screen
+    const playground = document.querySelector('#playground')
+
+    function detectEdges() {
+
+    }
+
+
+    // this small file could be extended ... to a web page pet, i have just learned compiler, dfa ... and dfa or decision tree could be used to create a little pet that have a lots of behaviors automatically.
+    // and also learn to publish a browser extension. or even a cross platform app.
+  </script>
+</body>
+</html>

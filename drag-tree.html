@@ -274,9 +274,26 @@
     const playground = document.getElementById('playground')
     playground.appendChild(renderTree(tree))
 
+    // arr to tree
+    function arrToTree (arr) {
+      const map = {}
+      arr.forEach(item => {
+        map[item.name] = item
+      })
+      const tree = []
+      arr.forEach(item => {
+        const parent = map[item.parent]
+        if (parent) {
+          (parent.children || (parent.children = [])).push(item)
+        } else {
+          tree.push(item)
+        }
+      })
+      return tree
+    }
 
-    // tree to arr and display the data in arr in form of name:xxx,parent:xxx
-    function treeToArr(node, arr = []) {
+      // tree to arr and display the data in arr in form of name:xxx,parent:xxx
+      function treeToArr(node, arr = []) {
       if(node.name==='root'){
         return treeToArr(node.children, arr)
       }
@@ -289,6 +306,7 @@
           treeToArr(item.children, arr)
         }
       }
+      console.log(arr)
       return arr
     }
 
