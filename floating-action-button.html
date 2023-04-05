@@ -111,10 +111,14 @@
         }
         state = 'active'
       } else if(toState === 'default') {
+        main.style.opacity = 1
         for (let i = 0; i < subs.length; i++) {
           subs[i].style.opacity = 0
         }
         state = 'default'
+      } else if(toState === 'sticky') {
+        main.style.opacity = 0.5
+        state = 'sticky'
       }
     }
 
@@ -128,7 +132,7 @@
 
     function onStart(e) {
 
-      // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了... 但是目前重复代码还是太多...
+      // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
       e.preventDefault()
       
       console.log(e.type)
@@ -139,6 +143,8 @@
 
           document.addEventListener('mousemove', onMove)
           document.addEventListener('mouseup', onEnd)
+        } else if(state==='sticky'){
+          togglesubs('default')
         }
       } else if (e.type === 'touchstart'){
         if(state==='default' || state==='active'){
@@ -147,35 +153,39 @@
 
           document.addEventListener('touchmove', onMove)
           document.addEventListener('touchend', onEnd)
+        } else if(state==='sticky'){
+          togglesubs('default')
         }
       }
    }
     function onMove(e) {
+
+      let ex,ey 
       if(e.type === 'mousemove'){
-        if(state==='default' || state==='active'){
-          if(Math.abs(e.clientX) > 7 || Math.abs(e.clientY) > 7){
-            if(state==='active'){
-              togglesubs('default')
-            }
-            state = 'dragging'
-          }
-        } else if(state==='dragging'){
-          main.style.left = e.clientX - shiftX + 'px'
-          main.style.top = e.clientY - shiftY + 'px'
-        }
+        ex = e.clientX
+        ey = e.clientY
       } else if (e.type === 'touchmove'){
-        if(state==='default' || state==='active'){
-          if(Math.abs(e.touches[0].clientX) > 7 || Math.abs(e.touches[0].clientY) > 7){
-            if(state==='active'){
-              togglesubs('default')
-            }
-            state = 'dragging'
-          }
-        } else if(state==='dragging'){
-          main.style.left = e.touches[0].clientX - shiftX + 'px'
-          main.style.top = e.touches[0].clientY - shiftY + 'px'
-        }
+        ex = e.touches[0].clientX
+        ey = e.touches[0].clientY
       }
+
+      if(state==='default' || state==='active'){
+        if(Math.abs(ex) > 7 || Math.abs(ey) > 7){
+          if(state==='active'){
+            togglesubs('default')
+          }
+          state = 'dragging'
+        }
+      } else if(state==='dragging'){
+        if(!detectEdges(ex,ey)){
+          main.style.left = ex - shiftX + 'px'
+          main.style.top = ey - shiftY + 'px'
+        }
+        if(detectEdges(ex,ey)){
+          state = 'sticky'
+          togglesubs('sticky')
+        }
+      }  
 
     }
 
@@ -200,8 +210,12 @@
     // detecting the edges of the screen
     const playground = document.querySelector('#playground')
 
-    function detectEdges() {
-
+    function detectEdges(ex,ey) {
+      if(ex < 0 + shiftX || ex > playground.clientWidth || ey < 0 + shiftY || ey > playground.clientHeight){
+        return true
+      } else {
+        return false
+      }
     }
 
 
