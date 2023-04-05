@@ -111,6 +111,7 @@
         }
         state = 'active'
       } else if(toState === 'default') {
+        // 我们希望在回到默认状态的时候，main 可以弹出来...，以及，sticky 的时候，改成动画，变个样子，现在这样太僵硬了还不如不写。
         main.style.opacity = 1
         for (let i = 0; i < subs.length; i++) {
           subs[i].style.opacity = 0
@@ -133,6 +134,7 @@
     function onStart(e) {
 
       // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
+      // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
       e.preventDefault()
       
       console.log(e.type)
@@ -211,7 +213,7 @@
     const playground = document.querySelector('#playground')
 
     function detectEdges(ex,ey) {
-      if(ex < 0 + shiftX || ex > playground.clientWidth || ey < 0 + shiftY || ey > playground.clientHeight){
+      if(ex < 0 + shiftX || ex > document.documentElement.clientWidth + shiftX -main.clientWidth || ey < 0 + shiftY || ey > document.documentElement.clientHeight + shiftY - main.clientHeight){
         return true
       } else {
         return false
