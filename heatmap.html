@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>heatmap</title>
+
+  <style>
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f6f8fa;
+    }
+
+
+    table {
+      height: 100%;
+      margin: 100px auto;
+
+      border-collapse: separate;
+      border-spacing: 3px;  /* 该属性只适用于 border-collapse 值是 separate 的时候。 */
+      width: max-content;
+    }
+    tr {
+      height: 10px;
+    }
+    td {
+      position: relative;
+      border-radius: 3px;
+      width: 10px;
+      height: 10px;
+
+      cursor: pointer;
+    }
+
+    span {
+      display: none;
+
+      position: absolute;
+      bottom: 12px;
+      transform: translateX(-50%);
+
+      padding: 5px;
+      white-space: nowrap;
+
+      background-color: #1f2328;
+      border: 1px solid #1f2328;
+      border-radius: 5px;
+
+      color: #fff;
+      font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    }
+
+    span::after {
+      content: "";
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      border-width: 5px;
+      border-style: solid;
+      border-color: #1f2328 transparent transparent transparent;
+    }
+
+    td:hover span {
+      display: block;
+
+      z-index: 999;
+    }
+
+
+
+  </style>
+</head>
+<body>
+  <dic id = "playground"></div>
+  <script>
+    // this time i want to make a heatmap
+    const color = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e", "#216e39"]
+    const randoms = new Array(52).fill(0).map(() => new Array(7).fill(0).map(() => Math.floor(Math.random() * 100)))
+    // 通过 randoms 计算出每个格子的颜色，现在有五种。需要找到 randoms 中的最大值，然后分颜色
+    const levelRatio = randoms.reduce((acc, cur) => {
+      return acc.concat(cur)
+    }, []).reduce((acc, cur) => {
+      return Math.max(acc, cur)
+    }, 0) / 5
+
+    let colorData = randoms.map((row) => {
+      return row.map((item) => {
+        return color[Math.floor(item / levelRatio)]
+      })
+    })
+
+    // let init date is 2023-03-23
+    let cur = new Date(2023, 2, 23)
+    const dateData = new Array(52).fill(0).map(
+      () => new Array(7).fill(0).map(
+        (item, index) => {
+          let date = new Date(cur)
+          cur.setDate(cur.getDate() + 1)
+          return date
+        }
+      )
+    )
+
+
+    const table = document.createElement("table")
+    const tbody = document.createElement("tbody")
+    table.appendChild(tbody)
+    // colorData.forEach((row) => {
+    //   let tr = document.createElement("tr")
+    //   row.forEach((item) => {
+    //     let td = document.createElement("td")
+    //     td.style.backgroundColor = item
+    //     tr.appendChild(td)
+    //   })
+    //   tbody.appendChild(tr)
+    // })
+
+    // 我会想把这个图表横过来
+    for (let i = 0; i < 7; i++) {
+      let tr = document.createElement("tr")
+      for (let j = 0; j < 52; j++) {
+        let td = document.createElement("td")
+        td.style.backgroundColor = colorData[j][i]
+        tr.appendChild(td)
+
+        let span = document.createElement("span")
+        span.innerText =  format(dateData[j][i], "YYYY-MM-DD") + " with number of " + randoms[j][i]
+        td.appendChild(span)
+
+      }
+      tbody.appendChild(tr)
+    }
+
+    const playground = document.getElementById("playground")
+    playground.appendChild(table)
+
+
+
+    /* tools  */
+    function format(date, form) {
+      const map = {
+        // fill '0' if the length of the value is less than assumed
+        YYYY: date.getFullYear(),
+        MM: (date.getMonth() + 1).toString().padStart(2, '0'),
+        DD: date.getDate().toString().padStart(2, '0'),
+        hh: date.getHours().toString().padStart(2, '0'),
+        mm: date.getMinutes().toString().padStart(2, '0'),
+        ss: date.getSeconds().toString().padStart(2, '0'),
+
+        YY: date.getFullYear().toString().slice(2),
+        M: date.getMonth() + 1,
+        D: date.getDate(),
+        h: date.getHours(),
+        m: date.getMinutes(),
+        s: date.getSeconds(),
+      }
+      return form.replace(/YYYY|MM|DD|hh|mm|ss|YY|M|D|h|m|s/g, (match) => {
+        return map[match]
+      })
+    }
+
+    
+  </script>
+  
+</body>
+</html>
