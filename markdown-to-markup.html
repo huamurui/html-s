@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>reactivity & complier</title>
+  <style>
+
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+
+      background-color: beige;
+    }
+    body > p {
+      margin: 0px;
+    }
+    body > #playground {
+      display: flex;
+      flex-direction: row;
+      margin: 0px 50px;
+      height: 90%;
+      background-color: aliceblue;
+    }
+    #playground > section {
+      flex: 1;
+      border: 1px solid rgb(232, 232, 232);
+      overflow: hidden;
+    }
+
+    #playground > section > * {
+      height: 100%;
+      width: 100%;
+      overflow: auto;
+    }
+    #playground > section > #markdown-editor {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    textarea {
+      width: 100%;
+      height: 100%;
+
+      overflow: auto;
+
+      border: none;
+      outline: none;
+      resize: none;
+      background-color: aliceblue;
+    }
+
+    @media screen and (max-width: 600px) {
+      body > #playground {
+        flex-direction: column;
+      }
+    }
+      
+    
+
+  </style>
+</head>
+<body>
+  <p>a markdown editor and a markup preview and a toc, i am trying to learn reactive system and some compiler knowledge</p>
+  <div id="playground">
+    <section>
+      <div id="markdown-editor">
+        <!-- <label for="markdown">markdown editor</label> -->
+        <textarea id="markdown"></textarea>
+      </div>
+    </section>
+
+    <section>
+      <div id="markup-preview">
+      </div>
+    </section>
+  </div>
+
+  <script>
+
+    /* 
+      may be single file is not enough ...
+      ### i want to try out following things:
+      
+      1. meta programming, use Proxy, Reflect to create a reactive ui-data
+      2. component based on hoc, hooks, and many other design patterns
+      3. maybe some compiler(?
+
+      ### and use them to create some interesting things
+      a. pet, game, chatroom...
+      b. homepage of your own
+      c. ... the editor!
+    */
+
+    /* 
+      i just found that ... the 'editor' alone is also a hard work... it couldn't be done by a simple textarea, if you want good style, or add some features like syntax highlight... even if you don't plan to do the compile part at all, you still need to know something about compiler, lexer, parser ...; then hide the original textarea and replace it with styled html elements and bind the position of the cursor to the textarea and so on and so on...
+
+      and there are also something like wysiwyg ...
+
+      ### it's much more difficult than i thought to me, even just a demo... really...
+
+      so, do the simple part, make clear how much you want to get... or go to see more code of others
+
+      1. markdown to markup, pick up title, paragraph, link.
+      1.1 make good style in the markdown editor, markup preview, toc; make them scroll together; highlight the title, link even in the editor;
+
+      2. data <=> ui, use Proxy, Reflect to create reactive data rather than a eventListener, and deal with dom render... also use proxy, to take care of diff.... is it necessary or doable? i mean... to do the diff while compiling? .... what are you thinking ???
+
+    */
+
+    /*
+      editor's tech..
+      1. in the browser: contenteditable -> body(editor).setAttribute('contenteditable', true), `Window.getSelection` and give some button to add some style. tata~ you got it!
+      2. what i mentioned above, things like proxy the data and user actions, data driven...
+
+      [https://juejin.cn/post/6844903504478208007]这是... 近六年前的一篇文章了，然而六年了这个 slateJS 还在 beta （233. 
+      [https://zhuanlan.zhihu.com/p/268366406]
+      还有一些历史...Quill.js 好像是我之前看到的那个写 redis 插件的人有参与...
+
+      好像并没有什么收获...毕竟我一行代码都还没写。要考虑确认的...有点多，目前写的这个真的就只是糊了糊而已。也许对计算机的理解又多了一点。vue 或者 react 这样的框架给出的并不是性能或者单纯效率的提升，而是理念的变化，jQuery 写的政府官网和现代网站整个体验也都是不一样的。对于开发而言，免除了手动操作 dom 的劳役，解放的注意力可以做很多别的，数据驱动，组件化... “状态”...嗯，这是个很有意思的东西。
+
+      理念。所以，学编程也一定要会键政(x
+
+    */
+
+    // set reactive data and get the dom and bind the data. once the data changed, the dom will be updated, rerender the markup preview and toc
+    // by simple, maybe a eventListener is enough, but i want to ... make it(doms) rely on data rather than directly on user actions.
+    const markdown = document.querySelector('#markdown')
+    const markupPreview = document.querySelector('#markup-preview')
+    const data = new Proxy(
+      { 
+        markdown: '' 
+      }, 
+      {
+        set(target, key, value) {
+          target[key] = value
+          render(value)
+          return true
+        }
+      }
+    )
+
+    // init value
+    data.markdown = document.querySelector('script').innerText
+    markdown.value = data.markdown
+    
+    markdown.addEventListener('input', e => {
+      data.markdown = e.target.value
+    })
+
+
+
+    // a simple compiler which can deal the header and paragraph, it take markdown as input and return html
+    // i also want to read link table or shrink...
+    const doms = {} // ?
+    function downToUp (markdown) {
+      // skip the trans of markup tag... 
+      // take out the tokens, maybe we will do the diff in the render part,? or in the parser part?, when and where to tell the dom to update?
+      // what i want????????????????
+
+      let html = ''
+      markdown.split('\n').forEach(line => {
+        line = line.replace(/^\s*|\s*$/g, "") // trim... but these whole things are not the right or possible ways at all... you idiot
+        if (line.startsWith('#')) {
+          const level = line.match(/^#+/)[0].length
+          const content = line.replace(/^#+/, '')
+          html += `<h${level}>${content}</h${level}>`
+        }
+        else {
+          html += `<p>${line}</p>`
+        }
+      })
+
+
+      return html
+    }
+
+    // renderer
+    function render (markdown){
+      const html = downToUp(markdown)
+      document.querySelector('#markup-preview').innerHTML = html
+    }
+
+    // make two parts scroll together : markdown and markupPreview
+    let scrolling = 0  // 0: none; 1: 编辑区主动触发滚动; 2: 展示区主动触发滚动
+    markdown.addEventListener('scroll', function(e,block=1){
+      // 然而这样... 匿名函数无法移除了
+      handleScroll(e,block)
+    })
+    markupPreview.addEventListener('scroll', function(e,block=2){
+      handleScroll(e,block)
+    })
+
+    function handleScroll (e,block) {
+      const { scrollTop, scrollHeight, clientHeight } = e.target
+      const percent = scrollTop / (scrollHeight - clientHeight)
+      if (scrolling === 0) {
+        scrolling = block
+        if (block === 1) {
+          markupPreview.scrollTop = percent * (markupPreview.scrollHeight - markupPreview.clientHeight)
+        } else {
+          markdown.scrollTop = percent * (markdown.scrollHeight - markdown.clientHeight)
+        }
+        scrolling = 0
+      }
+    }
+
+
+
+
+  </script>
+</body>
+</html>
+

@@ -6,3 +6,4 @@ i want to make some simple demo just through single html file.
 - [virtual-scrolling](./virtual-scrolling.html)
 - [floating-action-button](./floating-action-button.html)
 - [heatmap](./heatmap.html)
+- [markdown-to-markup](./markdown-to-markup.html)
