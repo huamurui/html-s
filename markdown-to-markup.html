@@ -81,6 +81,15 @@
 
   <script>
 
+/* 
+[abc](https://abc)
+[abc]
+## abc
+### abc
+
+**abc
+
+*/
     /* 
       may be single file is not enough ...
       ### i want to try out following things:
@@ -109,6 +118,10 @@
 
       2. data <=> ui, use Proxy, Reflect to create reactive data rather than a eventListener, and deal with dom render... also use proxy, to take care of diff.... is it necessary or doable? i mean... to do the diff while compiling? .... what are you thinking ???
 
+      重新确认需求。
+      你可能能做到的是，解析 markdown 部分语法，并在解析过程中具体而言应该是生成 ast 这一步进行 diff，根据 diff 结果更新 dom。
+      你基本不可能做到的是——一个像样的编辑器: 这需要你对输入内容的区域也进行美化，分块，分块对于两区域同步滚动也很重要。 
+
     */
 
     /*
@@ -132,12 +145,17 @@
     const markupPreview = document.querySelector('#markup-preview')
     const data = new Proxy(
       { 
-        markdown: '' 
+        markdown: '',
+        tokens: [],
+        ast: [],
       }, 
       {
         set(target, key, value) {
           target[key] = value
-          render(value)
+          if(key === 'markdown') {
+
+            markupPreview.innerHTML = render(parser(tokenizer(value, value.length)))            
+          }
           return true
         }
       }
@@ -145,6 +163,7 @@
 
     // init value
     data.markdown = document.querySelector('script').innerText
+
     markdown.value = data.markdown
     
     markdown.addEventListener('input', e => {
@@ -153,41 +172,135 @@
 
 
 
-    // a simple compiler which can deal the header and paragraph, it take markdown as input and return html
-    // i also want to read link table or shrink...
-    const doms = {} // ?
-    function downToUp (markdown) {
-      // skip the trans of markup tag... 
-      // take out the tokens, maybe we will do the diff in the render part,? or in the parser part?, when and where to tell the dom to update?
-      // what i want????????????????
-
-      let html = ''
-      markdown.split('\n').forEach(line => {
-        line = line.replace(/^\s*|\s*$/g, "") // trim... but these whole things are not the right or possible ways at all... you idiot
-        if (line.startsWith('#')) {
-          const level = line.match(/^#+/)[0].length
-          const content = line.replace(/^#+/, '')
-          html += `<h${level}>${content}</h${level}>`
+    // a simple tokenizer which can deal the head, paragraph, link and list, it take markdown as input and return tokens as output
+    function tokenizer(markdown, length){
+      let thisMarkdown = markdown
+      const tokens = []
+      let i = 0
+      while(i < length) {
+        if(thisMarkdown[i] === '#') {
+          let j = i + 1
+          while(thisMarkdown[j] === '#') j++
+          const token = {
+            type: 'head',
+            level: j - i,
+            content: thisMarkdown.slice(j).split('\n')[0]
+          }
+          tokens.push(token)
+          i = j + token.content.length
+        } 
+        else if(thisMarkdown[i] === '*') {
+          let j = i + 1
+          while(thisMarkdown[j] === '*') j++
+          const token = {
+            type: 'list',
+            level: j - i,
+            content: thisMarkdown.slice(j).split('\n')[0]
+          }
+          tokens.push(token)
+          i = j + token.content.length
+        } 
+        else if(thisMarkdown[i] === '[') { // start the link
+          // i-j is the content of the link, j-k is the link, the link should be in one line, and () is optional, the signal [] have same content and link
+          let j = i + 1
+          while(thisMarkdown[j] !== ']') j++
+          let k = j + 1
+          if(thisMarkdown[k] === '(') {
+            k++
+            while(thisMarkdown[k] !== ')') k++
+          }
+          const token = {
+            type: 'link',
+            content: thisMarkdown.slice(i + 1, j),
+            link: k - j === 1 ? thisMarkdown.slice(i + 1, j) : thisMarkdown.slice(j + 1, k)
+          }
+          tokens.push(token)
+          i = k + 1
         }
         else {
-          html += `<p>${line}</p>`
+          const token = {
+            type: 'paragraph',
+            content: thisMarkdown.slice(i).split('\n')[0]
+          }
+          tokens.push(token)
+          i += token.content.length + 1
         }
-      })
-
-
-      return html
+      }
+      return tokens
+   
+    }
+    
+    // it take tokens as input and return ast as output
+    function parser(tokens) {
+      const ast = []
+      let i = 0
+      while(i < tokens.length) {
+        if(tokens[i].type === 'head') {
+          const head = {
+            type: 'head',
+            level: tokens[i].level,
+            content: tokens[i].content,
+            children: []
+          }
+          ast.push(head)
+          i++
+        }
+        else if(tokens[i].type === 'list') {
+          const list = {
+            type: 'list',
+            level: tokens[i].level,
+            content: tokens[i].content,
+            children: []
+          }
+          ast.push(list)
+          i++
+        }
+        else if(tokens[i].type === 'link') {
+          const link = {
+            type: 'link',
+            content: tokens[i].content,
+            link: tokens[i].link
+          }
+          ast.push(link)
+          i++
+        }
+        else if(tokens[i].type === 'paragraph') {
+          const paragraph = {
+            type: 'paragraph',
+            content: tokens[i].content
+          }
+          ast.push(paragraph)
+          i++
+        }
+      }
+      console.log(ast)
+      return ast
     }
 
-    // renderer
-    function render (markdown){
-      const html = downToUp(markdown)
-      document.querySelector('#markup-preview').innerHTML = html
+    function render(ast) {
+      let html = ''
+      ast.forEach(node => {
+        if(node.type === 'head') {
+          html += `<h${node.level}>${node.content}</h${node.level}>`
+        }
+        else if(node.type === 'list') {
+          html += `<li>${node.content}</li>`
+        }
+        else if(node.type === 'link') {
+          html += `<a href="${node.link}">${node.content}</a>`
+        }
+        else if(node.type === 'paragraph') {
+          html += `<p>${node.content}</p>`
+        }
+      })
+      return html
     }
 
     // make two parts scroll together : markdown and markupPreview
     let scrolling = 0  // 0: none; 1: 编辑区主动触发滚动; 2: 展示区主动触发滚动
+    let scrollTimer = null // 
     markdown.addEventListener('scroll', function(e,block=1){
-      // 然而这样... 匿名函数无法移除了
+      // 这样可以传参，然而这样... 匿名函数无法移除了
       handleScroll(e,block)
     })
     markupPreview.addEventListener('scroll', function(e,block=2){
@@ -197,20 +310,28 @@
     function handleScroll (e,block) {
       const { scrollTop, scrollHeight, clientHeight } = e.target
       const percent = scrollTop / (scrollHeight - clientHeight)
-      if (scrolling === 0) {
-        scrolling = block
-        if (block === 1) {
-          markupPreview.scrollTop = percent * (markupPreview.scrollHeight - markupPreview.clientHeight)
-        } else {
-          markdown.scrollTop = percent * (markdown.scrollHeight - markdown.clientHeight)
-        }
-        scrolling = 0
+      if(block === 1) {
+        if(scrolling === 0) scrolling = 1
+        if(scrolling === 2) return
+
       }
+      else if(block === 2) {
+        if(scrolling === 0) scrolling = 2
+        if(scrolling === 1) return
+      }
+      scroll(percent, block === 1 ? markupPreview : markdown)
+      
+      if(scrollTimer) clearTimeout(scrollTimer)
+      scrollTimer = setTimeout(() => {
+        scrolling = 0
+      }, 100)
+
     }
 
-
-
-
+    function scroll(percent, el) {
+      const { scrollHeight, clientHeight } = el
+      el.scrollTop = (scrollHeight - clientHeight) * percent
+    } 
   </script>
 </body>
 </html>
