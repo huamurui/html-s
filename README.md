@@ -7,3 +7,4 @@ i want to make some simple demo just through single html file.
 - [floating-action-button](./floating-action-button.html)
 - [heatmap](./heatmap.html)
 - [markdown-to-markup](./markdown-to-markup.html)
+- [damaku](./damaku.html)

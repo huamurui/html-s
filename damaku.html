@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>damaku</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #playground {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    #damaku {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="playground">
+    <canvas id="damaku"></canvas>
+  </div>
+  <script>
+    const canvas = document.getElementById('damaku')
+    const ctx = canvas.getContext('2d')
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+
+    console.log(canvas.width, canvas.height)
+
+    /* 
+      工具函数，用来，随机生成颜色或者别的样式。还有一个就是，根据字符串长度与字体大小算出一个与生存事件有关的参数，这个参数会用来控制弹幕的速度。
+    */
+    function randomDataSource(){
+      const data = [
+        '你好',
+        '我是',
+        '大咪咪',
+        'wwwwwwwwwww',
+        '呜呜呜',
+        'it seems everything is so difficult .. to me',
+        'この rainbow だ',
+        '人的能力是有极限的。',
+        'おれは人间をやめるぞ！'
+      ]
+
+      const content  = data[Math.floor(Math.random() * data.length)]
+      const style = {
+        color:`rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`,
+        fontSize: 20,
+        fontFamily: 'Arial'
+      }
+      return {
+        content,
+        style
+      }
+    }
+
+
+    // 我希望创建两个工具类，一个是弹幕类，在这里我们会安排场景，调度各个弹幕们。另一个是弹幕类，这个类会负责每条弹幕自己的行为，比如移动，消失等等。呼...其实是想到了之前飘雪花的那个。
+
+    class Damaku {
+      constructor(width, height, life, lineHeight, dataSource) {
+        this.width = width
+        this.height = height
+
+        this.lineHeight = lineHeight
+        this.life = life  // or so called duration
+        this.rowNem = Math.floor(height / lineHeight) // 行数
+
+        this.damakuList = new Array(this.rowNem).fill([]).map(() => [])
+        this.dataSource = dataSource // 这是一个用来生成弹幕数据的函数。
+
+      }
+
+      createDamaku(row) {
+        const damakuData0 = this.dataSource()
+        const damakuData = {
+          ...damakuData0,
+          width: ctx.measureText(damakuData0.content).width,
+          height: this.lineHeight,
+          top: (row+1) * this.lineHeight,
+          left: this.width
+        }
+        const damaku = new DamakuItem(damakuData, this.life)
+        this.damakuList[row].push(damaku)
+      }
+
+      update() {
+        ctx.clearRect(0, 0, this.width, this.height)
+        this.damakuList.forEach((row, index) => {
+          row.forEach((damaku, index) => {
+            damaku.render()
+            damaku.move()
+            if (damaku.isDead()) {
+              row.splice(index, 1)
+            }
+          })
+          if (this.checkChannel(index)) {
+            this.createDamaku(index)
+          }
+        })
+      }
+
+      checkChannel(row) {
+        const damakuList = this.damakuList[row]
+        if (damakuList.length === 0) {
+          return true
+        }
+        const lastDamaku = damakuList[damakuList.length - 1]
+        return lastDamaku.left + lastDamaku.width < this.width
+      }
+
+      start() {
+        setInterval(() => {
+          this.update()
+        }, 1000 / 60)
+      }
+
+    }
+
+    class DamakuItem {
+
+      constructor(damaku, life) {
+        this.content = damaku.content
+        this.style = damaku.style
+
+        this.birth = damaku.birth
+
+        this.width = damaku.width
+        this.height = damaku.height
+        this.top = damaku.top
+        this.left = damaku.left      
+
+        this.speed = damaku.width / life * 200 // 又是调参...
+                
+      }
+
+      render() {
+        ctx.fillStyle = this.style.color
+        ctx.font = `${this.style.fontSize}px ${this.style.fontFamily}`
+        ctx.fillText(this.content, this.left, this.top)
+      }
+
+      move() {
+        this.left -= this.speed
+      }
+
+      isDead() {
+        return this.left + this.width < 0
+      }
+    }
+
+    let damaku = new Damaku(canvas.width, canvas.height, 10000, 30, randomDataSource)
+    damaku.start()
+
+
+  </script>
+</body>
+</html>
