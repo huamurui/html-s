@@ -9,36 +9,59 @@
     body {
       margin: 0;
       padding: 0;
+      width: 100vw;
+      height: 100vh;
     }
 
     #playground {
-      width: 100vw;
-      height: 100vh;
+      width: 80%;
+      height: 80%;
       position: relative;
+      background-color: aliceblue;
+      overflow:  hidden;
     }
-    #damaku {
+
+    .damaku {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      white-space: nowrap;
+      /* 这个属性还蛮关键的...喵 */
+      animation: damaku 10s linear; 
+      font-size: 20;
+      font-family: 'Arial'
+    }
+
+    .damaku:hover {
+      animation-play-state: paused;
+    }
+
+    /* 悬停的小气泡 */
+    .damaku:hover::after {
+      content: '🥰';
+      position: absolute;
+      /* 怎么对齐啊.. */      
+      font-size: 20px;
+      color: red;
+    }
+
+    @keyframes damaku {
+      from {
+        left: 100%;
+      }
+      to {
+        left: -100%;
+      }
     }
   </style>
 </head>
 <body>
   <div id="playground">
-    <canvas id="damaku"></canvas>
   </div>
   <script>
-    const canvas = document.getElementById('damaku')
-    const ctx = canvas.getContext('2d')
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight
-
-    console.log(canvas.width, canvas.height)
-
     /* 
-      工具函数，用来，随机生成颜色或者别的样式。还有一个就是，根据字符串长度与字体大小算出一个与生存事件有关的参数，这个参数会用来控制弹幕的速度。
+      我会想用 css 动画而不是 canvas 来实现弹幕。
+      因为有些东西像给弹幕点赞，悬浮时静止，还是用常规的 dom 操作方便很多。
+
+      我搞过一个飘雪花的小 demo，那个是用 canvas 来实现的，虽然这次使用的方式不一样，但有些东西依旧是通的。一个场景/调度中心，一个具体创建更新弹幕的。反正都是飘嘛...
     */
     function randomDataSource(){
       const data = [
@@ -56,8 +79,7 @@
       const content  = data[Math.floor(Math.random() * data.length)]
       const style = {
         color:`rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`,
-        fontSize: 20,
-        fontFamily: 'Arial'
+
       }
       return {
         content,
@@ -66,104 +88,101 @@
     }
 
 
-    // 我希望创建两个工具类，一个是弹幕类，在这里我们会安排场景，调度各个弹幕们。另一个是弹幕类，这个类会负责每条弹幕自己的行为，比如移动，消失等等。呼...其实是想到了之前飘雪花的那个。
-
     class Damaku {
-      constructor(width, height, life, lineHeight, dataSource) {
+      constructor(width, height, lineHeight, dataSource) {
         this.width = width
         this.height = height
-
         this.lineHeight = lineHeight
-        this.life = life  // or so called duration
-        this.rowNem = Math.floor(height / lineHeight) // 行数
+        this.channelNum = Math.floor(height / lineHeight)
+        this.damakuList = new Array(this.channelNum).fill([]).map(() => [])
 
-        this.damakuList = new Array(this.rowNem).fill([]).map(() => [])
-        this.dataSource = dataSource // 这是一个用来生成弹幕数据的函数。
-
+        this.dataSource = dataSource
+        this.timer = null
       }
 
-      createDamaku(row) {
-        const damakuData0 = this.dataSource()
-        const damakuData = {
-          ...damakuData0,
-          width: ctx.measureText(damakuData0.content).width,
-          height: this.lineHeight,
-          top: (row+1) * this.lineHeight,
+      /* 创建一个弹幕 */
+      createDamaku(channel) {
+        const data = {
+          ...this.dataSource(),
+          top: channel * this.lineHeight,
           left: this.width
         }
-        const damaku = new DamakuItem(damakuData, this.life)
-        this.damakuList[row].push(damaku)
+        const damaku = new DamakuItem(data)
+        damaku.render()
+        this.damakuList[channel].push(damaku)
       }
-
-      update() {
-        ctx.clearRect(0, 0, this.width, this.height)
-        this.damakuList.forEach((row, index) => {
-          row.forEach((damaku, index) => {
-            damaku.render()
-            damaku.move()
-            if (damaku.isDead()) {
-              row.splice(index, 1)
-            }
-          })
-          if (this.checkChannel(index)) {
-            this.createDamaku(index)
-          }
-        })
-      }
-
-      checkChannel(row) {
-        const damakuList = this.damakuList[row]
+      /* 查看一下哪一行可以插一插 */
+      checkChannel(channel) {
+        console.log(this.damakuList)
+        const damakuList = this.damakuList[channel]
         if (damakuList.length === 0) {
           return true
         }
         const lastDamaku = damakuList[damakuList.length - 1]
-        return lastDamaku.left + lastDamaku.width < this.width
+        const lastDamakuRect = lastDamaku.dom.getBoundingClientRect()
+        return lastDamakuRect.left + lastDamakuRect.width < this.width
       }
 
-      start() {
-        setInterval(() => {
-          this.update()
-        }, 1000 / 60)
+      start(){
+        this.timer = setInterval(() => {
+          const channel = Math.floor(Math.random() * this.channelNum)
+          if (this.checkChannel(channel)) {
+            this.createDamaku(channel)
+          }
+          this.damakuList.forEach((damakuList, channel) => {
+            damakuList.forEach((damaku, index) => {
+              if (damaku.isDead()) {
+                damaku.unRender()
+                damakuList.splice(index, 1)
+              }
+            })
+          })
+        }, 1000)
       }
 
+      stop() {
+        clearInterval(this.timer)
+      }
     }
 
     class DamakuItem {
 
-      constructor(damaku, life) {
+      constructor(damaku) {
+
+        this.dom = null
+
         this.content = damaku.content
         this.style = damaku.style
-
-        this.birth = damaku.birth
-
-        this.width = damaku.width
-        this.height = damaku.height
         this.top = damaku.top
         this.left = damaku.left      
-
-        this.speed = damaku.width / life * 200 // 又是调参...
-                
       }
 
       render() {
-        ctx.fillStyle = this.style.color
-        ctx.font = `${this.style.fontSize}px ${this.style.fontFamily}`
-        ctx.fillText(this.content, this.left, this.top)
+        this.dom = document.createElement('div')
+        this.dom.classList.add('damaku')
+        this.dom.innerText = this.content
+        this.dom.style = `
+          top: ${this.top}px;
+          left: ${this.left}px;
+          color: ${this.style.color};
+        `
+        playground.appendChild(this.dom)
       }
 
-      move() {
-        this.left -= this.speed
+      unRender() {
+        playground.removeChild(this.dom)
       }
-
       isDead() {
-        return this.left + this.width < 0
+        const { left } = this.dom.getBoundingClientRect()
+        return left + this.dom.getBoundingClientRect().width < 0
       }
     }
 
-    let damaku = new Damaku(canvas.width, canvas.height, 10000, 30, randomDataSource)
+    const playground = document.querySelector('#playground')
+    const { width, height } = playground.getBoundingClientRect()
+
+    let damaku = new Damaku(width, height, 30, randomDataSource)
     damaku.start()
-
-
   </script>
 </body>
 </html>

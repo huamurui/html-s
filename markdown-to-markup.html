@@ -66,8 +66,7 @@
   <div id="playground">
     <section>
       <div id="markdown-editor">
-        <!-- <label for="markdown">markdown editor</label> -->
-        <textarea id="markdown"></textarea>
+        <textarea title="markdown" id="markdown"></textarea>
       </div>
     </section>
 
@@ -78,76 +77,107 @@
   </div>
 
   <script>
-/* 
-[abc](https://abc)
-  
-**abc**
-  
-### abc
-  
-*/
-    /* 
-      may be single file is not enough ...
-      ### i want to try out following things:
-      
-      1. meta programming, use Proxy, Reflect to create a reactive ui-data
-      2. component based on hoc, hooks, and many other design patterns
-      3. maybe some compiler(?
+    const testal = `
+# h1
+## h2
+### h3
+#### *h4*
 
-      ### and use them to create some interesting things
-      a. pet, game, chatroom...
-      b. homepage of your own
-      c. ... the editor!
-    */
+**bold** __bold__
 
-    /* 
-      i just found that ... the 'editor' alone is also a hard work... it couldn't be done by a simple textarea, if you want good style, or add some features like syntax highlight... even if you don't plan to do the compile part at all, you still need to know something about compiler, lexer, parser ... then hide the original textarea and replace it with styled html elements and bind the position of the cursor to the textarea and so on and so on...
+*italic* _italic_
 
-      and there are also something like wysiwyg ...
+\`code\`
+<br><br>
+i have tried many ... path. but considering the ability of mine, maybe the easiest way do it better, cause i... really do know how to handle them...
 
-      ### it's much more difficult than i thought to me, even just a demo... really...
+\`i have tried many ... path. but considering the ability of mine, maybe the easiest way do it better, cause i... really do know how to handle them...\`
 
-      so, do the simple part, make clear how much you want to get... or go to see more code of others
 
-      1. markdown to markup, pick up title, paragraph, link.
-      1.1 make good style in the markdown editor, markup preview, toc make them scroll together highlight the title, link even in the editor
+\`我试了好多东西，踩坑吧，但就目前而言，现在这个最<ruby>简单<rt>ben dan</rt></ruby>的方法效果功能可能是最好的，因为那些玩意我是真搞不懂... 还不如直接硬写算球。 虽然这样好像... 学不到什么东西就是了。\`
 
-      2. data <=> ui, use Proxy, Reflect to create reactive data rather than a eventListener, and deal with dom render... also use proxy, to take care of diff.... is it necessary or doable? i mean... to do the diff while compiling? .... what are you thinking ???
 
-      重新确认需求。
-      你可能能做到的是，解析 markdown 部分语法，并在解析过程中具体而言应该是生成 ast 这一步进行 diff，根据 diff 结果更新 dom。
-      你基本不可能做到的是——一个像样的编辑器: 这需要你对输入内容的区域也进行美化，分块，分块对于两区域同步滚动也很重要。 
 
-    */
+### [link-baidu](https://www.baidu.com/)
 
-    /*
-      editor's tech..
-      1. in the browser: contenteditable -> body(editor).setAttribute('contenteditable', true), `Window.getSelection` and give some button to add some style. tata~ you got it!
-      2. what i mentioned above, things like proxy the data and user actions, data driven...
+![*image*](https://www.baidu.com/img/flexible/logo/pc/result.png)
 
-      [https://juejin.cn/post/6844903504478208007]这是... 近六年前的一篇文章了，然而六年了这个 slateJS 还在 beta （233. 
-      [https://zhuanlan.zhihu.com/p/268366406]
-      还有一些历史...Quill.js 好像是我之前看到的那个写 redis 插件的人有参与...
+- list
+## - list
 
-      好像并没有什么收获...毕竟我一行代码都还没写。要考虑确认的...有点多，目前写的这个真的就只是糊了糊而已。也许对计算机的理解又多了一点。vue 或者 react 这样的框架给出的并不是性能或者单纯效率的提升，而是理念的变化，jQuery 写的政府官网和现代网站整个体验也都是不一样的。对于开发而言，免除了手动操作 dom 的劳役，解放的注意力可以做很多别的，数据驱动，组件化... “状态”...嗯，这是个很有意思的东西。
+> blockquote
+aaa
+---
 
-      理念。所以，学编程也一定要会键政(x
+<em>html</em>
 
-    */
 
-    // set reactive data and get the dom and bind the data. once the data changed, the dom will be updated, rerender the markup preview and toc
-    // by simple, maybe a eventListener is enough, but i want to ... make it(doms) rely on data rather than directly on user actions.
+<button>html</button>
+
+
+<textarea style="height:100px;width:200px;border: 1px solid black;" id="konorainbowda"></textarea>
+
+oh...this is dangerous, but who cares?
+`
+
     const rules = {
-      head: /^ {0,3}(#{1,6})(?=\s|$)(.*)(?:\n+|$)/,
-      paragraph: /^[^\n]+/,
-      bold: /\*\*([^*]+)\*\*/,
-      link: /\[([^\]]+)\]\(([^)]+)\)/,
-      list: /^\s*[-+*]\s+/,
-      html: /^<(\w+)([^<]+)*(?:>(.*)<\/\1>|\s+\/>)$/,
-      hr : /^( *[-*_]){3,} *(?:\n+|$)/,
+      regexp:{
+        heading: /^(#{1,6})\s+(.+)$/gm,
+        bold: /(\*\*|__)(.+?)\1/g,
+        italic: /(\*|_)(.+?)\1/g,
+        code: /(`+)(.+?)\1/g,
+        // 这里的顺序，...其实应该也是优先级。如果那个循环是有序的话
+        image: /!\[(.+?)\]\((.+?)\)/g,
+        link: /\[(.+?)\]\((.+?)\)/g,
+        list: /^(\*|\-|\+)\s+(.+)$/gm,
+        blockquote: /^>\s+(.+)$/gm,
+        hr: /^-{3,}$/gm,
+        newline: /\n{2,}/g,
+
+        html : /<[^>]+>/g,
+      },
+      replace:{
+        heading: function (match, p1, p2) {
+          var level = p1.length;
+          return "<h" + level + ">" + p2 + "</h" + level + ">";
+        },
+        bold: function (match, p1, p2) {
+          return "<strong>" + p2 + "</strong>";
+        },
+        italic: function (match, p1, p2) {
+          return "<em>" + p2 + "</em>";
+        },
+        code: function (match, p1, p2) {
+          return "<code>" + p2 + "</code>";
+        },
+        image: function (match, p1, p2) {
+          return "<img src=\"" + p2 + "\" alt=\"" + p1 + "\">";
+        },
+        link: function (match, p1, p2) {
+          return "<a href=\"" + p2 + "\">" + p1 + "</a>";
+        },
+        list: function (match, p1, p2) {
+          return "<li>" + p2 + "</li>";
+        },
+        blockquote: function (match, p1) {
+          return "<blockquote>" + p1 + "</blockquote>";
+        },
+        hr: function () {
+          return "<hr>";
+        },
+        newline: function () {
+          return "<br>";
+        },
+
+        html: function (match) {
+          return match;
+        },
+      }
     }
     const markdown = document.querySelector('#markdown')
     const markupPreview = document.querySelector('#markup-preview')
+    
+    // let parserWithCache = AddCache(parser)
     const data = new Proxy(
       { 
         markdown: '',
@@ -158,7 +188,11 @@
         set(target, key, value) {
           target[key] = value
           if(key === 'markdown') {
-            markupPreview.innerHTML = render(parser(lexer(value)))            
+            // markupPreview.innerHTML = render(parser(lexer(value)))  
+            // console.time('parser')
+            markupPreview.innerHTML = parser(value)
+            // markupPreview.innerHTML = parserWithCache(value)      
+            // console.timeEnd('parser')
           }
           return true
         }
@@ -166,198 +200,47 @@
     )
 
     // init value
-    data.markdown = document.querySelector('script').innerText
+    data.markdown = testal
     markdown.value = data.markdown
     markdown.addEventListener('input', debounce(update, 500))
     function update(e) {
       data.markdown = e.target.value
     }
 
-    // a simple tokenizer which can deal the head, paragraph, link and list, it take markdown as input and return tokens as output
-    /* 
-      目前的实现... 很有问题，首先你现在这破玩意的匹配必须另起一行并且前面不能带空格，链接匹配只要开始就不会中断如果缺了空格啥的会直接把全文都当成那啥...，另外它也不支持嵌套组合一类的，匹配到一种其他的就不能用了。还有一些必要的细节问题，比如到底改怎么看到空格和换行，什么时候inline什么时候block... 都压根没有考虑。怎么说... 这破玩意，是只在某些特殊时刻才会起作用的蛇皮代码...
 
-      还有一件事，那你要在这里做到多少？直接识别出 tag，还是更精细简单一些的字符？然后别的交给后面的 parser？
-      ... so bad bad bad
-    */
-    function lexer(markdown) {
-      const tokens = []
-      let cur = 0
-      let len = markdown.length
-      while(cur < len) {
-        let char = markdown[cur]
-        if(char === '#') {
-          let match = markdown.slice(cur).match(rules.head)
-          if(match) {
-            tokens.push({
-              type: 'head',
-              content: match[0].slice(match[0].indexOf(' ') + 1),
-              level: match[1].length        
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        else if(char === '*') {
-          let match = markdown.slice(cur).match(rules.bold)
-          if(match) {
-            tokens.push({
-              type: 'bold',
-              content: match[1]
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        else if(char === '[') {
-          let match = markdown.slice(cur).match(rules.link)
-          if(match) {
-            tokens.push({
-              type: 'link',
-              content: match[1],
-              link: match[2]
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        else if(char === '-' || char === '+' || char === '*') {
-          let match = markdown.slice(cur).match(rules.list)
-          if(match) {
-            tokens.push({
-              type: 'list',
-              content: match[0].slice(match[0].indexOf(' ') + 1)
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        else if(char === '<') {
-          let match = markdown.slice(cur).match(rules.html)
-          if(match) {
-            tokens.push({
-              type: 'html',
-              content: match[0]
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        else if(char === '-') {
-          let match = markdown.slice(cur).match(rules.hr)
-          if(match) {
-            tokens.push({
-              type: 'hr',
-              content: match[0]
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        else {
-          let match = markdown.slice(cur).match(rules.paragraph)
-          if(match) {
-            tokens.push({
-              type: 'paragraph',
-              content: match[0]
-            })
-            cur += match[0].length
-            continue
-          }
-        }
-        cur++
+    // function lexer(markdown) {
+    //   const tokens = []
+    // }
+    // // it take tokens as input and return ast as output
+    // function parser(tokens) {
+    //   const ast = [] // 如果你以后要缓存的话..也许要用一下下“闭包”哦  
+      
+    //   return html
+    // }
+    
+    function parser(markdown){
+      let html = markdown
+      for(let key in rules.regexp) {
+        // 如果能把颗粒度再细一些就好了...现在是完全做不了缓存的...更不可能diff
+        html = html.replace(rules.regexp[key], rules.replace[key])
       }
-
-      return tokens
-    }
-    // it take tokens as input and return ast as output
-    function parser(tokens) {
-      const ast = []
-      let cur = 0
-      let len = tokens.length
-      while(cur < len) {
-        let token = tokens[cur]
-        if(token.type === 'head') {
-          ast.push({
-            type: 'head',
-            content: token.content,
-            level: token.level
-          })
-        }
-        else if(token.type === 'bold') {
-          ast.push({
-            type: 'bold',
-            content: token.content
-          })
-        }
-        else if(token.type === 'link') {
-          ast.push({
-            type: 'link',
-            content: token.content,
-            link: token.link
-          })
-        }
-        else if(token.type === 'list') {
-          ast.push({
-            type: 'list',
-            content: token.content
-          })
-        }
-        else if(token.type === 'html') {
-          ast.push({
-            type: 'html',
-            content: token.content
-          })
-        }
-        else if(token.type === 'hr') {
-          ast.push({
-            type: 'hr',
-            content: token.content
-          })
-        }
-        else if(token.type === 'paragraph') {
-          ast.push({
-            type: 'paragraph',
-            content: token.content
-          })
-        }
-        cur++
-      }
-      
-
-      return ast
-    }
-
-    function render(ast) {
-      let html = ''
-      ast.forEach(item => {
-        if(item.type === 'head') {
-          html += `<h${item.level}>${item.content}</h${item.level}>`
-        }
-        else if(item.type === 'bold') {
-          html += `<strong>${item.content}</strong>`
-        }
-        else if(item.type === 'link') {
-          html += `<a href="${item.link}">${item.content}</a>`
-        }
-        else if(item.type === 'list') {
-          html += `<li>${item.content}</li>`
-        }
-        else if(item.type === 'html') {
-          html += item.content
-        }
-        else if(item.type === 'hr') {
-          html += `<hr />`
-        }
-        else if(item.type === 'paragraph') {
-          html += `<p>${item.content}</p>`
-        }
-      })
-      
-      
       return html
     }
+    
+    // function AddCache(fn) {
+    //   let cache = {}
+    //   return function (markdown) {
+    //     if(cache[markdown]) return cache[markdown]
+    //     let html = fn(markdown)
+    //     cache[markdown] = html
+    //     return html
+    //   }
+    // }
 
+
+    /* 
+      tools~~
+    */
     const syncScroller = function () {
       let nodes = Array.prototype.filter.call(arguments, item => item instanceof HTMLElement)
       let max = nodes.length
@@ -387,10 +270,6 @@
     }
     const syncS = syncScroller(markdown, markupPreview)
     // syncS() // 解绑
-
-    /* 
-      tools
-    */
 
     function debounce(fn, delay) {
       let timer = null
