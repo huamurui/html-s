@@ -7,6 +7,10 @@
   <title>page</title>
   <style>
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
       background-color: #f0f0f0;
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -14,6 +18,30 @@
       line-height: 1.42857143;
       color: #333;
     }
+
+    header {
+      position: fixed;
+      top: 0;
+      width: 100%;
+      height: 50px;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    nav {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+    }
+
+    nav a {
+      text-decoration: none;
+      color: #333;
+    }
+
+
 
     #playground {
       width: 100%;
@@ -23,6 +51,12 @@
       box-sizing: border-box;
     }
 
+    section {
+      margin: 20px 0;
+    }
+
+
+
     .part {
       margin: 20px 0;
     }
@@ -30,6 +64,13 @@
   </style>
 </head>
 <body>
+  <header>
+    <nav>
+      <a href="#A">A</a>
+      <a href="#B">B</a>
+      <a href="#C">C</a>
+    </nav>
+  </header>
 
   <div id="playground"></div>
   <script>
@@ -48,7 +89,7 @@
 
     `
     const partA1 =`
-    回忆一下...我小时候好像又在画黑板报手抄报这种玩意.. 虽然字写的一团乱但是还是会画点东西。不对，小小小时候字应该挺整齐的。
+    回忆一下...我小时候好像就有在画黑板报手抄报这种玩意.. 虽然字写的一团乱但是还是会画点东西。不对，小小小时候字应该挺整齐的。
     刚开始弄几次还挺有意思的，后来就只剩“md 这破玩意为什么非要我搞，占我课间时间让我没法抽空把作业糊完回家玩游戏”
     
     现在可能也是...
@@ -104,7 +145,7 @@
 
 
 
-    
+
     我觉得我很保守。
     保守意味着被遗忘、被遗弃的角落，在那里生长着最为疯狂的东西。
 
@@ -121,7 +162,7 @@
 
     const playground = document.querySelector('#playground')
 
-    let parts =  [partA, partA1, partB, partB01, partB02, partB1, partB2, partB3, partC, partC0]
+    let parts =  [[partA, partA1], [partB, partB01, partB02, partB1, partB2, partB3], [partC, partC0]]
 
     function parser(md){
       /* 
@@ -132,10 +173,28 @@
     }
 
     parts.forEach((part, index) => {
-        let p = document.createElement('p')
-        p.innerHTML = parser(part)
-        playground.appendChild(p)
+      let abc = ['A', 'B', 'C']
+      
+      let section = document.createElement('section')
+      section.classList.add('part')
+      section.id = `${abc[index]}`
+
+      playground.appendChild(section)
+      part.forEach((p, i) => {
+        let pEl = document.createElement('p')
+        pEl.innerHTML = parser(p)
+        section.appendChild(pEl)
+      })
+
+      section.appendChild(document.createElement('hr'))
+
     })
+
+    const section = document.querySelectorAll('section')
+    /* 
+      按照创建的section，去做一个，... 滚动的效果吧...可以吗
+    */
+
 
   </script>
 </body>
