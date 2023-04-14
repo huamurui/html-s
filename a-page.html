@@ -6,7 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>page</title>
   <style>
-
     html {
       scroll-behavior: smooth;
       overflow-y: scroll;
@@ -17,11 +16,17 @@
       padding: 0;
 
       background-color: #f0f0f0;
-      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-size: 14px;
-      line-height: 1.42857143;
+      font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
       color: #333;
+    }
 
+    #playground {
+      width: 100%;
+      height: 100%;
+      background-color: #fff;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
     header {
@@ -54,72 +59,45 @@
     }
 
     nav a:hover {
-      color: #ff8787;
-      border-bottom: 4px solid #ff8787;
+      color: #ffadad;
+      border-bottom: 4px solid #ffadad;
     }
     nav a.active {
-      color: #ff8787;
-      border-bottom: 4px solid #ff8787;
-    }
-
-
-
-    #playground {
-      width: 100%;
-      height: 100%;
-      background-color: #fff;
-      padding: 20px;
-      box-sizing: border-box;
-    }
-
-    .part {
-      margin: 20px 0;
-    }
-
-    section {
-      margin: 20px 0;
+      color: #ffadad;
+      border-bottom: 4px solid #ffadad;
     }
 
     /* 加点圆球球什么的 */
-    section.active::before {
-      content: "";
-      position: absolute;
-      top: -20px;
-      left: 0;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: #333;
+    section {
+      padding-top: 50px;
+      background-image: linear-gradient(45deg, #addeff 25%, transparent 25%, transparent 50%, #ffd1d1 50%, #ffd1d1 75%, transparent 75%, transparent);
+      background-attachment: fixed;
     }
 
 
-    #toy {
+    .toy {
       position: fixed;
-
       display: block;
+      top: 80px;
+      right: 100px;
 
       height: 20px;
-      width: 20px;
-      color: #ff8787;
-      background-color: #333;
-      border-radius: 50%;
+      border-radius: 20px;
+
       z-index: 999;
       transition: all 0.3s ease-in-out;
     }
-
-
           
     :root {
       --angle: 45deg;
-      --opacity: 0.5;
     }
 
     .rainbow {
-      --border-size: 0.3rem;
+      --border-size: 0.2rem;
       border: var(--border-size) solid transparent;
-
       /* Paint an image in the border */
-      border-image: conic-gradient(
+      border-image: 
+        conic-gradient(
           from var(--angle),
           #d53e33 0deg 90deg,
           #fbb300 90deg 180deg,
@@ -127,8 +105,7 @@
           #399953 270deg 360deg
         )
         1 stretch;
-      background: rgb(255 255 255 / var(--opacity));
-      animation: rotate 4s linear infinite, opacityChange 3s infinite alternate;
+      animation: rotate 4s linear infinite;
     }
 
     @property --angle {
@@ -155,13 +132,10 @@
   </header>
 
   <div id="playground"></div>
+  <footer>
+    <div>just for... anxiety</div>
+  </footer>
   <script>
-    /* 
-      一些 ... 东西。
-      我会想写一个文档，在这里
-    */
-
-
     const partA = `
     >我想做一个对社会有用的人...
 
@@ -187,7 +161,6 @@
     中学玉玉的时候，什么都不想干。老师问我“作业都写完了吗，题都会做了吗”“没有”。
     我不知道要做什么... 但... 做那些... 久了真的挺怀疑的
     `
-
     const partB01 = `
     >我们中有很多软弱者，很多得过且过者，没有本钱，没有能力，没有学历，便把希望寄托在极度抽象的“情商”和社交上面，仿佛在面试前捡一捡碎纸片就能被录取，仿佛平时给老板嘘寒问暖就能升职，仿佛温柔体贴就能迎娶白富美，仿佛为人处事就能走向人生巅峰。    
     `
@@ -224,10 +197,6 @@
     `
 
     const partC = `
-
-
-
-
     我觉得我很保守。
     保守意味着被遗忘、被遗弃的角落，在那里生长着最为疯狂的东西。
 
@@ -235,30 +204,21 @@
 
     想要目标明确理想坚定有条不紊的生活、度过一生什么的，不是我这种保守的人能想的事。    
     `
-
     const partC0 = `
     好想变魅魔...
     `
-
-
 
     const playground = document.querySelector('#playground')
 
     let parts =  [[partA, partA1], [partB, partB01, partB02, partB1, partB2, partB3], [partC, partC0]]
 
     function parser(md){
-      /* 
-        其实只是想把引用的单独拿一下，方便搞样式，顺便再把换行也搞一下
-        > 你好
-      */
       return md.replace(/(>.*\n)/g, '<blockquote>$1</blockquote>').replace(/\n/g, '<br>')
     }
 
     parts.forEach((part, index) => {
-      let abc = ['A', 'B', 'C']
-      
+      let abc = ['A', 'B', 'C']      
       let section = document.createElement('section')
-      section.classList.add('part')
       section.id = `${abc[index]}`
 
       playground.appendChild(section)
@@ -267,82 +227,74 @@
         pEl.innerHTML = parser(p)
         section.appendChild(pEl)
       })
-
-      section.appendChild(document.createElement('hr'))
-
     })
 
     const section = document.querySelectorAll('section')
     const navs = document.querySelectorAll('nav a')
-    /* 
-      按照创建的section，去做一个，... 滚动的效果吧...可以吗
-      也许我应该更明确一些... 会有明显的分块，滚动到某个分块的时候，这个分块会有明显的变化
-    */
-
-    /* 好吧我再退而求其次，滚到了，就添样式 */
     window.addEventListener('scroll', () => {
       let scrollTop = document.documentElement.scrollTop || document.body.scrollTop
       let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
       let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
-
-      if(scrollTop + clientHeight >= scrollHeight){
-        section[section.length - 1].classList.add('active')
-      }else{
-        section[section.length - 1].classList.remove('active')
-      }
-
-      navs.forEach((nav, i) => {
-        if(section[i].getBoundingClientRect().top < clientHeight / 2 && section[i].getBoundingClientRect().top > -clientHeight / 2){
-          nav.classList.add('active')
-        }else{
+      let scrollBottom = scrollHeight - scrollTop - clientHeight
+      if(scrollBottom < 100){
+        navs.forEach((nav) => {
           nav.classList.remove('active')
-        }
-      })
-
-      section.forEach((s, i) => {
-        if(s.getBoundingClientRect().top < clientHeight / 2){
-          // s.classList.add('rainbow')
-        }else{
-          // s.classList.remove('rainbow')
-        }
-      })
+        })
+        navs[navs.length - 1].classList.add('active')
+      }else{
+        section.forEach((sec, index) => {
+          if(sec.offsetTop - scrollTop < 100){
+            navs.forEach((nav) => {
+              nav.classList.remove('active')
+            })
+            navs[index].classList.add('active')
+          }
+        })
+      }
     })
 
     /* 
-    就是...还想加点无聊的小东西，监听鼠标的移动或者在移动端是手持设备角度的变化。
+      抄一个，整体加一层漂亮的小雪花，
     */
 
     const toy = document.createElement('div')
     toy.classList.add('toy')
     toy.innerHTML = `miaomiaomiao...`
+    toy.addEventListener(
+      'mouseover',
+      () => {
+        toy.classList.add('rainbow')
+      },
+    )
+    toy.addEventListener(
+      'mouseout',
+      () => {
+        toy.classList.remove('rainbow')
+      },
+    )
     document.body.appendChild(toy)
 
     let x = 0
     let y = 0
-
     let x2 = 0
     let y2 = 0
-
-    let delay = 25
-
     window.addEventListener('mousemove', (e) => {
       x2 = e.clientX - window.innerWidth / 2
       y2 = e.clientY - window.innerHeight / 2
-
-
     })
     window.addEventListener('deviceorientation', (e) => {
-      x2 = e.beta - 90
-      y2 = e.gamma - 90
+      x2 = e.gamma
+      y2 = e.beta
     })
 
-    setInterval(() => {
-      x += (x2 - x) / delay
-      y += (y2 - y) / delay
-
-      toy.style.transform = `rotateX(${y / 10}deg) rotateY(${x / 10}deg)`
-    }, 25)
-
+    function animate(){
+      x += (x2 - x) / 10
+      y += (y2 - y) / 10
+      toy.style.transform = `translate(${x / 10}px, ${y / 10}px)`
+      toy.style.webkitTransform = `translate(${x / 10}px, ${y / 10}px)`
+      requestAnimationFrame(animate)
+    }
+    animate()
   </script>
 </body>
 </html>
