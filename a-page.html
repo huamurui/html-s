@@ -9,14 +9,19 @@
 
     html {
       scroll-behavior: smooth;
+      overflow-y: scroll;
     }
 
     body {
+      margin: 0;
+      padding: 0;
+
       background-color: #f0f0f0;
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
       font-size: 14px;
       line-height: 1.42857143;
       color: #333;
+
     }
 
     header {
@@ -30,15 +35,31 @@
 
     nav {
       width: 100%;
-      height: 100%;
+      height: 50px;
       display: flex;
       justify-content: space-around;
       align-items: center;
-    }
-
+    }   
     nav a {
       text-decoration: none;
       color: #333;
+
+      height: 50px;
+      line-height: 50px;
+      width: 50px;
+      text-align: center;
+
+      border-bottom: 4px solid transparent;
+      transition: all 0.3s ease-in-out;
+    }
+
+    nav a:hover {
+      color: #ff8787;
+      border-bottom: 4px solid #ff8787;
+    }
+    nav a.active {
+      color: #ff8787;
+      border-bottom: 4px solid #ff8787;
     }
 
 
@@ -51,14 +72,75 @@
       box-sizing: border-box;
     }
 
+    .part {
+      margin: 20px 0;
+    }
+
     section {
       margin: 20px 0;
     }
 
+    /* 加点圆球球什么的 */
+    section.active::before {
+      content: "";
+      position: absolute;
+      top: -20px;
+      left: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #333;
+    }
 
 
-    .part {
-      margin: 20px 0;
+    #toy {
+      position: fixed;
+
+      display: block;
+
+      height: 20px;
+      width: 20px;
+      color: #ff8787;
+      background-color: #333;
+      border-radius: 50%;
+      z-index: 999;
+      transition: all 0.3s ease-in-out;
+    }
+
+
+          
+    :root {
+      --angle: 45deg;
+      --opacity: 0.5;
+    }
+
+    .rainbow {
+      --border-size: 0.3rem;
+      border: var(--border-size) solid transparent;
+
+      /* Paint an image in the border */
+      border-image: conic-gradient(
+          from var(--angle),
+          #d53e33 0deg 90deg,
+          #fbb300 90deg 180deg,
+          #377af5 180deg 270deg,
+          #399953 270deg 360deg
+        )
+        1 stretch;
+      background: rgb(255 255 255 / var(--opacity));
+      animation: rotate 4s linear infinite, opacityChange 3s infinite alternate;
+    }
+
+    @property --angle {
+        syntax: "<angle>";
+        initial-value: 0deg;
+        inherits: false;
+      }
+
+    @keyframes rotate {
+        to {
+          --angle: 360deg;
+        }
     }
 
   </style>
@@ -191,10 +273,75 @@
     })
 
     const section = document.querySelectorAll('section')
+    const navs = document.querySelectorAll('nav a')
     /* 
       按照创建的section，去做一个，... 滚动的效果吧...可以吗
+      也许我应该更明确一些... 会有明显的分块，滚动到某个分块的时候，这个分块会有明显的变化
     */
 
+    /* 好吧我再退而求其次，滚到了，就添样式 */
+    window.addEventListener('scroll', () => {
+      let scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+      let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
+      let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+
+      if(scrollTop + clientHeight >= scrollHeight){
+        section[section.length - 1].classList.add('active')
+      }else{
+        section[section.length - 1].classList.remove('active')
+      }
+
+      navs.forEach((nav, i) => {
+        if(section[i].getBoundingClientRect().top < clientHeight / 2 && section[i].getBoundingClientRect().top > -clientHeight / 2){
+          nav.classList.add('active')
+        }else{
+          nav.classList.remove('active')
+        }
+      })
+
+      section.forEach((s, i) => {
+        if(s.getBoundingClientRect().top < clientHeight / 2){
+          // s.classList.add('rainbow')
+        }else{
+          // s.classList.remove('rainbow')
+        }
+      })
+    })
+
+    /* 
+    就是...还想加点无聊的小东西，监听鼠标的移动或者在移动端是手持设备角度的变化。
+    */
+
+    const toy = document.createElement('div')
+    toy.classList.add('toy')
+    toy.innerHTML = `miaomiaomiao...`
+    document.body.appendChild(toy)
+
+    let x = 0
+    let y = 0
+
+    let x2 = 0
+    let y2 = 0
+
+    let delay = 25
+
+    window.addEventListener('mousemove', (e) => {
+      x2 = e.clientX - window.innerWidth / 2
+      y2 = e.clientY - window.innerHeight / 2
+
+
+    })
+    window.addEventListener('deviceorientation', (e) => {
+      x2 = e.beta - 90
+      y2 = e.gamma - 90
+    })
+
+    setInterval(() => {
+      x += (x2 - x) / delay
+      y += (y2 - y) / delay
+
+      toy.style.transform = `rotateX(${y / 10}deg) rotateY(${x / 10}deg)`
+    }, 25)
 
   </script>
 </body>
