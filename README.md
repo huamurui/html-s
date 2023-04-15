@@ -8,3 +8,7 @@ i want to make some simple demo just through single html file.
 - [heatmap](./heatmap.html)
 - [markdown-to-markup](./markdown-to-markup.html)
 - [damaku](./damaku.html)
+- [dialogue-bubbles](./dialogue-bubbles.html)
+- [fluid](./fluid.html)
+
+- [a-page](./a-page.html)

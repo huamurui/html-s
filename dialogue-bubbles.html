@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>dialogue bubbles</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #playground {
+      position: relative;
+
+      height: 520px;
+      max-width: 750px;
+      width: 100%;
+      margin: 0 auto;
+      overflow: hidden;
+
+      background-color: antiquewhite;
+    }
+
+    /* 
+      移动端会弹出遮罩
+      但是，pc 上我会想直接挤占空间... 可是怎么做呢...
+    */
+    .sidebar-container {
+      position: relative;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 300px;
+      height: 100%;
+      background-color: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+
+    .sidebar-container.collapsed {
+      display: none;
+    }
+
+    /* 
+      注意加一下动画...
+    */
+    .bubble-container {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      /* 滚动条？ */
+      right: -17px;
+
+      overflow-y: scroll;
+
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .bubble {
+      position: relative;
+      display: inline-block;
+      padding: 10px 20px;
+      margin: 30px;
+      border-radius: 10px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .bubble.say {
+      align-self: flex-start;
+
+    } 
+    .bubble.reply {
+      align-self: flex-end;
+    }
+
+    .textarea-container {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+    }
+    .textarea-container textarea {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 100%;
+      
+      padding: 10px;
+
+      border-radius: 15px;
+      border: none;
+      padding: 10px 15px;
+      outline: none;
+      box-shadow: 0 0 0 1px #d0d0d0 inset;
+      line-height: 1.25em;
+
+    }
+  </style>
+</head>
+<body>
+  <div id="playground">
+    <div class="sidebar-container">aside</div>
+    <div class="bubble-container"></div>
+    <div class="textarea-container">
+      <textarea title="rainbow" name="" id="" cols="30" rows="10"></textarea>
+    </div>
+  </div>
+  <script>
+    const data = {
+      banana:{
+        says: ["Hey!", "Can I have a banana?"],
+        reply: [
+          {
+            question: "🍌", // label for the reply option
+            answer: "banana" // key for the next conversation object
+          },
+          {
+            question: "🍦",
+            answer: "ice"
+          }
+        ]
+      },
+      ice: {
+        says: ["Hey!", "Can I have an ice cream?"],
+        reply: [
+          {
+            question: "🍦",
+            answer: "ice"
+          }
+        ]
+      },
+    }
+
+    const bubbleContainer = document.querySelector(".bubble-container");
+    const textareaContainer = document.querySelector(".textarea-container");
+
+    function createBubble(text, type) {
+      const bubble = document.createElement("div");
+      bubble.classList.add("bubble");
+      bubble.classList.add(type);
+      bubble.textContent = text;
+      return bubble;
+    }
+    
+    function createReplyOption(text, answer) {
+      const replyOption = document.createElement("div");
+      replyOption.classList.add("reply-option");
+      replyOption.textContent = text;
+      replyOption.addEventListener("click", () => {
+        const bubble = createBubble(text, "reply");
+        bubbleContainer.appendChild(bubble);
+        bubbleContainer.scrollTop = bubbleContainer.scrollHeight;
+        const nextBubble = createBubble(data[answer].says[0], "say");
+        bubbleContainer.appendChild(nextBubble);
+        bubbleContainer.scrollTop = bubbleContainer.scrollHeight;
+        textareaContainer.innerHTML = "";
+        data[answer].reply.forEach((reply) => {
+          const replyOption = createReplyOption(reply.question, reply.answer);
+          textareaContainer.appendChild(replyOption);
+        });
+      });
+      return replyOption;
+    }
+
+    const firstBubble = createBubble(data.banana.says[0], "say");
+    bubbleContainer.appendChild(firstBubble);
+    bubbleContainer.scrollTop = bubbleContainer.scrollHeight;
+
+    data.banana.reply.forEach((reply) => {
+      const replyOption = createReplyOption(reply.question, reply.answer);
+      textareaContainer.appendChild(replyOption);
+    });
+
+
+
+  </script>
+</body>
+</html>

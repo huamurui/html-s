@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>fluid</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #fff;
+    }
+    .liquid {
+      margin: auto;
+      position: relative;
+      width: 300px;
+      height: 200px;
+      filter: blur(6px) contrast(20);
+      background: #acacac;
+    }
+    .liquid>.ball {
+      position: absolute;
+      border-radius: 50%;
+    }
+    .liquid>.ball.a {
+      width: 80px;
+      height: 80px;
+      top: 60px;
+      right: 40px;
+      background: #3F51B5;
+      z-index: 1;
+      animation: filterBallMove 4s ease-out infinite;
+
+    }
+    .liquid>.ball.b {
+      width: 120px;
+      height: 120px;
+      top: 40px;
+      left: 40px;
+      background: #333;
+    }
+
+    @keyframes filterBallMove {
+      /* 我想做一个椭圆的圆周运动...算了就方块退而求其次吧 */
+      0% {
+        transform: translate(0, 0);
+      }
+      25% {
+        transform: translate(-100px, 100px);
+      }
+      50% {
+        transform: translate(-200px, 50px);
+      }
+      75% {
+        transform: translate(-100px, -100px);
+      }
+      100% {
+        transform: translate(0, 0);
+      }
+    }
+
+    .fire {
+      margin: 50px auto;
+      position: relative;
+      width: 300px;
+      height: 200px;
+      background: #000;
+      filter: blur(2px) contrast(25);
+    }
+    .fire>.button-burnt {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .fire>.button-burnt::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #dc8165;
+      border-radius: 48% 45% 48% 46%;
+      animation: rotate 5s infinite linear;
+      z-index: 0;
+    }
+    .fire>.button-burnt::after {
+      content: "Hover";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 1;
+      line-height: 200px;
+      text-align: center;
+      color: #000;
+      font-size: 48px;
+    }
+
+    .fire>.particle {
+      position: absolute;
+      transform: translate(0, 0);
+      background: #fa8763;
+      border-radius: 50%;
+      z-index: -1;
+      mix-blend-mode: screen;
+    }
+
+    .fire>.button-burnt:hover .particle {
+      animation: movetop 0.6s linear infinite;
+    }
+
+    @keyframes movetop {
+      0% {
+        transform: translate(0, 0);
+      }
+      100% {
+        transform: translate(0, -180px);
+        opacity: 0;
+      }
+    }
+
+    @keyframes rotate {
+      0% {
+        transform: rotate(0deg);
+      }
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+
+
+  </style>
+</head>
+<body>
+
+  <div id="playground">
+    <div class="liquid">
+      <div class="ball a"></div>
+      <div class="ball b"></div>
+    </div>
+    <div class="fire">
+      <div class="button-burnt"></div>
+    </div>
+  </div>
+  <script>
+    /* 
+      use css filter to simulate some texture
+
+      mainly dep on blur & contrast
+      ps: i just know that opacity is also a filter...
+    */
+
+    /* we need to create some particle to help get fire's glimmering light  */
+    const particleCount = 100
+    const particleSize = 2
+    const buttonBurnt = document.querySelector('.button-burnt')
+
+    for (let i = 0; i < particleCount; i++) {
+      const particle = document.createElement('div')
+      particle.classList.add('particle')
+      particle.style.width = particleSize + 'px'
+      particle.style.height = particleSize + 'px'
+      particle.style.left = Math.random() * 100 + '%'
+      particle.style.top = Math.random() * 100 + '%'
+      particle.style.animationDelay = Math.random() * 5 + 's'
+      buttonBurnt.appendChild(particle)
+    }
+
+
+
+  </script>
+</body>
+</html>

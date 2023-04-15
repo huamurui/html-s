@@ -38,7 +38,7 @@
       box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     }
 
-    nav {
+    nav  {
       width: 100%;
       height: 50px;
       display: flex;
@@ -46,6 +46,9 @@
       align-items: center;
     }   
     nav a {
+      /* 加上relative伪元素才能获取到正确位置... */
+      position: relative;
+      flex:1;
       text-decoration: none;
       color: #333;
 
@@ -53,21 +56,34 @@
       line-height: 50px;
       width: 50px;
       text-align: center;
-
-      border-bottom: 4px solid transparent;
-      transition: all 0.3s ease-in-out;
     }
 
-    nav a:hover {
-      color: #ffadad;
-      border-bottom: 4px solid #ffadad;
+    nav a::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 100%;
+      width: 0;
+      height: 100%;
+      border-bottom: 3px solid #ffadad;
+      transition: 0.2s all linear;
     }
+    nav a:hover::before, nav a.active::before {
+      width: 100%;
+      top: 0;
+      left: 0;
+      transition-delay: 0.1s;
+      border-bottom-color: #ffadad;
+      z-index: -1;
+    }
+
+    nav a:hover ~ nav a::before, nav a.active ~ nav a::before {
+      left: 0;
+    } 
     nav a.active {
       color: #ffadad;
-      border-bottom: 4px solid #ffadad;
     }
 
-    /* 加点圆球球什么的 */
     section {
       padding-top: 50px;
       background-image: linear-gradient(45deg, #addeff 25%, transparent 25%, transparent 50%, #ffd1d1 50%, #ffd1d1 75%, transparent 75%, transparent);
@@ -75,19 +91,37 @@
     }
 
 
-    .toy {
+
+    #water{
       position: fixed;
-      display: block;
-      top: 80px;
-      right: 100px;
+      top: 0;
+      right: 0;
 
-      height: 20px;
-      border-radius: 20px;
-
-      z-index: 999;
-      transition: all 0.3s ease-in-out;
+      width: 100px;
+      margin-top: 50px;
+      height: 100px;
+      /* 设置出盒子水滴形状 */
+      border-radius: 50% 50% 50% 50% / 50% 50% 50% 50% ;
+      /* 绘制出水滴阴影效果 */
+      box-shadow: 
+      inset 10px 20px 30px rgba(0,0,0,0.5), 10px 10px 20px rgba(0,0,0,0.3), 15px 20px 30px rgba(0,0,0,0.05),
+      inset -10px -10px 15px rgba(255,255,255,0.8);
+      /* 把背景，文字放大 scale，模拟水的那种..折射..这不太可能 */
+      backdrop-filter: blur(2px);
+      animation: move 4s linear infinite alternate;
     }
-          
+    @keyframes move{
+      25%{
+        border-radius: 32% 68% 34% 66% / 44% 18% 82% 56%   ;
+      }
+      50%{
+        border-radius:38% 62% 21% 79% / 56% 59% 41% 44%   ;
+      }
+      100%{
+        border-radius: 42% 58% 66% 34% / 38% 82% 18% 62%   ;
+      }
+    }  
+
     :root {
       --angle: 45deg;
     }
@@ -109,17 +143,16 @@
     }
 
     @property --angle {
-        syntax: "<angle>";
-        initial-value: 0deg;
-        inherits: false;
-      }
-
-    @keyframes rotate {
-        to {
-          --angle: 360deg;
-        }
+      syntax: "<angle>";
+      initial-value: 0deg;
+      inherits: false;
     }
 
+    @keyframes rotate {
+      to {
+        --angle: 360deg;
+      }
+    }
   </style>
 </head>
 <body>
@@ -133,6 +166,7 @@
 
   <div id="playground"></div>
   <footer>
+    <div id="water"></div>
     <div>just for... anxiety</div>
   </footer>
   <script>
@@ -253,48 +287,23 @@
       }
     })
 
-    /* 
-      抄一个，整体加一层漂亮的小雪花，
-    */
 
-    const toy = document.createElement('div')
-    toy.classList.add('toy')
-    toy.innerHTML = `miaomiaomiao...`
-    toy.addEventListener(
-      'mouseover',
-      () => {
-        toy.classList.add('rainbow')
-      },
-    )
-    toy.addEventListener(
-      'mouseout',
-      () => {
-        toy.classList.remove('rainbow')
-      },
-    )
-    document.body.appendChild(toy)
+    /* 还是想加点... */
+    const water = document.querySelector('#water')
 
-    let x = 0
-    let y = 0
-    let x2 = 0
-    let y2 = 0
+    let x,y = 0
+    let x1,y1 = 0
     window.addEventListener('mousemove', (e) => {
-      x2 = e.clientX - window.innerWidth / 2
-      y2 = e.clientY - window.innerHeight / 2
+      x = e.clientX * 0.1
+      y = e.clientY * 0.1
+      water.style.transform = `translate(${x1 - x}px, ${y1 - y}px)`
     })
     window.addEventListener('deviceorientation', (e) => {
-      x2 = e.gamma
-      y2 = e.beta
+      x1 = e.gamma * 0.1
+      y1 = e.beta * 0.1
+      water.style.transform = `translate(${x1 - x}px, ${y1 - y}px)`
     })
 
-    function animate(){
-      x += (x2 - x) / 10
-      y += (y2 - y) / 10
-      toy.style.transform = `translate(${x / 10}px, ${y / 10}px)`
-      toy.style.webkitTransform = `translate(${x / 10}px, ${y / 10}px)`
-      requestAnimationFrame(animate)
-    }
-    animate()
   </script>
 </body>
 </html>
