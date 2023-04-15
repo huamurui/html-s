@@ -299,8 +299,8 @@
       water.style.transform = `translate(${x1 - x}px, ${y1 - y}px)`
     })
     window.addEventListener('deviceorientation', (e) => {
-      x1 = e.gamma * 0.1
-      y1 = e.beta * 0.1
+      x1 = e.gamma 
+      y1 = e.beta
       water.style.transform = `translate(${x1 - x}px, ${y1 - y}px)`
     })
 
