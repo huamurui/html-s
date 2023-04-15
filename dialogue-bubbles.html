@@ -13,16 +13,39 @@
       display: flex;
       justify-content: center;
       align-items: center;
+
+      background-color: #f0f0f0;
     }
+
+    /* 美化滚动条 */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f0f0f0;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #d0d0d0;
+      border-radius: 10px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #b0b0b0;
+    }
+
+
+
     #playground {
       position: relative;
 
-      height: 520px;
+      height: 100vh;
       max-width: 750px;
       width: 100%;
       margin: 0 auto;
       overflow: hidden;
 
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
       background-color: antiquewhite;
     }
 
@@ -39,24 +62,28 @@
       height: 100%;
       background-color: #fff;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
-    }
 
+      display: none;
+    }
     .sidebar-container.collapsed {
       display: none;
     }
 
-    /* 
-      注意加一下动画...
-    */
     .bubble-container {
       position: absolute;
       top: 0;
       bottom: 0;
       left: 0;
-      /* 滚动条？ */
-      right: -17px;
+      /* 
+        隐藏滚动条但可以滚动..，但我还是选择美化滚动条
+      */
+      /* right: -17px; */
+      right: 0px;
+
+      margin-bottom: 100px;
 
       overflow-y: scroll;
+      scroll-behavior: smooth;
 
       display: flex;
       flex-direction: column;
@@ -67,17 +94,42 @@
       position: relative;
       display: inline-block;
       padding: 10px 20px;
-      margin: 30px;
+      margin: 10px 20px;
       border-radius: 10px;
       background: #fff;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
+
+      /* 元素第一次创建时，动画 */
+      animation: bubble-appear 0.5s ease-in-out;
     }
+
+    @keyframes bubble-appear {
+      0% {
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
     .bubble.say {
+      border-top-left-radius: 2px;
       align-self: flex-start;
 
     } 
-    .bubble.reply {
+    .bubble.my {
+      border-bottom-right-radius: 2px;
       align-self: flex-end;
+    }
+    .bubble.my.pre {
+      border-bottom-right-radius: 2px;
+      align-self: flex-end;
+
+      padding:5px 10px;
+      margin: 5px 10px;
+      background-color: #84b1ff;
     }
 
     .textarea-container {
@@ -85,22 +137,38 @@
       bottom: 0;
       left: 0;
       right: 0;
+      height: 100px;
     }
     .textarea-container textarea {
       position: absolute;
       bottom: 0;
-      width: 100%;
-      height: 100%;
+      left: 0;
+      right: 0;
+      top: 0;
       
       padding: 10px;
 
       border-radius: 15px;
       border: none;
-      padding: 10px 15px;
       outline: none;
       box-shadow: 0 0 0 1px #d0d0d0 inset;
       line-height: 1.25em;
+    }
+    .textarea-container button {
+      position: absolute;
 
+      bottom: 10px;
+      right: 10px;
+
+      height: 25px;
+      border-radius: 5px ;
+      border: none;
+      outline: none;
+      color: #fff;
+      background-color: #84b1ff;
+      box-shadow: 0 0 0 1px #d0d0d0 inset;
+
+      cursor: pointer;
     }
   </style>
 </head>
@@ -110,6 +178,7 @@
     <div class="bubble-container"></div>
     <div class="textarea-container">
       <textarea title="rainbow" name="" id="" cols="30" rows="10"></textarea>
+      <button>send</button>
     </div>
   </div>
   <script>
@@ -138,48 +207,80 @@
       },
     }
 
-    const bubbleContainer = document.querySelector(".bubble-container");
-    const textareaContainer = document.querySelector(".textarea-container");
+    const bubbleContainer = document.querySelector(".bubble-container")
 
-    function createBubble(text, type) {
-      const bubble = document.createElement("div");
-      bubble.classList.add("bubble");
-      bubble.classList.add(type);
-      bubble.textContent = text;
-      return bubble;
-    }
+    const textarea = document.querySelector("textarea")
+    const button = document.querySelector("button")
     
-    function createReplyOption(text, answer) {
-      const replyOption = document.createElement("div");
-      replyOption.classList.add("reply-option");
-      replyOption.textContent = text;
-      replyOption.addEventListener("click", () => {
-        const bubble = createBubble(text, "reply");
-        bubbleContainer.appendChild(bubble);
-        bubbleContainer.scrollTop = bubbleContainer.scrollHeight;
-        const nextBubble = createBubble(data[answer].says[0], "say");
-        bubbleContainer.appendChild(nextBubble);
-        bubbleContainer.scrollTop = bubbleContainer.scrollHeight;
-        textareaContainer.innerHTML = "";
-        data[answer].reply.forEach((reply) => {
-          const replyOption = createReplyOption(reply.question, reply.answer);
-          textareaContainer.appendChild(replyOption);
-        });
-      });
-      return replyOption;
+    let currentConversation = data.banana
+
+    function createBubble(says, className) {
+      const bubble = document.createElement("div")
+      bubble.classList.add("bubble")
+      bubble.classList.add(className)
+      bubble.textContent = says
+      bubbleContainer.appendChild(bubble)
+
+      
+      bubbleContainer.scrollTop = bubbleContainer.scrollHeight + 100
     }
 
-    const firstBubble = createBubble(data.banana.says[0], "say");
-    bubbleContainer.appendChild(firstBubble);
-    bubbleContainer.scrollTop = bubbleContainer.scrollHeight;
+    function createReply(reply) {
+      const bubble = document.createElement("div")
+      bubble.classList.add("bubble")
+      bubble.classList.add("my")
+      bubble.classList.add("pre")
+      bubble.textContent = reply.question
+      bubbleContainer.appendChild(bubble)
+    }
 
-    data.banana.reply.forEach((reply) => {
-      const replyOption = createReplyOption(reply.question, reply.answer);
-      textareaContainer.appendChild(replyOption);
-    });
+    function createConversation(conversation) {
+      const {says, reply} = conversation
+      for (let i = 0; i < says.length; i++) {
+        createBubble(says[i], "say")
+      }
+      for (let i = 0; i < reply.length; i++) {
+        createReply(reply[i])
+      }
+    }
 
+    function createNextConversation(reply) {
+      const {question, answer} = reply
+      const bubble = document.createElement("div")
+      bubble.classList.add("bubble")
+      bubble.classList.add("my")
+      bubble.textContent = question
+      bubbleContainer.appendChild(bubble)
+      currentConversation = data[answer]
+      createConversation(currentConversation)
+    }
 
+    function handleReplyClick(e) {
+      if (e.target.classList.contains("pre")) {
+        const reply = currentConversation.reply.find(r => r.question === e.target.textContent)
+        createNextConversation(reply)
+        e.target.classList.remove("pre")
+      }
+    }
 
+    function handleSendClick() {
+      const text = textarea.value
+      if (text) {
+        createBubble(text, "my")
+        textarea.value = ""
+      }
+    }
+
+    createConversation(currentConversation)
+
+    bubbleContainer.addEventListener("click", handleReplyClick)
+    button.addEventListener("click", handleSendClick)
+    textarea.addEventListener("keydown", e => {
+      button.innerText = textarea.value ? textarea.value : "send"
+      if (e.key === "Enter") {
+        handleSendClick()
+      }
+    })
   </script>
 </body>
 </html>
