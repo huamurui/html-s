@@ -281,6 +281,21 @@
         handleSendClick()
       }
     })
+
+    /* 处理手机端，触屏键盘被唤起后遮挡输入框的问题... */
+    textarea.addEventListener("focus", () => {
+      document.body.style.height = "100vh"
+      document.body.style.overflow = "hidden"
+      if(/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        setTimeout(() => {
+          window.scrollTo(0, document.body.scrollHeight)
+        }, 0)
+      }
+      
+    })
+
+
+
   </script>
 </body>
 </html>
