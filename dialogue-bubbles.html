@@ -54,22 +54,27 @@
       移动端会弹出遮罩
       但是，pc 上我会想直接挤占空间... 可是怎么做呢...
     */
+    /* 
+      我会想搞成那种... 像水波一样散开的动画
+    */
     .sidebar-container {
       position: absolute;
-      top: 0;
-      bottom: 0;
-      left: 0;
-      width: 200px;
+      height: 0;
+      width: 0;
+      overflow: hidden;
+      z-index: 1;
 
-      z-index: 100;
+      padding-top: 50px;
       border-right: 1px solid #d0d0d0;
       background-color: #f1dac0;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      animation: sidebar-appear 0.5s ease-in-out;
+
+      transition: width 0.5s ease-in-out, height 0.5s ease-in-out;
     }
-    .sidebar-container.collapsed {
-      display: none;
-      /* animation: sidebar-appear 0.2s ease-in-out reverse; */
+    .sidebar-container.active {
+      width: 200px;
+      height: 100%;
+
     }
     .sidebar-container .sidebar-item {
       display: block;
@@ -78,13 +83,8 @@
       padding: 0 20px;
       cursor: pointer;
     }
-    @keyframes sidebar-appear {
-      0% {
-        transform: translateX(-200px);
-      }
-      100% {
-        transform: translateX(0);
-      }
+    .sidebar-container .sidebar-item:hover {
+      background-color: #d0d0d0;
     }
 
 
@@ -120,7 +120,7 @@
       color: #3f3f3f;
       font-size: 20px;
 
-      z-index: 1;
+      z-index: 2;
       border-bottom: 1px solid #d0d0d0;
       background-color: #f1dac0;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
@@ -133,7 +133,7 @@
       position: relative;
       display: inline-block;
       padding: 10px 20px;
-      margin: 10px 20px;
+      margin: 2px 20px;
       border-radius: 10px;
       background: #fff;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
@@ -213,9 +213,8 @@
 </head>
 <body>
   <div id="playground">
-    <div class="sidebar-container collapsed">
+    <div class="sidebar-container">
       <div class="sidebar">
-        <div class="sidebar-item">三</div>
         <div class="sidebar-item">🍌 banana</div>
         <div class="sidebar-item">🍦 ice cream</div>
       </div>
@@ -345,21 +344,17 @@
     })
 
     const menuButton = document.querySelector("header>span")
-    const menuButton2 = document.querySelector(".sidebar-item")
     const sidebar = document.querySelector(".sidebar-container")
 
     menuButton.addEventListener("click", () => {
-      sidebar.classList.toggle("collapsed")
+      sidebar.classList.toggle("active")
     })
 
-    menuButton2.addEventListener("click", () => {
-      sidebar.classList.toggle("collapsed")
+    document.addEventListener("click", e => {
+      if (e.target !== menuButton && e.target !== sidebar) {
+        sidebar.classList.remove("active")
+      }
     })
-
-
-
-
-
   </script>
 </body>
 </html>
