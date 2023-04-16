@@ -119,7 +119,7 @@ aaa
 
 oh...this is dangerous, but who cares?
 `
-
+    /* 打表是很爽啦...  */
     const rules = {
       regexp:{
         heading: /^(#{1,6})\s+(.+)$/gm,
@@ -207,7 +207,6 @@ oh...this is dangerous, but who cares?
       data.markdown = e.target.value
     }
 
-
     // function lexer(markdown) {
     //   const tokens = []
     // }
@@ -291,6 +290,63 @@ oh...this is dangerous, but who cares?
         }, delay)
       }
     }
+    
+    /* 
+      md2html
+
+      目前的实现方式是.. 打表!(之前那个日期格式也是这样做的。最近学到的自顶向下分析也像是打表的?坏了动态规划可能都能被我看成打表的..)但是不得不说效果还可以，就是用正则表不断的去匹配直到没有可解析的 md 标识为止，这样甚至可以处理一些简单的组合嵌套。然而扩展性什么的... 基本上是 0 吧，这样搞你一开始想的东西就全都不可能了。
+      再但是... 我也有看到许多许多，并不优雅(指功能目的与代码组织都比较明确的那种)，简直就是大便，但是当前效果真的还算ok的代码...再再但是...超大项目基本没有不是大便的，它们神奇的地方在于...有那样一群人能大大阔斧的维护它们，不断地朝上面摞东西还不会塌......
+      
+      另外看了看编译的一些知识。
+      那个 mini 编译器里，主要讲了 lexer(give tokens), parser(walk and give ast), transformer(traverser,visitors), code generator 这四个部分.  
+      以及，有个事，编程语言的编译如果遇到了语法错误会抛错会停止解析。但是 markdown 这种东西，如果遇到了语法错误——主要是括号没对上这种的(为数不多的结构)，直接忽略就好了，退回成最普通的<p>元素就ok。就是说...所有括号的匹配，都只在一行内完成，不然就不匹配了。
+
+      突然感觉好无聊..
+
+      也许你应该尝试把某一个坑挖的深一点了。挫个大的.jpg 
+      下面是刚开始挖这个坑时... 一些错误的探路。
+    */
+
+    /* 
+      may be single file is not enough ...
+      ### i want to try out following things:
+      
+      1. meta programming, use Proxy, Reflect to create a reactive ui-data
+      2. component based on hoc, hooks, and many other design patterns
+      3. maybe some compiler(?
+
+      ### and use them to create some interesting things
+      a. pet, game, chatroom...
+      b. homepage of your own
+      c. ... the editor!
+      
+      ---
+
+      i just found that ... the 'editor' alone is also a hard work... it couldn't be done by a simple textarea, if you want good style, or add some features like syntax highlight... even if you don't plan to do the compile part at all, you still need to know something about compiler, lexer, parser ... then hide the original textarea and replace it with styled html elements and bind the position of the cursor to the textarea and so on and so on...
+
+      and there are also something like wysiwyg ...
+
+      ### it's much more difficult than i thought to me, even just a demo... really...
+
+      so, do the simple part, make clear how much you want to get... or go to see more code of others
+
+      ---
+
+      editor's tech..
+      1. in the browser: contenteditable -> body(editor).setAttribute('contenteditable', true), `Window.getSelection` and give some button to add some style. tata~ you got it!
+      2. what i mentioned above, things like proxy the data and user actions, data driven...
+
+      [https://juejin.cn/post/6844903504478208007]这是... 近六年前的一篇文章了，然而六年了这个 slateJS 还在 beta （233. 
+      [https://zhuanlan.zhihu.com/p/268366406]
+      还有一些历史...Quill.js 好像是我之前看到的那个写 redis 插件的人有参与...
+
+      好像并没有什么收获...毕竟我一行代码都还没写。要考虑确认的...有点多，目前写的这个真的就只是糊了糊而已。也许对计算机的理解又多了一点。vue 或者 react 这样的框架给出的并不是性能或者单纯效率的提升，而是理念的变化，jQuery 写的政府官网和现代网站整个体验也都是不一样的。对于开发而言，免除了手动操作 dom 的劳役，解放的注意力可以做很多别的，数据驱动，组件化... “状态”...嗯，这是个很有意思的东西。
+
+      你可能能做到的是，解析 markdown 部分语法，并在解析过程中具体而言应该是生成 ast 这一步进行 diff，根据 diff 结果更新 dom。
+      你基本不可能做到的是——一个像样的编辑器: 这需要你对输入内容的区域也进行美化，分块，分块对于两区域同步滚动也很重要。 
+
+      ↑↑↑ 然鹅我都没做到2333
+    */
   </script>
 </body>
 </html>

@@ -10,5 +10,6 @@ i want to make some simple demo just through single html file.
 - [damaku](./damaku.html)
 - [dialogue-bubbles](./dialogue-bubbles.html)
 - [fluid](./fluid.html)
+- [slider&swiper?](./slider.html)
 
 - [a-page](./a-page.html)

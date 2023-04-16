@@ -121,7 +121,6 @@
       font-size: 20px;
 
       z-index: 2;
-      border-bottom: 1px solid #d0d0d0;
       background-color: #f1dac0;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
     }
@@ -242,6 +241,27 @@
           {
             question: "🍦",
             answer: "ice"
+          },
+          {
+            question: "🍑",
+            answer: "peach"
+          }
+        ]
+      },
+      peach: {
+        says: ["Hey!", "Can I have a peach?"],
+        reply: [
+          {
+            question: "🍑",
+            answer: "peach"
+          },
+          {
+            question: "🍦",
+            answer: "ice"
+          },
+          {
+            question: "🍌",
+            answer: "banana"
           }
         ]
       },
@@ -251,10 +271,25 @@
           {
             question: "🍦",
             answer: "ice"
+          },
+          {
+            question: "🍑",
+            answer: "peach"
+          },
+          {
+            question: "🍌",
+            answer: "banana"
           }
         ]
-      },
+      }
     }
+
+    /* 
+      目前这是一个...干巴巴的问答。也许应该讨论这种问答最后的结果是什么？比起表单，会好在哪里？
+
+      还有...要不要存 localStorage ？
+      啊... 我都干了什么... 一个月了... 无聊的一个月。
+    */
 
     const bubbleContainer = document.querySelector(".bubble-container")
 
