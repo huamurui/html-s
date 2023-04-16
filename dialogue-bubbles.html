@@ -14,6 +14,7 @@
       justify-content: center;
       align-items: center;
 
+      font-family:'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
       background-color: #f0f0f0;
     }
 
@@ -54,20 +55,38 @@
       但是，pc 上我会想直接挤占空间... 可是怎么做呢...
     */
     .sidebar-container {
-      position: relative;
+      position: absolute;
       top: 0;
       bottom: 0;
       left: 0;
-      width: 300px;
-      height: 100%;
-      background-color: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      width: 200px;
 
-      display: none;
+      z-index: 100;
+      border-right: 1px solid #d0d0d0;
+      background-color: #f1dac0;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      animation: sidebar-appear 0.5s ease-in-out;
     }
     .sidebar-container.collapsed {
       display: none;
+      /* animation: sidebar-appear 0.2s ease-in-out reverse; */
     }
+    .sidebar-container .sidebar-item {
+      display: block;
+      line-height: 50px;
+      font-size: 20px;
+      padding: 0 20px;
+      cursor: pointer;
+    }
+    @keyframes sidebar-appear {
+      0% {
+        transform: translateX(-200px);
+      }
+      100% {
+        transform: translateX(0);
+      }
+    }
+
 
     .bubble-container {
       position: absolute;
@@ -75,7 +94,7 @@
       bottom: 0;
       left: 0;
       /* 
-        隐藏滚动条但可以滚动..，但我还是选择美化滚动条
+        17px是个神奇的数字，隐藏滚动条但可以滚动..，但我还是选择美化滚动条
       */
       /* right: -17px; */
       right: 0px;
@@ -88,6 +107,26 @@
       display: flex;
       flex-direction: column;
       align-items: flex-start;
+    }
+
+    .bubble-container>header {
+      position: sticky;
+      top:0;
+      height: 50px;
+      line-height: 50px; /* 不写这个会塌陷...？ */
+      width: calc(100% - 20px);
+      padding-left: 20px;
+
+      color: #3f3f3f;
+      font-size: 20px;
+
+      z-index: 1;
+      border-bottom: 1px solid #d0d0d0;
+      background-color: #f1dac0;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    }
+    .bubble-container>header:first-child {
+      cursor: pointer;
     }
 
     .bubble {
@@ -174,8 +213,19 @@
 </head>
 <body>
   <div id="playground">
-    <div class="sidebar-container">aside</div>
-    <div class="bubble-container"></div>
+    <div class="sidebar-container collapsed">
+      <div class="sidebar">
+        <div class="sidebar-item">三</div>
+        <div class="sidebar-item">🍌 banana</div>
+        <div class="sidebar-item">🍦 ice cream</div>
+      </div>
+    </div>
+    <div class="bubble-container">
+      <header>
+        <span>三</span>
+        <span>🍌 banana</span>
+      </header>
+    </div>
     <div class="textarea-container">
       <textarea title="rainbow" name="" id="" cols="30" rows="10"></textarea>
       <button>send</button>
@@ -210,7 +260,7 @@
     const bubbleContainer = document.querySelector(".bubble-container")
 
     const textarea = document.querySelector("textarea")
-    const button = document.querySelector("button")
+    const replyButton = document.querySelector("button")
     
     let currentConversation = data.banana
 
@@ -274,9 +324,9 @@
     createConversation(currentConversation)
 
     bubbleContainer.addEventListener("click", handleReplyClick)
-    button.addEventListener("click", handleSendClick)
+    replyButton.addEventListener("click", handleSendClick)
     textarea.addEventListener("keydown", e => {
-      button.innerText = textarea.value ? textarea.value : "send"
+      replyButton.innerText = textarea.value ? textarea.value : "send"
       if (e.key === "Enter") {
         handleSendClick()
       }
@@ -293,6 +343,20 @@
       }
       
     })
+
+    const menuButton = document.querySelector("header>span")
+    const menuButton2 = document.querySelector(".sidebar-item")
+    const sidebar = document.querySelector(".sidebar-container")
+
+    menuButton.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed")
+    })
+
+    menuButton2.addEventListener("click", () => {
+      sidebar.classList.toggle("collapsed")
+    })
+
+
 
 
 
