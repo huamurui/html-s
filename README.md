@@ -11,5 +11,6 @@ i want to make some simple demo just through single html file.
 - [dialogue-bubbles](./dialogue-bubbles.html)
 - [fluid](./fluid.html)
 - [slider&swiper?](./slider.html)
+- [slider-paper-onboarding](./slider-paper-onboarding.html)
 
 - [a-page](./a-page.html)

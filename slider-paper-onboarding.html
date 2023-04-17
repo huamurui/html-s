@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>paper-onboarding</title>
+  <style>
+    body {
+      margin: 0;
+    }
+    #playground {
+      width: 100%;
+      height: 100vh;
+    }
+
+    .slider {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slider-pagination {
+      position: absolute;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      margin: auto;
+      width: 100px;
+      height: 20px;
+      display: flex;
+      z-index: 999;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .slider-pagination .slider-pagination-item {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: #000000;
+      opacity: 0.5;
+      cursor: pointer;
+      transition: all 0.5s;
+    }
+    .slider-pagination .slider-pagination-item.active {
+      width: 20px;
+      height: 20px;
+      opacity: 1;
+    }
+
+    /* the transition would be 'paper-onboarding' */
+    .slider-page {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      right: 0;
+      margin: auto;
+      opacity: 0;
+      z-index: 0;
+      transition: all 0.5s;
+    }
+    .slider-page.active {
+      opacity: 1;
+      z-index: 1;
+    }
+    .slider-page.pre {
+      transform: translateX(-100%);
+    }
+    .slider-page.next {
+      transform: translateX(100%);
+    }
+
+
+  </style>
+</head>
+<body>
+  <div id="playground">
+    <div class="slider"></div>
+    <div class="slider-pagination"></div>
+  </div>
+  <script>
+    const data = [
+      {
+        title: 'Welcome to the app',
+        description: `This is a description of the first pag
+        也许...  我确实荒废了...  而且有点久.
+        虽然在那乱七八糟之前我也没做过什么事，那些超不过 5 分钟的速写，一堆堆的，好像没有几个能拿出来看。  
+
+        我记得，在我小时候，我还会尝试着调整好作息，会讨厌熬夜... 我也不知道为什么会执着着按时睡觉、起床、吃饭、上课...  也许我知道这些习惯规则毫无意义但在某种程度上依旧在维持着我...  也像我还没剪掉的头发...  
+        `,
+        backgroundColor: '#9b59b6',
+        fontColor: '#fff',
+        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2021-12-19_19-08-28.jpg'
+      },
+      {
+        title: 'Second page',
+        description: `This is a description of the second page
+        在我小时候，我会觉得有些事无法接受，一想到就觉得世界要变成灰灰的，或者土土的，所有都混在了一起的那种颜色。
+
+        现在好像...  无所谓...  或者它们早就已经是那样了
+        `,
+        backgroundColor: '#3498db',
+        fontColor: '#fff',
+        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2021-12-19_19-08-28.jpg'
+      },
+      {
+        title: 'Third page',
+        description: `This is a description of the third page
+        
+        `,
+        backgroundColor: '#1abc9c',
+        fontColor: '#fff',
+        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2022-05-15_21-09-55.jpg'
+      },
+      {
+        title: 'Fourth page',
+        description: 'This is a description of the fourth page',
+        backgroundColor: '#e67e22',
+        fontColor: '#fff',
+        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2022-05-15_21-09-55.jpg'
+      }
+    ]
+
+    const slider = document.querySelector('.slider')
+    const pagination = document.querySelector('.slider-pagination')
+
+    class Slider {
+      constructor(data) {
+        this.data = data
+        this.currentIndex = 0
+        this.init()
+      }
+
+      init() {
+        this.render()
+        this.bindEvent()
+      }
+
+      render() {
+        this.data.forEach((item, index) => {
+          const page = document.createElement('div')
+          page.classList.add('slider-page')
+          page.style.backgroundColor = item.backgroundColor
+          page.innerHTML = `
+            <div class="slider-page-content">
+              <h1 class="slider-page-title">${item.title}</h1>
+              <p class="slider-page-description">${item.description}</p>
+            </div>
+          `
+          if (index === 0) {
+            page.classList.add('active')
+          }
+          slider.appendChild(page)
+        })
+
+        this.data.forEach((item, index) => {
+          const paginationItem = document.createElement('div')
+          paginationItem.classList.add('slider-pagination-item')
+          if (index === 0) {
+            paginationItem.classList.add('active')
+          }
+          pagination.appendChild(paginationItem)
+        })
+      }
+
+      bindEvent() {
+        const paginationItems = document.querySelectorAll('.slider-pagination-item')
+        paginationItems.forEach((item, index) => {
+          item.addEventListener('click', () => {
+            this.goTo(index)
+          })
+        })
+      }
+
+      goTo(index) {
+        const pages = document.querySelectorAll('.slider-page')
+        const paginationItems = document.querySelectorAll('.slider-pagination-item')
+        const currentPage = document.querySelector('.slider-page.active')
+        const currentPaginationItem = document.querySelector('.slider-pagination-item.active')
+        const nextPage = pages[index]
+        const nextPaginationItem = paginationItems[index]
+
+        if (index > this.currentIndex) {
+          nextPage.classList.add('next')
+          currentPage.classList.add('pre')
+        } else if (index < this.currentIndex) {
+          nextPage.classList.add('pre')
+          currentPage.classList.add('next')
+        }
+
+        setTimeout(() => {
+          currentPage.classList.remove('active', 'pre')
+          nextPage.classList.remove('next')
+          nextPage.classList.add('active')
+          currentPaginationItem.classList.remove('active')
+          nextPaginationItem.classList.add('active')
+        }, 500)
+
+        this.currentIndex = index
+      }
+    }
+
+    new Slider(data)
+
+  </script>
+</body>
+</html>
