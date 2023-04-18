@@ -39,7 +39,7 @@
       height: 10px;
       border-radius: 50%;
       background-color: #000000;
-      opacity: 0.5;
+      /* opacity: 0.5; */
       cursor: pointer;
       transition: all 0.5s;
     }
@@ -49,7 +49,15 @@
       opacity: 1;
     }
 
-    /* the transition would be 'paper-onboarding' */
+    /* 
+      the transition would be 'paper-onboarding' 
+      mainly three parts:
+      1. the opacity,
+      2. the z-index. the active one should be on the top, the pre one should be under the active one, the next one should be under the active one, and others should be under.... or we can just throw them away at cases.
+      3. the transform - this part is interesting, we deal with the shape of paper, and with the help of above two parts, we can make it feel like the paper overlaying on each other and can be slide...
+
+      and... the drag event, listen it and bind it with the transform, the transform is instant, but the changing of order is not, only when the trans coming to a limit, the changing of order will triggered.
+    */
     .slider-page {
       position: absolute;
       width: 100%;
@@ -180,30 +188,110 @@
         const paginationItems = document.querySelectorAll('.slider-pagination-item')
         const currentPage = document.querySelector('.slider-page.active')
         const currentPaginationItem = document.querySelector('.slider-pagination-item.active')
-        const nextPage = pages[index]
-        const nextPaginationItem = paginationItems[index]
 
-        if (index > this.currentIndex) {
-          nextPage.classList.add('next')
-          currentPage.classList.add('pre')
-        } else if (index < this.currentIndex) {
-          nextPage.classList.add('pre')
-          currentPage.classList.add('next')
+        if (index === this.currentIndex) {
+          return
         }
 
-        setTimeout(() => {
-          currentPage.classList.remove('active', 'pre')
-          nextPage.classList.remove('next')
-          nextPage.classList.add('active')
-          currentPaginationItem.classList.remove('active')
-          nextPaginationItem.classList.add('active')
-        }, 500)
+        if (index > this.currentIndex) {
+          pages[index].classList.add('next')
+          pages[this.currentIndex].classList.add('pre')
+        } else {
+          pages[index].classList.add('pre')
+          pages[this.currentIndex].classList.add('next')
+        }
 
-        this.currentIndex = index
+        currentPage.classList.remove('active')
+        currentPaginationItem.classList.remove('active')
+
+        setTimeout(() => {
+          currentPage.classList.remove('pre', 'next')
+          pages[index].classList.add('active')
+          pages[index].classList.remove('pre', 'next')
+          paginationItems[index].classList.add('active')
+          this.currentIndex = index
+        }, 500)
       }
     }
 
-    new Slider(data)
+     const mySlider =  new Slider(data)
+
+
+    /* 
+      defined some events
+      for touch/mouse start ->move -> end
+      if there is a start, the move is triggered, and when the move is over some value, the flip would be triggered
+    */
+    const playground = document.querySelector('#playground')
+    let startX = 0
+    let moveX = 0
+    let isMove = false
+
+    playground.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX
+      isMove = false
+    })
+
+    playground.addEventListener('touchmove', (e) => {
+      moveX = e.touches[0].clientX - startX
+      isMove = true
+    })
+
+    playground.addEventListener('touchend', (e) => {
+      if (isMove && Math.abs(moveX) > 50) {
+        if (moveX > 0) {
+          mySlider.goTo(mySlider.currentIndex - 1)
+        } else {
+          mySlider.goTo(mySlider.currentIndex + 1)
+        }
+      }
+    })
+
+    playground.addEventListener('mousedown', (e) => {
+      startX = e.clientX
+      isMove = false
+    })
+
+    playground.addEventListener('mousemove', (e) => {
+      moveX = e.clientX - startX
+      isMove = true
+    })
+
+    playground.addEventListener('mouseup', (e) => {
+      if (isMove && Math.abs(moveX) > 50) {
+        if (moveX > 0) {
+          mySlider.goTo(mySlider.currentIndex - 1)
+        } else {
+          mySlider.goTo(mySlider.currentIndex + 1)
+        }
+      }
+    })
+
+    playground.addEventListener('mouseleave', (e) => {
+      if (isMove && Math.abs(moveX) > 50) {
+        if (moveX > 0) {
+          mySlider.goTo(mySlider.currentIndex - 1)
+        } else {
+          mySlider.goTo(mySlider.currentIndex + 1)
+        }
+      }
+    })
+
+    /* keyboard and mousewheel */
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') {
+        mySlider.goTo(mySlider.currentIndex - 1)
+      } else if (e.key === 'ArrowRight') {
+        mySlider.goTo(mySlider.currentIndex + 1)
+      }
+    })
+    document.addEventListener('mousewheel', (e) => {
+      if (e.deltaY > 0) {
+        mySlider.goTo(mySlider.currentIndex + 1)
+      } else {
+        mySlider.goTo(mySlider.currentIndex - 1)
+      }
+    })
 
   </script>
 </body>
