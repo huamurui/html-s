@@ -363,17 +363,33 @@
     appearanceSwitcher.innerHTML = sun
 
     appearanceSwitcher.addEventListener('click', () => {
-      document.body.classList.toggle('dark')
-      section.forEach((sec) => {
-        sec.classList.toggle('dark')
-      })
+      /* localStorage, 持久化 */
       if(document.body.classList.contains('dark')){
-        appearanceSwitcher.innerHTML = moon
+        localStorage.setItem('dark', 'false')
       }else{
+        localStorage.setItem('dark', 'true')
+      }
+      toggle()        
+    })
+
+    function toggle(){
+      if(localStorage.getItem('dark') === 'true'){
+        document.body.classList.add('dark')
+        section.forEach((sec) => {
+          sec.classList.add('dark')
+        })
+        appearanceSwitcher.innerHTML = moon
+      } else {
+        document.body.classList.remove('dark')
+        section.forEach((sec) => {
+          sec.classList.remove('dark')
+        })
         appearanceSwitcher.innerHTML = sun
       }
+    }
+    toggle()
 
-    })
+
 
   </script>
 </body>
