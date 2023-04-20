@@ -231,7 +231,7 @@
   </div>
   <script>
     const data = {
-      banana:{
+      breakingIce:{
         says: ["Hey!", "Can I have a banana?"],
         reply: [
           {
@@ -239,8 +239,17 @@
             answer: "banana" // key for the next conversation object
           },
           {
-            question: "🍦",
-            answer: "ice"
+            question: "🍑",
+            answer: "peach"
+          }
+        ]
+      },
+      banana:{
+        says: ["Thank you!", "Can I have another banana?"],
+        reply: [
+          {
+            question: "🍌", // label for the reply option
+            answer: "banana" // key for the next conversation object
           },
           {
             question: "🍑",
@@ -249,29 +258,8 @@
         ]
       },
       peach: {
-        says: ["Hey!", "Can I have a peach?"],
+        says: ["Thank you!", "Can I have a peach?"],
         reply: [
-          {
-            question: "🍑",
-            answer: "peach"
-          },
-          {
-            question: "🍦",
-            answer: "ice"
-          },
-          {
-            question: "🍌",
-            answer: "banana"
-          }
-        ]
-      },
-      ice: {
-        says: ["Hey!", "Can I have an ice cream?"],
-        reply: [
-          {
-            question: "🍦",
-            answer: "ice"
-          },
           {
             question: "🍑",
             answer: "peach"
@@ -296,7 +284,7 @@
     const textarea = document.querySelector("textarea")
     const replyButton = document.querySelector("button")
     
-    let currentConversation = data.banana
+    let currentConversation = data.breakingIce
 
     function createBubble(says, className) {
       const bubble = document.createElement("div")
@@ -342,8 +330,8 @@
     function handleReplyClick(e) {
       if (e.target.classList.contains("pre")) {
         const reply = currentConversation.reply.find(r => r.question === e.target.textContent)
+        bubbleContainer.querySelectorAll(".pre").forEach(b => b.remove())
         createNextConversation(reply)
-        e.target.classList.remove("pre")
       }
     }
 
