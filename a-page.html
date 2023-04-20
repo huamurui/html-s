@@ -9,6 +9,7 @@
     html {
       scroll-behavior: smooth;
       overflow-y: scroll;
+      overflow-x: hidden;
     }
 
     body {
@@ -205,10 +206,12 @@
         --angle: 360deg;
       }
     }
-    
+    #toys {
+      overflow: hidden;
+    }
     #toys.toy {
-      /* position: absolute; */
-      position: fixed;
+      position: absolute;
+      /* position: fixed; */
     }
 
   </style>
@@ -412,7 +415,7 @@
     function randomColor(){
       return `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`
     }
-    for(let i = 0; i < 10; i++){
+    for(let i = 0; i < 20; i++){
       let toy = document.createElement('div')
       toy.classList.add('toy')
       toy.style =  `
@@ -420,7 +423,7 @@
         background-color: ${randomColor()};
         width: ${random(20, 50)}px;
         height: ${random(20, 50)}px;
-        rotate: ${random(0, 360)}deg;
+        rotate: ${random(-30, 30)}deg;
         top: ${random(0, 100)}%;
         left: ${random(0, 100)}%;
         opacity: ${random(5, 10) / 30};
@@ -436,10 +439,9 @@
 
       const ratio = [0.3,0.8,1,1.4]
       toyList.forEach((toy, index) => {
-        toy.style.transform = `translateY(${scrollTop * ratio[index]}px)`
+        toy.style.transform = `translateY(${scrollTop * ratio[index % ratio.length]}px)`
       })
     })
-
   </script>
 </body>
 </html>
