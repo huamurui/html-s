@@ -113,11 +113,18 @@
       background-image: linear-gradient(45deg, #addeff 25%, transparent 25%, transparent 50%, #ffd1d1 50%, #ffd1d1 75%, transparent 75%, transparent);
       background-attachment: fixed;
     }
-    section.dark {
-      background-image: none;
+
+    section:nth-child(odd) {
+      background-image: linear-gradient(45deg, #ffd1d1 25%, transparent 25%, transparent 50%, #addeff 50%, #addeff 75%, transparent 75%, transparent);
     }
 
+    section.dark {
+      background-image: linear-gradient(45deg, #2c3e50 25%, transparent 25%, transparent 50%, #34495e 50%, #34495e 75%, transparent 75%, transparent);
+    }
 
+    section.dark:nth-child(odd) {
+      background-image: linear-gradient(45deg, #402c41 25%, transparent 25%, transparent 50%, #402c41 50%, #402c41 75%, transparent 75%, transparent);
+    }
 
     #water{
       position: fixed;
@@ -198,6 +205,12 @@
         --angle: 360deg;
       }
     }
+    
+    #toys.toy {
+      /* position: absolute; */
+      position: fixed;
+    }
+
   </style>
 </head>
 <body>
@@ -215,6 +228,7 @@
   </header>
 
   <div id="playground"></div>
+  <div id="toys"></div>
   <footer>
     <div id="water"></div>
     <div>just for... anxiety</div>
@@ -388,6 +402,43 @@
       }
     }
     toggle()
+
+
+    const toys = document.querySelector('#toys')
+    const toyList = []
+    function random(min, max){
+      return Math.floor(Math.random() * (max - min + 1) + min)
+    }
+    function randomColor(){
+      return `rgb(${random(0, 255)}, ${random(0, 255)}, ${random(0, 255)})`
+    }
+    for(let i = 0; i < 10; i++){
+      let toy = document.createElement('div')
+      toy.classList.add('toy')
+      toy.style =  `
+        position: absolute;
+        background-color: ${randomColor()};
+        width: ${random(20, 50)}px;
+        height: ${random(20, 50)}px;
+        rotate: ${random(0, 360)}deg;
+        top: ${random(0, 100)}%;
+        left: ${random(0, 100)}%;
+        opacity: ${random(5, 10) / 30};
+      `
+      toys.appendChild(toy)
+      toyList.push(toy)
+    }
+    window.addEventListener('scroll', () => {
+      let scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+      let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
+      let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+      let scrollBottom = scrollHeight - scrollTop - clientHeight
+
+      const ratio = [0.3,0.8,1,1.4]
+      toyList.forEach((toy, index) => {
+        toy.style.transform = `translateY(${scrollTop * ratio[index]}px)`
+      })
+    })
 
 
 
