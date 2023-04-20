@@ -32,10 +32,22 @@
       position: absolute;
       width: 100%;
       height: 100%;
-      overflow: auto;
+      overflow: hidden;
       margin: auto;
       opacity: 0;
       transition: all 0.5s;
+    }
+    .slider-paper::after {
+      content: '';
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      
+      z-index: 999;
+      border-radius: 50%;
+      overflow: hidden;
     }
     .slider-paper.current {
       opacity: 1;
@@ -145,12 +157,23 @@
 
         this.data.forEach((item, index) => {
           this.page.innerHTML += `
-            <div class="slider-paper" style="background-color: ${item.backgroundColor}; color: ${item.fontColor};">
+            <div class="slider-paper" color: ${item.fontColor};">
                 <div class="slider-paper-title">${item.title}</div>
                 <div class="slider-paper-desc">${item.description}</div>
             </div>
           `
         })
+        // control the color of the paper's ::after
+        // https://stackoverflow.com/questions/38872290/how-to-get-pseudo-element
+        const afters = []
+        for(let i = 0; i < this.data.length; i++) {
+          afters.push(window.getComputedStyle(this.page.children[i], ':after'))
+        }
+        console.log(afters)
+        afters.forEach((item, index) => {
+          item.backgroundColor = this.data[index].backgroundColor
+        })
+        // These styles are computed, and therefore the 'background-color' property is read-only.
 
         this.papers = this.dom.querySelectorAll('.slider-paper')
         this.papers[0].classList.add('current')
@@ -333,6 +356,8 @@
       半年前看到那些新奇的玩具，会觉得有趣的部分早就做的很好了，之后更需要的...或者我在做的，可能只是些无聊的对接工作。
       
       好烦哦...
+
+      翻了翻 swiper.js 的代码...一个“小小”的幻灯片竟然都有自己的一套，生命周期一类的东西...  还有一堆应该是为了适配写的奇奇怪怪的代码...  啊呜...
     */
 
     /* 
