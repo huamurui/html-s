@@ -330,28 +330,33 @@
       })
     })
 
-    const section = document.querySelectorAll('section')
+    const sections = document.querySelectorAll('section')
     const navs = document.querySelectorAll('nav a')
-    window.addEventListener('scroll', () => {
-      let scrollTop = document.documentElement.scrollTop || document.body.scrollTop
-      let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
-      let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
-      let scrollBottom = scrollHeight - scrollTop - clientHeight
-      if(scrollBottom < 100){
-        navs.forEach((nav) => {
-          nav.classList.remove('active')
-        })
-        navs[navs.length - 1].classList.add('active')
-      }else{
-        section.forEach((sec, index) => {
-          if(sec.offsetTop - scrollTop < 100){
-            navs.forEach((nav) => {
-              nav.classList.remove('active')
-            })
-            navs[index].classList.add('active')
-          }
-        })
-      }
+
+    /* 
+      IntersectionObserver ...好好用的哦...
+      我这边是用它配合着做了一个 toc. 它还能做很多东西，都更方便了
+      懒加载, 滚动埋点, 滚动触发动画...... 无限的懒加载(最底下放一个元素，然后监听它是否出现，可以用这个实现无限加载)
+
+      不过有些东西东西，比如我最下面的那个小玩具，就不太合适了，因为需要滚动的确切数据来做计算位置。
+    */
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if(entry.isIntersecting) {
+          navs.forEach((nav) => {
+            nav.classList.remove('active')
+          })
+          navs[entry.target.id.charCodeAt() - 65].classList.add('active')
+        }
+      })
+    }, {
+      root: null,
+      rootMargin: '30%',
+      threshold: 0.5
+    })
+
+    sections.forEach((section) => {
+      observer.observe(section, navs)
     })
 
 
@@ -392,13 +397,13 @@
     function toggle(){
       if(localStorage.getItem('dark') === 'true'){
         document.body.classList.add('dark')
-        section.forEach((sec) => {
+        sections.forEach((sec) => {
           sec.classList.add('dark')
         })
         appearanceSwitcher.innerHTML = moon
       } else {
         document.body.classList.remove('dark')
-        section.forEach((sec) => {
+        sections.forEach((sec) => {
           sec.classList.remove('dark')
         })
         appearanceSwitcher.innerHTML = sun
@@ -434,9 +439,9 @@
     }
     window.addEventListener('scroll', () => {
       let scrollTop = document.documentElement.scrollTop || document.body.scrollTop
-      let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
-      let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
-      let scrollBottom = scrollHeight - scrollTop - clientHeight
+      // let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
+      // let scrollHeight = document.documentElement.scrollHeight || document.body.scrollHeight
+      // let scrollBottom = scrollHeight - scrollTop - clientHeight
 
       const ratio = [0.3,0.8,1,1.4]
       toyList.forEach((toy, index) => {

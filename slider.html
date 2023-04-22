@@ -50,9 +50,15 @@
     }
     .slider__item--selected {
       opacity: 1;
+      z-index: 1;
     }
     .slider__item img {
       width: 100%;
+      object-fit: cover;
+    }
+    img {
+      width: 100%;
+      max-width: 400px;
       object-fit: cover;
     }
 
@@ -69,7 +75,7 @@
 
     .slider__pagination__prev,
     .slider__pagination__next {
-      z-index: 1;
+      z-index: 2;
       width: 50px;
       height: 50px;
       border-radius: 50%;
@@ -213,7 +219,7 @@
 
     setInterval(() => {
       sliderInstance.next()
-    }, 2000)
+    }, 5000)
 
     /* 
       一些不怎么相关的。点击后查看大图
@@ -254,6 +260,8 @@
           mask = document.createElement('div');
           mask.id = 'mask';
           mask.innerHTML = `
+            <a class="scale scale-up">㊉</a>
+            <a class="scale scale-down">㊀</a>
             <a class="previous" href="###">&lt;</a>
             <img src="${imgs[selected].src}">
             <a class="next" href="###">&gt;</a>    
@@ -282,7 +290,32 @@
               textDecoration: 'none',
             })
           })
+          let [up, down] = mask.querySelectorAll('a.scale')
+          Object.assign(up.style, {
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            cursor: 'pointer',
+          })
+          Object.assign(down.style, {
+            position: 'absolute',
+            top: '10px',
+            right: '50px',
+            cursor: 'pointer',
+          })
           document.body.appendChild(mask);
+          up.addEventListener('click', () => {
+            const img = mask.querySelector('img')
+            const {width, height} = img
+            img.style.width = width * 1.1 + 'px'
+            img.style.height = height * 1.1 + 'px'
+          })
+          down.addEventListener('click', () => {
+            const img = mask.querySelector('img')
+            const {width, height} = img
+            img.style.width = width * 0.9 + 'px'
+            img.style.height = height * 0.9 + 'px'
+          })
 
           // 给#mask元素添加点击事件处理函数：
           let idx = selected;
