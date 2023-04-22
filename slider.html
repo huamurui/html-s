@@ -260,11 +260,11 @@
           mask = document.createElement('div');
           mask.id = 'mask';
           mask.innerHTML = `
-            <a class="scale scale-up">㊉</a>
-            <a class="scale scale-down">㊀</a>
             <a class="previous" href="###">&lt;</a>
             <img src="${imgs[selected].src}">
             <a class="next" href="###">&gt;</a>    
+            <a class="scale scale-up">㊉</a>
+            <a class="scale scale-down">㊀</a>
           `;
           // 给 #mask 元素设置样式：
           Object.assign(mask.style, {
@@ -309,6 +309,7 @@
             const {width, height} = img
             img.style.width = width * 1.1 + 'px'
             img.style.height = height * 1.1 + 'px'
+            img.style.maxWidth = '100%'
           })
           down.addEventListener('click', () => {
             const img = mask.querySelector('img')
@@ -337,6 +338,7 @@
           previous.style.visibility = idx ? 'visible' : 'hidden'
           next.style.visibility = idx < imgs.length - 1 ? 'visible' : 'hidden'
           const img = mask.querySelector('img')
+          img.style = ''
           img.src = imgs[idx].src
         }
 
