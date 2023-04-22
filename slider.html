@@ -56,11 +56,6 @@
       width: 100%;
       object-fit: cover;
     }
-    img {
-      width: 100%;
-      max-width: 400px;
-      object-fit: cover;
-    }
 
     .slider__pagination {
       position: absolute;
@@ -85,7 +80,10 @@
       transition: background-color 0.5s;
     }
 
-
+    #mask img {
+      width: calc(100% - 50px);
+      object-fit: cover;
+    }
   </style>
 </head>
 <body>
