@@ -81,7 +81,8 @@
     }
 
     #mask img {
-      width: calc(100% - 50px);
+      width: calc(100% - 50px); /* 这里是因为...移动端防止因为左右切换页面的那个东东占位置导致页面变形，多空出来一段距离 */
+      max-width: 400px;
       object-fit: cover;
     }
   </style>

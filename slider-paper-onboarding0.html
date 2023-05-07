@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>paper-onboarding</title>
+    <style>
+      body {
+        margin: 0;
+        width: 100vw;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #playground {
+        width: 60%;
+        height: 60%;
+        background-color: #fff;
+      }
+
+      .swiper-wrapper {
+        width: 100%;
+        height: 100%;
+        background-color: #fff;
+        overflow: hidden;
+      }
+      .swiper {
+        width: 100%;
+        height: 100%;
+        background-color: #fff;
+        /* transform: translateY(-100%); */
+      }
+      .swiper section {
+        width: 100%;
+        height: 100%;
+        background-color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div class="swiper-wrapper">
+        <div class="swiper">
+          <section>1</section>
+          <section>2</section>
+          <section>3</section>
+          <section>4</section>
+        </div>
+      </div>
+    </div>
+    <script>
+      const data = {
+        partD: `
+        
+        `,
+        partD0: ``,
+      }
+      const playground = document.querySelector("#playground")
+      const swiper = playground.querySelector(".swiper")
+      const sections = swiper.querySelectorAll("section")
+      sections.forEach((section) => {
+        section.style.backgroundColor = `rgb(${Math.random() * 255},${
+          Math.random() * 255
+        },${Math.random() * 255})`
+      })
+
+      swiper.addEventListener("touchstart", start)
+
+      let startY = 0
+      let endY = 0
+      let currentIndex = 0
+
+      function start(e) {
+        startY = e.touches[0].clientY || e.clientY
+        swiper.addEventListener("touchmove", move)
+        swiper.addEventListener("touchend", end)
+      }
+      function move(e) {
+        swiper.style.transform = `translateY(${
+          currentIndex * 100 + ((e.touches[0].clientY || e.clientY) - startY)
+        }px)`
+        endY = e.touches[0].clientY || e.clientY
+      }
+      function end(e) {
+        if (endY - startY > 100) {
+          // 下滑
+          if (currentIndex === 0) {
+            return
+          }
+          currentIndex--
+        } else {
+          // 上滑
+          if (currentIndex === sections.length - 1) {
+            return
+          }
+          currentIndex++
+        }
+        swiper.style.transform = `translateY(-${currentIndex * 100}%)`
+        swiper.removeEventListener("touchmove", move)
+        swiper.removeEventListener("touchend", end)
+      }
+    </script>
+  </body>
+</html>

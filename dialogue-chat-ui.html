@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ko no ui da</title>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh;
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      *:hover {
+        outline: 1px solid #ccc;
+      }
+      #app {
+        position: relative;
+        display: flex;
+        height: 100vh;
+        width: 100%;
+        max-width: 1000px;
+        max-height: 600px;
+        margin: auto;
+        border: 1px solid #ccc;
+        overflow: hidden;
+      }
+      .nav-bar {
+        background-color: #eee;
+        border-right: 1px solid #ccc;
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        align-items: center;
+        width: 60px;
+      }
+      .nav-list {
+        background-color: #fff;
+        border-right: 1px solid #ccc;
+        display: flex;
+        flex-direction: column;
+        justify-content: start;
+        align-items: start;
+        width: 300px;
+      }
+      .nav-bar > *,
+      .nav-list > * {
+        padding: 0 10px 0 10px;
+      }
+      .nav-item {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        height: 60px;
+      }
+      .nav-item .icon {
+        width: 40px;
+        height: 40px;
+        margin: 0 10px;
+        background-color: #ccc;
+        display: none;
+      }
+      .nav-item .name {
+        font-size: 20px;
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+
+        background-color: #eee;
+      }
+      header {
+        background-color: #eee;
+        border-bottom: 1px solid #ccc;
+        width: 100%;
+        height: 60px;
+        line-height: 60px;
+        font-size: 20px;
+      }
+      header span {
+        margin: 0 10px;
+      }
+      .messages {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+      }
+      .message {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        width: 100%;
+        height: 60px;
+      }
+      .message.mine {
+        flex-direction: row-reverse;
+      }
+      .message .avatar {
+        width: 40px;
+        height: 40px;
+        margin: 0 10px;
+        background-color: #ccc;
+      }
+      .message .content {
+        font-size: 20px;
+      }
+
+      .texter {
+        display: flex;
+        flex-direction: row;
+        justify-content: flex-start;
+        align-items: center;
+        width: 100%;
+        height: 60px;
+      }
+      .texter input {
+        border: none;
+        outline: none;
+        width: 100%;
+        height: 100%;
+        font-size: 20px;
+      }
+      .texter button {
+        border: none;
+        outline: none;
+        width: 60px;
+        height: 100%;
+        font-size: 20px;
+      }
+
+      .back {
+        display: none;
+      }
+      @media screen and (max-width: 600px) {
+        #app {
+          flex-direction: row;
+          max-height: none;
+          border: none;
+        }
+        .back {
+          display: inline-block;
+        }
+
+        .nav-bar {
+          position: absolute;
+          display: flex;
+          flex-direction: row;
+          width: 100%;
+          height: 60px;
+          bottom: 0;
+          justify-content: space-around;
+          align-items: center;
+        }
+
+        .nav-list {
+          position: absolute;
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          top: 0;
+          justify-content: space-around;
+          align-items: center;
+        }
+
+        /* 这一部分...整体也是都会打上 mobile 的标签 */
+        main {
+          position: fixed;
+          opacity: 0.1;
+          z-index: -1;
+          transform: translateX(100%);
+          transition: all 0.5s ease-in-out;
+        }
+        main.active {
+          position: relative;
+          opacity: 1;
+          z-index: 2;
+          transform: translateX(0);
+        }
+        main.hide {
+          position: fixed;
+          opacity: 0.1;
+          z-index: -1;
+          transform: translateX(100%);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <nav class="nav-bar"></nav>
+      <nav class="nav-list"></nav>
+      <main>
+        <header class="chat-title">
+          <span class="back"><</span>
+          <span class="name">meow meow meow</span>
+        </header>
+        <div class="messages"></div>
+        <form class="texter">
+          <input type="text" title="mine-pre" />
+          <button type="button">send</button>
+        </form>
+      </main>
+    </div>
+    <script>
+      const data = {
+        navBar: [
+          { name: "me", icon: "me" },
+          { name: "chats", icon: "chat" },
+          { name: "find", icon: "discover" },
+          { name: "set", icon: "setting" },
+        ],
+        navList: [
+          { name: "dio", type: "person" },
+          { name: "dio no bread", type: "group" },
+          { name: "rainbow", type: "person" },
+          { name: "meow meow meow", type: "group" },
+        ],
+        messages: [
+          {
+            name: "dio",
+            content: "ko no dio da",
+            date: "2023-03-23 17:33",
+            isMe: "false",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "dio",
+            content: "ko no dio da da da da da da da da da da da da ",
+            date: "2023-03-23 17:33",
+            isMe: "false",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "dio",
+            content: "ko no dio da",
+            date: "2023-03-23 17:33",
+            isMe: "false",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "dio",
+            content: "ko no dio da",
+            date: "2023-03-23 17:33",
+            isMe: "false",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+          {
+            name: "rainbow",
+            content: "ko no rainbow da",
+            date: "2023-03-23 17:22",
+            isMe: "true",
+          },
+        ],
+      }
+      const app = document.querySelector("#app")
+      const [navBar, navList, main] = app.children
+      const [header, messages, texter] = main.children
+      const [navBarItems, navListItems] = [data.navBar, data.navList].map(
+        (items) =>
+          items
+            .map(
+              (item) =>
+                `<div class="nav-item">
+                  <div class="icon icon-${item.icon}"></div>
+                  <div class="name">${item.name}</div>
+                </div>`
+            )
+            .join("")
+      )
+      navBar.innerHTML = navBarItems
+      navList.innerHTML = navListItems
+
+      data.messages.forEach((message, index) => {
+        const messageItem = document.createElement("div")
+        messageItem.className = "message"
+        messageItem.innerHTML = `
+          <div class="avatar">${index}</div>
+          <div class="content">${message.content}</div>
+        `
+        messages.appendChild(messageItem)
+        messages.scrollTop = messages.scrollHeight
+      })
+
+      const [input, sender] = texter.children
+      input.addEventListener("keydown", (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.key === "Enter") {
+          sender.click()
+        }
+      })
+      sender.addEventListener("click", () => {
+        const messageItem = document.createElement("div")
+        messageItem.className = "message mine"
+        messageItem.innerHTML = `
+          <div class="avatar">me</div>
+          <div class="content">${input.value}</div>
+        `
+        messages.appendChild(messageItem)
+        input.value = ""
+        messages.scrollTop = messages.scrollHeight
+      })
+      navList.addEventListener("click", () => {
+        main.classList.add("active")
+        main.classList.remove("hide")
+      })
+      const back = header.querySelector(".back")
+      back.addEventListener("click", () => {
+        main.classList.remove("active")
+        main.classList.add("hide")
+      })
+
+      /* 那种很丝滑的拖拽是怎么做的... 这样搞一堆bug...? */
+      let startX = 0
+
+      function handleGesture() {
+        main.addEventListener("touchstart", (e) => {
+          main.style.transform = `translateX(0px)`
+          startX = e.touches[0].clientX
+        })
+        main.addEventListener("touchmove", (e) => {
+          const moveX = e.touches[0].clientX
+          const distance = moveX - startX
+          if (distance > 30) {
+            main.style.transform = `translateX(${distance - 30}px)`
+          }
+        })
+        main.addEventListener("touchend", (e) => {
+          const moveX = e.changedTouches[0].clientX
+          const distance = moveX - startX
+          if (distance > 100) {
+            main.classList.remove("active")
+            main.classList.add("hide")
+          } else {
+            main.style.transform = `translateX(0px)`
+          }
+        })
+      }
+
+      function handleWhenToAdd() {
+        if (document.body.clientWidth < 600) {
+          handleGesture()
+        }
+      }
+      handleWhenToAdd()
+      window.addEventListener("resize", handleWhenToAdd)
+    </script>
+  </body>
+</html>

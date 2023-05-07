@@ -1,104 +1,91 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>paper-onboarding</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: #000000;
-    }
-    #playground {
-      width: 100%;
-      height: 100vh;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>paper-onboarding</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: #000000;
+      }
+      #playground {
+        width: 100%;
+        height: 100vh;
+      }
 
-    .slider {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-    }
+      .slider {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
 
-    .slider-page {
-      width: 100%;
-      height: 100%;
-      position: relative;
-      overflow: hidden;
-    }
-    .slider-paper {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      margin: auto;
-      opacity: 0;
-      transition: all 0.5s;
-    }
-    .slider-paper::after {
-      content: '';
-      position: absolute;
-      width: 200%;
-      height: 200%;
-      top: -50%;
-      left: -50%;
-      
-      z-index: 999;
-      border-radius: 50%;
-      overflow: hidden;
-    }
-    .slider-paper.current {
-      opacity: 1;
-      z-index: 2;
-      transform: translate3d(0, 0, 0); 
-    }
-    .slider-paper.prev {
-      opacity: 1;
-      transform: translate3d(-100%, 0, 0); 
-    }
-    .slider-paper.next {
-      opacity: 1;
-      transform: translate3d(100%, 0, 0); 
-    }
+      .slider-page {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+      }
+      .slider-paper {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        margin: auto;
+        opacity: 0;
+        transition: all 0.5s;
+      }
+      .slider-paper.current {
+        opacity: 1;
+        z-index: 2;
+        transform: translate3d(0, 0, 0);
+      }
+      .slider-paper.prev {
+        opacity: 1;
+        transform: translate3d(-100%, 0, 0);
+      }
+      .slider-paper.next {
+        opacity: 1;
+        transform: translate3d(100%, 0, 0);
+      }
 
-    .slider-paper-content {
-      width: 100%;
-      height: 100%;
-      position: relative;
-    }
+      .slider-paper-content {
+        width: 100%;
+        height: 100%;
+        position: relative;
+      }
 
+      .slider-pagination {
+        position: absolute;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        margin: auto;
+        width: 100px;
+        height: 20px;
+        display: flex;
+        z-index: 999;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .slider-pagination .slider-pagination-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #fff;
+        opacity: 0.5;
+        cursor: pointer;
+        transition: all 0.5s;
+      }
+      .slider-pagination .slider-pagination-dot.active {
+        width: 15px;
+        height: 15px;
+        opacity: 1;
+      }
 
-    .slider-pagination {
-      position: absolute;
-      bottom: 20px;
-      left: 0;
-      right: 0;
-      margin: auto;
-      width: 100px;
-      height: 20px;
-      display: flex;
-      z-index: 999;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .slider-pagination .slider-pagination-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background-color: #fff;
-      opacity: 0.5;
-      cursor: pointer;
-      transition: all 0.5s;
-    }
-    .slider-pagination .slider-pagination-dot.active {
-      width: 15px;
-      height: 15px;
-      opacity: 1;
-    }
-
-    /* 
+      /* 
       the transition would be 'paper-onboarding' 
       mainly three parts:
       1. the opacity,
@@ -108,7 +95,7 @@
       and... the drag event, listen it and bind it with the transform, the transform is instant, but the changing of order is not, only when the trans coming to a limit, the changing of order will triggered.
     */
 
-    /*             
+      /*             
       translate3d would be a very fucking appropriate suitable idea.
       or translate XYZ with scale also can work
 
@@ -120,14 +107,14 @@
 
       ok, got it, but remember that all of them... may need js to help get right value in time 
      */
-  </style>
-</head>
-<body>
-  <div id="playground">
-    <div class="slider"></div>
-  </div>
-  <script>
-     /* 
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div class="slider"></div>
+    </div>
+    <script>
+      /* 
       a class for the slider, it takes the data and dom as the params, render the dom and handle the events
 
       defined some events
@@ -135,222 +122,219 @@
       if there is a start, the move is triggered, and when the move is over some value, the flip would be triggered
     */
 
-    class Slider {
-      constructor(data, dom) {
-        this.data = data
-        this.dom = dom
-        this.init()
-        this.cur
-      }
-      init() {
-        this.render()
-        this.bindEvents()
-      }
-      render() {
-        this.dom.innerHTML = `
+      class Slider {
+        constructor(data, dom) {
+          this.data = data
+          this.dom = dom
+          this.init()
+          this.cur
+        }
+        init() {
+          this.render()
+          this.bindEvents()
+        }
+        render() {
+          this.dom.innerHTML = `
           <div class="slider-page"></div>
           <div class="slider-pagination"></div>
         `
-        
-        this.page = this.dom.querySelector('.slider-page')
-        this.pagination = this.dom.querySelector('.slider-pagination')
 
-        this.data.forEach((item, index) => {
-          this.page.innerHTML += `
+          this.page = this.dom.querySelector(".slider-page")
+          this.pagination = this.dom.querySelector(".slider-pagination")
+
+          this.data.forEach((item, index) => {
+            this.page.innerHTML += `
             <div class="slider-paper" color: ${item.fontColor};">
                 <div class="slider-paper-title">${item.title}</div>
                 <div class="slider-paper-desc">${item.description}</div>
             </div>
           `
-        })
-        // control the color of the paper's ::after
-        // https://stackoverflow.com/questions/38872290/how-to-get-pseudo-element
-        const afters = []
-        for(let i = 0; i < this.data.length; i++) {
-          afters.push(window.getComputedStyle(this.page.children[i], ':after'))
+          })
+
+          this.papers = this.dom.querySelectorAll(".slider-paper")
+          this.papers[0].classList.add("current")
+          this.papers[1].classList.add("next")
+          this.papers[this.papers.length - 1].classList.add("prev")
+          this.cur = 0
+
+          this.pagination.innerHTML = this.data
+            .map((item, index) => {
+              return `<div class="slider-pagination-dot"></div>`
+            })
+            .join("")
+
+          this.dots = this.dom.querySelectorAll(".slider-pagination-dot")
+          this.dots[0].classList.add("active")
         }
-        console.log(afters)
-        afters.forEach((item, index) => {
-          item.backgroundColor = this.data[index].backgroundColor
-        })
-        // These styles are computed, and therefore the 'background-color' property is read-only.
+        bindEvents() {
+          /* 这一系列事件，都只是...为了效果 */
+          this.dom.addEventListener("touchstart", start)
+          // this.dom.addEventListener('mousedown', start)
 
-        this.papers = this.dom.querySelectorAll('.slider-paper')
-        this.papers[0].classList.add('current')
-        this.papers[1].classList.add('next')
-        this.papers[this.papers.length - 1].classList.add('prev')
-        this.cur = 0
+          let startX, startY, moveX, moveY, deltaX, deltaY
+          let that = this
 
-        this.pagination.innerHTML = this.data.map((item, index) => {
-          return `<div class="slider-pagination-dot"></div>`
-        }).join('')
+          const [cur, prev, next] = ["current", "prev", "next"].map((item) => {
+            return that.dom.querySelector(`.slider-paper.${item}`)
+          })
 
-        this.dots = this.dom.querySelectorAll('.slider-pagination-dot')
-        this.dots[0].classList.add('active')
-      }
-      bindEvents() {
-        /* 这一系列事件，都只是...为了效果 */
-        this.dom.addEventListener('touchstart', start)
-        // this.dom.addEventListener('mousedown', start)
+          // 为什么 function end 会被触发两次啊
+          function start(e) {
+            startX = e.touches ? e.touches[0].clientX : e.clientX
+            startY = e.touches ? e.touches[0].clientY : e.clientY
 
-        let startX, startY, moveX, moveY, deltaX, deltaY
-        let that = this
-
-        const [cur, prev, next] =  ['current', 'prev', 'next'].map(item => {
-          return that.dom.querySelector(`.slider-paper.${item}`)
-        })
-
-        // 为什么 function end 会被触发两次啊
-        function start(e) {
-          startX = e.touches ? e.touches[0].clientX : e.clientX
-          startY = e.touches ? e.touches[0].clientY : e.clientY
-
-          that.dom.addEventListener('touchmove', move)
-          // that.dom.addEventListener('mousemove', move)
-        }
-        function move(e) {
-          moveX = e.touches ? e.touches[0].clientX : e.clientX
-          moveY = e.touches ? e.touches[0].clientY : e.clientY
-          deltaX = moveX - startX
-          deltaY = moveY - startY
-
-          cur && (cur.style.transform = `translateX(${deltaX}px)`)
-          // translate重新写的话... 会直接覆盖
-          prev && (prev.style.transform = `translateX(${-that.dom.offsetWidth + deltaX}px)`)
-          next && (next.style.transform = `translateX(${that.dom.offsetWidth + deltaX}px)`)
-
-          that.dom.addEventListener('touchend', end)
-          // that.dom.addEventListener('mouseup', end)
-        }
-        function end(e) {
-          if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 100) {
-            if (deltaX > 100) {
-              that.goTo(that.cur - 1)
-            } else if (deltaX < -100) {
-              that.goTo(that.cur + 1)
-            } else {
-              that.goTo(that.cur)
-            }
+            that.dom.addEventListener("touchmove", move)
+            // that.dom.addEventListener('mousemove', move)
           }
-          /* 清空一下数据... */
-          startX = startY = moveX = moveY = deltaX = deltaY = null
+          function move(e) {
+            moveX = e.touches ? e.touches[0].clientX : e.clientX
+            moveY = e.touches ? e.touches[0].clientY : e.clientY
+            deltaX = moveX - startX
+            deltaY = moveY - startY
 
-          [cur, prev, next].forEach(item => {
-            item && (item.style.transform = '')
+            cur && (cur.style.transform = `translateX(${deltaX}px)`)
+            // translate重新写的话... 会直接覆盖
+            prev &&
+              (prev.style.transform = `translateX(${
+                -that.dom.offsetWidth + deltaX
+              }px)`)
+            next &&
+              (next.style.transform = `translateX(${
+                that.dom.offsetWidth + deltaX
+              }px)`)
+
+            that.dom.addEventListener("touchend", end)
+            // that.dom.addEventListener('mouseup', end)
+          }
+          function end(e) {
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 100) {
+              if (deltaX > 100) {
+                that.goTo(that.cur - 1)
+              } else if (deltaX < -100) {
+                that.goTo(that.cur + 1)
+              } else {
+                that.goTo(that.cur)
+              }
+            }
+            /* 清空一下数据... */
+            startX =
+              startY =
+              moveX =
+              moveY =
+              deltaX =
+              deltaY =
+                null[(cur, prev, next)].forEach((item) => {
+                  item && (item.style.transform = "")
+                })
+
+            that.dom.removeEventListener("touchmove", move)
+            // that.dom.removeEventListener('mousemove', move)
+            that.dom.removeEventListener("touchend", end)
+            // that.dom.removeEventListener('mouseup', end)
+          }
+
+          /* 点击跳转 */
+          this.dots.forEach((item, index) => {
+            item.addEventListener("click", () => {
+              this.goTo(index)
+              console.log(index)
+            })
           })
-
-          that.dom.removeEventListener('touchmove', move)
-          // that.dom.removeEventListener('mousemove', move)
-          that.dom.removeEventListener('touchend', end)
-          // that.dom.removeEventListener('mouseup', end)
         }
 
-
-        /* 点击跳转 */
-        this.dots.forEach((item, index) => {
-          item.addEventListener('click', () => {
-            this.goTo(index)
-            console.log(index)
-          })
-        })
-      }
-
-      goTo(index) {
-        /* 
+        goTo(index) {
+          /* 
           如果是向prev next跳，那么透明度动画都要有，
           但如果是隔了老远的跳，那么就不需要了...虽然这些都是自动的
         */
-       console.log(index)
-        if(index < 0 ) {
-          index = this.data.length - 1
+          console.log(index)
+          if (index < 0) {
+            index = this.data.length - 1
+          }
+          if (index > this.data.length - 1) {
+            index = 0
+          }
+          this.cur = index
+          this.papers.forEach((item, index) => {
+            item.classList.remove("current")
+            item.classList.remove("prev")
+            item.classList.remove("next")
+            // item.style.transform = `translate3d(0, 0, 0)`
+          })
+          this.papers[index].classList.add("current")
+          this.papers[index - 1] && this.papers[index - 1].classList.add("prev")
+          this.papers[index + 1] && this.papers[index + 1].classList.add("next")
+          if (index === this.data.length - 1) {
+            this.papers[0].classList.add("next")
+          }
+          if (index === 0) {
+            this.papers[this.data.length - 1].classList.add("prev")
+          }
+          this.dots.forEach((item, index) => {
+            item.classList.remove("active")
+          })
+          this.dots[index].classList.add("active")
         }
-        if(index > this.data.length - 1) {
-          index = 0
-        }
-        this.cur = index
-        this.papers.forEach((item, index) => {
-          item.classList.remove('current')
-          item.classList.remove('prev')
-          item.classList.remove('next')
-          // item.style.transform = `translate3d(0, 0, 0)`
-        })
-        this.papers[index].classList.add('current')
-        this.papers[index - 1] && this.papers[index - 1].classList.add('prev')
-        this.papers[index + 1] && this.papers[index + 1].classList.add('next')
-        if(index === this.data.length - 1) {
-          this.papers[0].classList.add('next')
-        }
-        if(index === 0) {
-          this.papers[this.data.length - 1].classList.add('prev')
-        }
-        this.dots.forEach((item, index) => {
-          item.classList.remove('active')
-        })
-        this.dots[index].classList.add('active')
-      } 
-    }
+      }
 
-
-
-    const data = [
-      {
-        title: 'Welcome to the app',
-        description: `This is a description of the first pag
+      const data = [
+        {
+          title: "Welcome to the app",
+          description: `This is a description of the first pag
         也许...  我确实荒废了...  而且有点久.
         虽然在那乱七八糟之前我也没做过什么事，那些超不过 5 分钟的速写，一堆堆的，好像没有几个能拿出来看。  
 
         我记得，在我小时候，我还会尝试着调整好作息，会讨厌熬夜... 我也不知道为什么会执着着按时睡觉、起床、吃饭、上课...  也许我知道这些习惯规则毫无意义但在某种程度上依旧在维持着我...  也像我还没剪掉的头发...  
         `,
-        backgroundColor: '#9b59b6',
-        fontColor: '#fff',
-        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2021-12-19_19-08-28.jpg'
-      },
-      {
-        title: 'Second paper',
-        description: `This is a description of the second paper
+          backgroundColor: "#9b59b6",
+          fontColor: "#fff",
+          img: "https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2021-12-19_19-08-28.jpg",
+        },
+        {
+          title: "Second paper",
+          description: `This is a description of the second paper
         在我小时候，我会觉得有些事无法接受，一想到就觉得世界要变成灰灰的，或者土土的，所有都混在了一起的那种颜色。
 
         现在好像...  无所谓...  或者它们早就已经是那样了
         `,
-        backgroundColor: '#3498db',
-        fontColor: '#fff',
-        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2021-12-19_19-08-28.jpg'
-      },
-      {
-        title: 'Third paper',
-        description: `This is a description of the third paper
+          backgroundColor: "#3498db",
+          fontColor: "#fff",
+          img: "https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2021-12-19_19-08-28.jpg",
+        },
+        {
+          title: "Third paper",
+          description: `This is a description of the third paper
         
         `,
-        backgroundColor: '#1abc9c',
-        fontColor: '#fff',
-        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2022-05-15_21-09-55.jpg'
-      },
-      {
-        title: 'Fourth paper',
-        description: 'This is a description of the fourth paper',
-        backgroundColor: '#e67e22',
-        fontColor: '#fff',
-        img: 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2022-05-15_21-09-55.jpg'
+          backgroundColor: "#1abc9c",
+          fontColor: "#fff",
+          img: "https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2022-05-15_21-09-55.jpg",
+        },
+        {
+          title: "Fourth paper",
+          description: "This is a description of the fourth paper",
+          backgroundColor: "#e67e22",
+          fontColor: "#fff",
+          img: "https://huamurui.github.io/data_and_so_on/images/paintings/shameful/2022-05-15_21-09-55.jpg",
+        },
+      ]
+      const slider = document.querySelector(".slider")
+      let mySlider = new Slider(data, slider)
+      mySlider.init()
+
+      const options = {
+        direction: "horizontal",
+        pagination: true,
+        paginationType: "dot",
+        paginationPosition: "bottom",
+
+        // the distance to trigger the flip
+        flipDistance: 0.3,
+        flipDuration: 0.3,
+        flipEasing: "ease-in-out",
       }
-    ]
-    const slider = document.querySelector('.slider')
-    let mySlider = new Slider(data,slider)
-    mySlider.init()
 
-    
-    const options = {
-      direction: 'horizontal',
-      pagination: true,
-      paginationType: 'dot',
-      paginationPosition: 'bottom',
-
-      // the distance to trigger the flip
-      flipDistance: 0.3,
-      flipDuration: 0.3,
-      flipEasing: 'ease-in-out', 
-    }
-
-    /* 
+      /* 
       我算是...看到了。
       想要把一个玩意整好，想法是一回事...  更多的时间都是在，踩坑，搞那些边界状况之类的东西。真的...好费劲。
       半年前看到那些新奇的玩具，会觉得有趣的部分早就做的很好了，之后更需要的...或者我在做的，可能只是些无聊的对接工作。
@@ -360,7 +344,7 @@
       翻了翻 swiper.js 的代码...一个“小小”的幻灯片竟然都有自己的一套，生命周期一类的东西...  还有一堆应该是为了适配写的奇奇怪怪的代码...  啊呜...
     */
 
-    /* 
+      /* 
       好吧...和我想的不太一样，但也见过这个路数。
       paper-onboarding 的背景实现方式... 是单独又摘出来的，并没有和幻灯片内容放在一起，几乎是另一组幻灯片了，只是两组配合的很好。那是一个超大的椭圆元素的一部分造成了那种遮挡换页的效果。...之前那个登录注册的也是。
       可是为什么不写到伪元素里面？...  感觉好 trick，感觉受到了欺骗。呜呜呜... 
@@ -373,6 +357,6 @@
       之后的计划...  
       我也不知道做什么好...  
     */
-  </script>
-</body>
+    </script>
+  </body>
 </html>
