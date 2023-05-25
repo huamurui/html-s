@@ -14,3 +14,6 @@ i want to make some simple demo just through single html file.
 - [slider&swiper?](./slider.html)
 - [slider-paper-onboarding](./slider-paper-onboarding.html)
 - [dialogue-chat-ui](./dialogue-chat-ui.html)
+
+- [snake](./snake.html)
+- [mario](./mario.html)
