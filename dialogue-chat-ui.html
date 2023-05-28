@@ -12,6 +12,8 @@
         display: flex;
         justify-content: center;
         align-items: center;
+        font-family: "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
+          sans-serif;
       }
       *:hover {
         outline: 1px solid #ccc;
@@ -36,7 +38,7 @@
         align-items: center;
         width: 60px;
       }
-      .nav-list {
+      .channel-list {
         background-color: #fff;
         border-right: 1px solid #ccc;
         display: flex;
@@ -46,7 +48,7 @@
         width: 300px;
       }
       .nav-bar > *,
-      .nav-list > * {
+      .channel-list > * {
         padding: 0 10px 0 10px;
       }
       .nav-item {
@@ -160,7 +162,7 @@
           align-items: center;
         }
 
-        .nav-list {
+        .channels {
           position: absolute;
           display: flex;
           flex-direction: column;
@@ -196,10 +198,10 @@
   <body>
     <div id="app">
       <nav class="nav-bar"></nav>
-      <nav class="nav-list"></nav>
+      <aside class="channels"></aside>
       <main>
-        <header class="chat-title">
-          <span class="back"><</span>
+        <header class="channel-title">
+          <span class="back">←</span>
           <span class="name">meow meow meow</span>
         </header>
         <div class="messages"></div>
@@ -213,11 +215,23 @@
       const data = {
         navBar: [
           { name: "me", icon: "me" },
-          { name: "chats", icon: "chat" },
+          { name: "channels", icon: "channel" },
           { name: "find", icon: "discover" },
           { name: "set", icon: "setting" },
         ],
-        navList: [
+        me: {
+          name: "dio",
+          number: "123456789",
+          state: "online",
+          avatar: "dio",
+        },
+        find: {},
+        set: {
+          mode: "light",
+          background: "white",
+          font: "black",
+        },
+        channel: [
           { name: "dio", type: "person" },
           { name: "dio no bread", type: "group" },
           { name: "rainbow", type: "person" },
@@ -311,14 +325,14 @@
         ],
       }
       const app = document.querySelector("#app")
-      const [navBar, navList, main] = app.children
+      const [navBar, aside, main] = app.children
       const [header, messages, texter] = main.children
-      const [navBarItems, navListItems] = [data.navBar, data.navList].map(
+      const [navBarItems, channelItems] = [data.navBar, data.channel].map(
         (items) =>
           items
             .map(
               (item) =>
-                `<div class="nav-item">
+                `<div class="nav-item" id="${item.name}">
                   <div class="icon icon-${item.icon}"></div>
                   <div class="name">${item.name}</div>
                 </div>`
@@ -326,7 +340,23 @@
             .join("")
       )
       navBar.innerHTML = navBarItems
-      navList.innerHTML = navListItems
+      aside.innerHTML = channelItems // default aside, default channel
+      navBar.childNodes.forEach((item, index) => {
+        item.addEventListener("click", () => {
+          aside.classList = "channels"
+          aside.classList.add(`${item.id}`)
+          if (item.id === "channels") {
+            aside.innerHTML = channelItems
+          } else {
+            aside.innerHTML = `
+                <div class="nav-item">${item.id}</div>
+                <br>
+                <br>
+                <div class="nav-item">${JSON.stringify(data[item.id])}</div>
+            `
+          }
+        })
+      })
 
       data.messages.forEach((message, index) => {
         const messageItem = document.createElement("div")
@@ -341,9 +371,9 @@
 
       const [input, sender] = texter.children
       input.addEventListener("keydown", (e) => {
-        e.preventDefault()
         e.stopPropagation()
         if (e.key === "Enter") {
+          e.preventDefault()
           sender.click()
         }
       })
@@ -358,14 +388,18 @@
         input.value = ""
         messages.scrollTop = messages.scrollHeight
       })
-      navList.addEventListener("click", () => {
-        main.classList.add("active")
-        main.classList.remove("hide")
-      })
-      const back = header.querySelector(".back")
-      back.addEventListener("click", () => {
-        main.classList.remove("active")
-        main.classList.add("hide")
+
+      // let channel = aside
+      aside.addEventListener("click", () => {
+        if (aside.classList.contains("channels")) {
+          main.classList.add("active")
+          main.classList.remove("hide")
+          const back = header.querySelector(".back")
+          back.addEventListener("click", () => {
+            main.classList.remove("active")
+            main.classList.add("hide")
+          })
+        }
       })
 
       /* 那种很丝滑的拖拽是怎么做的... 这样搞一堆bug...? */
@@ -373,24 +407,24 @@
 
       function handleGesture() {
         main.addEventListener("touchstart", (e) => {
-          main.style.transform = `translateX(0px)`
           startX = e.touches[0].clientX
         })
         main.addEventListener("touchmove", (e) => {
           const moveX = e.touches[0].clientX
           const distance = moveX - startX
-          if (distance > 30) {
-            main.style.transform = `translateX(${distance - 30}px)`
-          }
+          if (distance < 0) return
+          main.style.transform = `translateX(${distance}px)`
         })
         main.addEventListener("touchend", (e) => {
           const moveX = e.changedTouches[0].clientX
           const distance = moveX - startX
+          main.style.transform = null
           if (distance > 100) {
             main.classList.remove("active")
             main.classList.add("hide")
           } else {
-            main.style.transform = `translateX(0px)`
+            main.classList.add("active")
+            main.classList.remove("hide")
           }
         })
       }
