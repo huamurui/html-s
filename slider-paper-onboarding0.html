@@ -16,8 +16,10 @@
       }
       #playground {
         position: fixed;
-        width: 60%;
-        height: 60%;
+        /* width: 60%; */
+        /* height: 60%; */
+        width: 100%;
+        height: 100%;
         background-color: #fff;
       }
 
@@ -39,35 +41,143 @@
         height: 100%;
         background-color: #fff;
       }
+
+      .content {
+        padding: 20px;
+      }
+      h3 {
+        margin: 0;
+      }
+
+      .dots {
+        z-index: 99;
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: #b4b4b4;
+        margin: 5px 5px;
+        cursor: pointer;
+        transition: all 0.3s ease-in-out;
+      }
+
+      .dot.active {
+        background-color: #ffffff;
+        width: 20px;
+        height: 20px;
+      }
     </style>
   </head>
   <body>
     <div id="playground">
       <div class="swiper-wrapper">
-        <div class="swiper">
-          <section>1</section>
-          <section>2</section>
-          <section>3</section>
-          <section>4</section>
-        </div>
+        <div class="swiper"></div>
+        <div class="dots"></div>
       </div>
     </div>
     <script>
+      const data = [
+        {
+          title: "吃点好的",
+          desc: `
+活过的刹那，前后皆是暗夜。
+逛 github 逛到一个传教的...嗯，不是耶稣基督释迦摩尼飞天意面，而是那种..侮辱现代人智商的那种。
+我挺悲观的，短期来看，我感觉我自己快要完蛋了，往远了看，我觉得人类其实也快要完蛋了。
+除了疾病战争经济地域冲突这种日常...也不能叫日常，就是时不时出问题，但出了问题冷静一下，过个几十年也许可能大概也能缓过来的这种；还有好多...气候能源这样的，照现在这样搞，也许几百万年都缓不过来的。——现在这种生活是不可持续的，大工业机器源源不断的提供水电基础设施...它们所依赖的能源环境等一系列条件，不会很久，可预见的几百年后也许就会不复存在。
+不管之后的人是回到另一个黑暗中世纪，还是突然发现了另一种现在的人根本无法想象的生活方式，那些都和现在无关了...
+所以，吃点好的。
+'''
+一定是因为游戏，所以我的孩子才没出息；
+一定是因为黑人，所以我的生活才这么糟糕；
+一定是因为犹太人，美国，女权，丁真，新冠，鳄雀鳝......
+'''
+也许不久之前我还会说说[https://huamurui.github.io/posts/CS/helloworld/why-the-moon.html#but-why-some-say-the-diet].
+但现在... 搞搞反黑，搞搞nazi，搞搞大屠杀好了。还有最重要的，吃点好的。
+          `,
+          backgroundColor: "#9b59b6",
+        },
+        {
+          title: "堕落与弃绝",
+          desc: `
+我很喜欢一部叫 jojo 的动画中一个叫 dio 的大反派的词——“人类是有极限的啊....要成为超越人类的存在才可以...我不做人类了！”
+放弃做人，这明显是抛弃自己可能性的一个行为，然而通过这种弃绝，这种走投无路而又不得不把路越走越窄， dio 同时也获得了最极端的自由——他不走路了。
+          `,
+          backgroundColor: "#3498db",
+        },
+        {
+          title: "岂其然乎",
+          desc: `
+在看些一百年前的故事...在那一团乱的年代，似乎到处都是要绷不住的样子，社会的各个部件都以一种...极限，不，是狂野，是东拼西凑像巧合一样的运作着；那里面有着大量的痛苦、无措...以及行动的空间，而我们的主角们则十分灵巧的在那些空间中穿梭，于乱世中让无产阶级这一最伟大的力量登上了历史的舞台。  
+              ——...是这样吗？
+          `,
+          backgroundColor: "#1abc9c",
+        },
+        {
+          title: "两面",
+          desc: `
+初中学到达尔文都时候，想到了“人为什么活着”——不想活的活不下去的都死了，所以剩下的活着的就是活着的了——和现在流行的废话文学有的一拼。然后过了一段时间…我玉玉了。
+我觉得这样也好，不适应的，卷不过的都消失掉，剩下的就是适应的，这样就不会有人不开心了。——出于人道主义，我也确实觉得我们不应该劝慰不想留在这世界的人。一遍遍的哄骗一般的塑造出所谓的青年、引诱着他们“反抗”，再然后又一边折磨着一边“对你好”。——这是荡妇一般的成年人们所做的事，像来回弯折铁丝一样，将真正的脆弱与麻木注入孩子的灵魂......
+但似乎又有些没法放弃的东西...妈妈，与阶级。
+          `,
+          backgroundColor: "#e67e22",
+        },
+      ]
+
       const playground = document.querySelector("#playground")
       const swiper = playground.querySelector(".swiper")
-      const sections = swiper.querySelectorAll("section")
-      sections.forEach((section) => {
-        section.style.backgroundColor = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`
+      const dots = playground.querySelector(".dots")
+
+      let currentIndex = 0
+      function parser(md) {
+        /* 主要是换行，还有个链接 */
+        let html = md.replace(/\n/g, "<br>").replace(/\[(.+)\]/g, `<a href="$1">$1</a>`)
+        return html
+      }
+      data.forEach((item, index) => {
+        const section = document.createElement("section")
+        section.innerHTML = `
+        <div class="content">
+          <h3>${item.title}</h3>
+          <p>${parser(item.desc)}</p>
+        </div>
+        `
+        section.style.backgroundColor = item.backgroundColor
+        swiper.appendChild(section)
       })
+      const sections = swiper.querySelectorAll("section")
+      for (let i = 0; i < sections.length; i++) {
+        const dot = document.createElement("div")
+        dot.classList.add("dot")
+        dots.appendChild(dot)
+        dot.addEventListener("click", () => {
+          currentIndex = i
+          swiper.style.transform = `translate3d(0px, ${-currentIndex * sections[0].offsetHeight}px, 0px)`
+          dots.querySelectorAll(".dot").forEach((item) => {
+            item.classList.remove("active")
+          })
+          dot.classList.add("active")
+        })
+      }
 
       playground.addEventListener("touchstart", start)
 
       let startY = 0
       let moveY = 0
-      let currentIndex = 0
       let height = sections[0].offsetHeight
 
       function start(e) {
+        /* 阻止移动端下滑刷新 */
+        e.preventDefault()
         swiper.style.transition = "none"
         startY = e.touches[0].clientY || e.clientY
         playground.addEventListener("touchmove", move)
@@ -79,17 +189,38 @@
       }
       function end(e) {
         swiper.style.transition = "transform 0.3s ease-in-out"
-        // find the closest section
+        /*
+        // 0.1 find the closest section
         let distance = moveY - startY
         currentIndex = currentIndex - Math.round(distance / height)
+        */
+
+        // 0.2 change the currentIndex by tendency
+        if (Math.abs(moveY - startY) > 100) {
+          if (moveY - startY > 0) {
+            currentIndex--
+          } else {
+            currentIndex++
+          }
+        }
+        console.log(currentIndex)
+
         // edge case
         if (currentIndex < 0) currentIndex = 0
         if (currentIndex > sections.length - 1) currentIndex = sections.length - 1
 
         swiper.style.transform = `translate3d(0px, ${-currentIndex * height}px, 0px)`
+        dots.querySelectorAll(".dot").forEach((dot) => {
+          dot.classList.remove("active")
+        })
+        dots.querySelectorAll(".dot")[currentIndex].classList.add("active")
         playground.removeEventListener("touchmove", move)
         playground.removeEventListener("touchend", end)
       }
+
+      /* 
+      不知道咋说... 我这个写的更简单，但就目前效果而言，比之前那个好些。
+      */
     </script>
   </body>
 </html>

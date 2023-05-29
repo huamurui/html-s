@@ -131,7 +131,6 @@
       let startX, startY, shiftX, shiftY, moveX, moveY
 
       function onStart(e) {
-        console.log("onStart", state)
         // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
         // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
         e.preventDefault()
