@@ -15,6 +15,7 @@
         align-items: center;
       }
       #playground {
+        position: fixed;
         width: 60%;
         height: 60%;
         background-color: #fff;
@@ -30,7 +31,8 @@
         width: 100%;
         height: 100%;
         background-color: #fff;
-        /* transform: translateY(-100%); */
+        transition: transform 0.3s ease-in-out;
+        transform: translate3d(0px, 0px, 0px);
       }
       .swiper section {
         width: 100%;
@@ -51,55 +53,42 @@
       </div>
     </div>
     <script>
-      const data = {
-        partD: `
-        
-        `,
-        partD0: ``,
-      }
       const playground = document.querySelector("#playground")
       const swiper = playground.querySelector(".swiper")
       const sections = swiper.querySelectorAll("section")
       sections.forEach((section) => {
-        section.style.backgroundColor = `rgb(${Math.random() * 255},${
-          Math.random() * 255
-        },${Math.random() * 255})`
+        section.style.backgroundColor = `rgb(${Math.random() * 255},${Math.random() * 255},${Math.random() * 255})`
       })
 
-      swiper.addEventListener("touchstart", start)
+      playground.addEventListener("touchstart", start)
 
       let startY = 0
-      let endY = 0
+      let moveY = 0
       let currentIndex = 0
+      let height = sections[0].offsetHeight
 
       function start(e) {
+        swiper.style.transition = "none"
         startY = e.touches[0].clientY || e.clientY
-        swiper.addEventListener("touchmove", move)
-        swiper.addEventListener("touchend", end)
+        playground.addEventListener("touchmove", move)
+        playground.addEventListener("touchend", end)
       }
       function move(e) {
-        swiper.style.transform = `translateY(${
-          currentIndex * 100 + ((e.touches[0].clientY || e.clientY) - startY)
-        }px)`
-        endY = e.touches[0].clientY || e.clientY
+        moveY = e.touches[0].clientY || e.clientY
+        swiper.style.transform = `translate3d(0px, ${-currentIndex * height + moveY - startY}px, 0px)`
       }
       function end(e) {
-        if (endY - startY > 100) {
-          // 下滑
-          if (currentIndex === 0) {
-            return
-          }
-          currentIndex--
-        } else {
-          // 上滑
-          if (currentIndex === sections.length - 1) {
-            return
-          }
-          currentIndex++
-        }
-        swiper.style.transform = `translateY(-${currentIndex * 100}%)`
-        swiper.removeEventListener("touchmove", move)
-        swiper.removeEventListener("touchend", end)
+        swiper.style.transition = "transform 0.3s ease-in-out"
+        // find the closest section
+        let distance = moveY - startY
+        currentIndex = currentIndex - Math.round(distance / height)
+        // edge case
+        if (currentIndex < 0) currentIndex = 0
+        if (currentIndex > sections.length - 1) currentIndex = sections.length - 1
+
+        swiper.style.transform = `translate3d(0px, ${-currentIndex * height}px, 0px)`
+        playground.removeEventListener("touchmove", move)
+        playground.removeEventListener("touchend", end)
       }
     </script>
   </body>
