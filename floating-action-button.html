@@ -128,16 +128,20 @@
       main.addEventListener("touchstart", onStart)
 
       // 全局变量很坏！但我也不知道怎么办了呜呜
-      let shiftX, shiftY
+      let startX, startY, shiftX, shiftY, moveX, moveY
 
       function onStart(e) {
         console.log("onStart", state)
         // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
         // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
         e.preventDefault()
+        e.stopPropagation()
 
         if (e.type === "mousedown") {
           if (state === "default" || state === "active") {
+            startX = e.clientX
+            startY = e.clientY
+
             shiftX = e.clientX - main.getBoundingClientRect().left
             shiftY = e.clientY - main.getBoundingClientRect().top
 
@@ -148,6 +152,9 @@
           }
         } else if (e.type === "touchstart") {
           if (state === "default" || state === "active") {
+            startX = e.touches[0].clientX
+            startY = e.touches[0].clientY
+
             shiftX = e.touches[0].clientX - main.getBoundingClientRect().left
             shiftY = e.touches[0].clientY - main.getBoundingClientRect().top
 
@@ -167,13 +174,18 @@
           ex = e.touches[0].clientX
           ey = e.touches[0].clientY
         }
-
+        moveX = ex - startX
+        moveY = ey - startY
         if (state === "default" || state === "active") {
-          if (ex * ex + ey * ey > 50) {
+          if (moveX * moveX + moveY * moveY > 10) {
             if (state === "active") {
               togglesubs("default")
             }
             state = "dragging"
+            if (!detectEdges(ex, ey)) {
+              main.style.left = ex - shiftX + "px"
+              main.style.top = ey - shiftY + "px"
+            }
           }
         } else if (state === "dragging") {
           if (!detectEdges(ex, ey)) {
@@ -191,7 +203,6 @@
           document.removeEventListener("touchmove", onMove)
           document.removeEventListener("touchend", onEnd)
         }
-        console.log("end", state)
         if (state === "dragging") {
           if (detectEdges(e.clientX, e.clientY)) {
             state = "sticky"
@@ -205,7 +216,6 @@
         } else if (state === "active") {
           togglesubs("default")
         }
-        console.log("end2", state)
       }
 
       // detecting the edges of the screen
