@@ -1,78 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>floating action button</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    #playground {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      background-color: #f1f1f1;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>floating action button</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      #playground {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background-color: #f1f1f1;
+      }
 
-    .floating-sub-button {
-      position: fixed;
+      .floating-sub-button {
+        position: fixed;
 
-      border-radius: 50%;
-      background-color: #000;
-      color: #fff;
-      font-weight: bold;
-    
+        border-radius: 50%;
+        background-color: #000;
+        color: #fff;
+        font-weight: bold;
 
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      
-      cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
 
-      z-index: 999;
-    }
+        cursor: pointer;
 
-    .floating-sub-button.main {
-      width: 50px;
-      height: 50px;
-      font-size: 30px;
-    }
-    .floating-sub-button.sub {
-      width: 20px;
-      height: 20px;
-      font-size: 10px;
-      transition : all 0.3s ease-in-out 0s;
-      opacity: 0;
-    }
-  
+        z-index: 999;
+      }
 
-  </style>
-</head>
-<body>
-  <div id="playground">
-    <div class="floating-sub-button main">+</div>
-    <div class="floating-sub-button sub">1</div>
-    <div class="floating-sub-button sub">2</div>
-    <div class="floating-sub-button sub">3</div>
-    <!-- <div class="sub">4</div>
+      .floating-sub-button.main {
+        width: 50px;
+        height: 50px;
+        font-size: 30px;
+      }
+      .floating-sub-button.sub {
+        width: 20px;
+        height: 20px;
+        font-size: 10px;
+        transition: all 0.3s ease-in-out 0s;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div class="floating-sub-button main">+</div>
+      <div class="floating-sub-button sub">1</div>
+      <div class="floating-sub-button sub">2</div>
+      <div class="floating-sub-button sub">3</div>
+      <!-- <div class="sub">4</div>
     <div class="sub">5</div>
     <div class="sub">6</div>
     <div class="sub">7</div> -->
+    </div>
+    <script>
+      // i want to create a main which is draggable and can stick to the edges of the screen when it is dragged closed to the edges of the screen
+      // and when the main is clicked or touched, the sub subs should appear
 
-  </div>
-  <script>
-    // i want to create a main which is draggable and can stick to the edges of the screen when it is dragged closed to the edges of the screen
-    // and when the main is clicked or touched, the sub subs should appear
-
-    /* 
+      /* 
       but ... this is a bad practice, i mean .... really. bad code, bad thought, bad design, bad everything.
     */
 
-    /* 
+      /* 
       一些小小的技术选型问题。
       1.  
       drag drop 事件是 html5 的，这些新出的事件，也是基于原本的 mouse 事件的。这些事件目前依旧... 有些问题，移动端是一回事，click 和 drop 事件冲突又是一回事，好吧现在并不会冲突。但我想说的是，click 事件或者 drag 事件，它们都是 mouse 事件的组合继承而来的...
@@ -90,142 +86,141 @@
       
     */
 
-    const main = document.querySelector('.main')
-    const states =['default','active','dragging','sticky']
-    let state = 'default'
+      const main = document.querySelector(".main")
+      const states = ["default", "active", "dragging", "sticky"]
+      let state = "default"
 
-    const subs = document.querySelectorAll('.sub')
+      const subs = document.querySelectorAll(".sub")
 
-    function togglesubs(toState) {
-      if(toState === 'active') {
-        for (let i = 0; i < subs.length; i++) {
+      function togglesubs(toState) {
+        if (toState === "active") {
+          for (let i = 0; i < subs.length; i++) {
+            // coollllllllllllllllll!
+            let unit = (2 * Math.PI) / subs.length
+            let angle = unit * i
+            let x = Math.cos(angle) * 40
+            let y = Math.sin(angle) * 40
+            subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
+            subs[i].style.left = main.offsetLeft + main.clientWidth / 2 - subs[i].clientWidth / 2 + "px"
 
-          // coollllllllllllllllll!
-          let unit = 2 * Math.PI / subs.length
-          let angle = unit * i
-          let x = Math.cos(angle) * 40
-          let y = Math.sin(angle) * 40
-          subs[i].style.top = main.offsetTop + main.clientHeight/2 - subs[i].clientHeight/2 + 'px'
-          subs[i].style.left = main.offsetLeft + main.clientWidth/2- subs[i].clientWidth/2 + 'px'
-
-          subs[i].style.opacity = 1
-          subs[i].style.transform = `translate(${x}px, ${y}px)`
-        }
-        state = 'active'
-      } else if(toState === 'default') {
-        // 我们希望在回到默认状态的时候，main 可以弹出来...，以及，sticky 的时候，改成动画，变个样子，现在这样太僵硬了还不如不写。
-        main.style.opacity = 1
-        for (let i = 0; i < subs.length; i++) {
-          subs[i].style.opacity = 0
-        }
-        state = 'default'
-      } else if(toState === 'sticky') {
-        main.style.opacity = 0.5
-        state = 'sticky'
-      }
-    }
-
-
-    // enable the main drag and drop
-    main.addEventListener('mousedown', onStart)
-    main.addEventListener('touchstart', onStart)
-
-    // 全局变量很坏！但我也不知道怎么办了呜呜
-    let shiftX, shiftY 
-
-    function onStart(e) {
-
-      // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
-      // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
-      e.preventDefault()
-      
-      if(e.type === 'mousedown'){
-        if(state==='default' || state==='active'){
-          shiftX = e.clientX - main.getBoundingClientRect().left
-          shiftY = e.clientY - main.getBoundingClientRect().top
-
-          document.addEventListener('mousemove', onMove)
-          document.addEventListener('mouseup', onEnd)
-        } else if(state==='sticky'){
-          togglesubs('default')
-        }
-      } else if (e.type === 'touchstart'){
-        if(state==='default' || state==='active'){
-          shiftX = e.touches[0].clientX - main.getBoundingClientRect().left
-          shiftY = e.touches[0].clientY - main.getBoundingClientRect().top
-
-          document.addEventListener('touchmove', onMove)
-          document.addEventListener('touchend', onEnd)
-        } else if(state==='sticky'){
-          togglesubs('default')
-        }
-      }
-   }
-    function onMove(e) {
-
-      let ex,ey 
-      if(e.type === 'mousemove'){
-        ex = e.clientX
-        ey = e.clientY
-      } else if (e.type === 'touchmove'){
-        ex = e.touches[0].clientX
-        ey = e.touches[0].clientY
-      }
-
-      if(state==='default' || state==='active'){
-        if(Math.abs(ex) > 7 || Math.abs(ey) > 7){
-          if(state==='active'){
-            togglesubs('default')
+            subs[i].style.opacity = 1
+            subs[i].style.transform = `translate(${x}px, ${y}px)`
           }
-          state = 'dragging'
+          state = "active"
+        } else if (toState === "default") {
+          // 我们希望在回到默认状态的时候，main 可以弹出来...，以及，sticky 的时候，改成动画，变个样子，现在这样太僵硬了还不如不写。
+          main.style.opacity = 1
+          for (let i = 0; i < subs.length; i++) {
+            subs[i].style.opacity = 0
+            subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
+            subs[i].style.left = main.offsetLeft + main.clientWidth / 2 - subs[i].clientWidth / 2 + "px"
+            subs[i].style.transform = `translate(0px, 0px)`
+          }
+          state = "default"
+        } else if (toState === "sticky") {
+          main.style.opacity = 0.5
+          state = "sticky"
         }
-      } else if(state==='dragging'){
-        if(!detectEdges(ex,ey)){
-          main.style.left = ex - shiftX + 'px'
-          main.style.top = ey - shiftY + 'px'
-        }
-      }  
-
-    }
-
-    function onEnd(e) {
-      if(e.type === 'mouseup'){
-        document.removeEventListener('mousemove', onMove)
-        document.removeEventListener('mouseup', onEnd)
-      } else if (e.type === 'touchend'){
-        document.removeEventListener('touchmove', onMove)
-        document.removeEventListener('touchend', onEnd)
       }
-      if(state==='dragging'){
 
-        if(detectEdges(e.clientX,e.clientY)){
-          state = 'sticky'
-          togglesubs('sticky')
+      // enable the main drag and drop
+      main.addEventListener("mousedown", onStart)
+      main.addEventListener("touchstart", onStart)
+
+      // 全局变量很坏！但我也不知道怎么办了呜呜
+      let shiftX, shiftY
+
+      function onStart(e) {
+        console.log("onStart", state)
+        // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
+        // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
+        e.preventDefault()
+
+        if (e.type === "mousedown") {
+          if (state === "default" || state === "active") {
+            shiftX = e.clientX - main.getBoundingClientRect().left
+            shiftY = e.clientY - main.getBoundingClientRect().top
+
+            document.addEventListener("mousemove", onMove)
+            document.addEventListener("mouseup", onEnd)
+          } else if (state === "sticky") {
+            togglesubs("default")
+          }
+        } else if (e.type === "touchstart") {
+          if (state === "default" || state === "active") {
+            shiftX = e.touches[0].clientX - main.getBoundingClientRect().left
+            shiftY = e.touches[0].clientY - main.getBoundingClientRect().top
+
+            document.addEventListener("touchmove", onMove)
+            document.addEventListener("touchend", onEnd)
+          } else if (state === "sticky") {
+            togglesubs("default")
+          }
+        }
+      }
+      function onMove(e) {
+        let ex, ey
+        if (e.type === "mousemove") {
+          ex = e.clientX
+          ey = e.clientY
+        } else if (e.type === "touchmove") {
+          ex = e.touches[0].clientX
+          ey = e.touches[0].clientY
+        }
+
+        if (state === "default" || state === "active") {
+          if (ex * ex + ey * ey > 50) {
+            if (state === "active") {
+              togglesubs("default")
+            }
+            state = "dragging"
+          }
+        } else if (state === "dragging") {
+          if (!detectEdges(ex, ey)) {
+            main.style.left = ex - shiftX + "px"
+            main.style.top = ey - shiftY + "px"
+          }
+        }
+      }
+
+      function onEnd(e) {
+        if (e.type === "mouseup") {
+          document.removeEventListener("mousemove", onMove)
+          document.removeEventListener("mouseup", onEnd)
+        } else if (e.type === "touchend") {
+          document.removeEventListener("touchmove", onMove)
+          document.removeEventListener("touchend", onEnd)
+        }
+        console.log("end", state)
+        if (state === "dragging") {
+          if (detectEdges(e.clientX, e.clientY)) {
+            state = "sticky"
+            togglesubs("sticky")
+          } else {
+            state = "default"
+            togglesubs("default")
+          }
+        } else if (state === "default") {
+          togglesubs("active")
+        } else if (state === "active") {
+          togglesubs("default")
+        }
+        console.log("end2", state)
+      }
+
+      // detecting the edges of the screen
+      const playground = document.querySelector("#playground")
+
+      function detectEdges(ex, ey) {
+        if (ex < 0 + shiftX || ex > document.documentElement.clientWidth + shiftX - main.clientWidth || ey < 0 + shiftY || ey > document.documentElement.clientHeight + shiftY - main.clientHeight) {
+          return true
         } else {
-          state = 'default'
-          togglesubs('default')
+          return false
         }
-      } else if(state==='default'){
-        togglesubs('active')
-      } else if(state==='active'){
-        togglesubs('default')
       }
-    }
 
-    // detecting the edges of the screen
-    const playground = document.querySelector('#playground')
-
-    function detectEdges(ex,ey) {
-      if(ex < 0 + shiftX || ex > document.documentElement.clientWidth + shiftX -main.clientWidth || ey < 0 + shiftY || ey > document.documentElement.clientHeight + shiftY - main.clientHeight){
-        return true
-      } else {
-        return false
-      }
-    }
-
-
-    // this small file could be extended ... to a web page pet, i have just learned compiler, dfa ... and dfa or decision tree could be used to create a little pet that have a lots of behaviors automatically.
-    // and also learn to publish a browser extension. or even a cross platform app.
-  </script>
-</body>
+      // this small file could be extended ... to a web page pet, i have just learned compiler, dfa ... and dfa or decision tree could be used to create a little pet that have a lots of behaviors automatically.
+      // and also learn to publish a browser extension. or even a cross platform app.
+    </script>
+  </body>
 </html>

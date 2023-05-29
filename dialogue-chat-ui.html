@@ -12,8 +12,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        font-family: "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial,
-          sans-serif;
+        font-family: "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
       }
       *:hover {
         outline: 1px solid #ccc;
@@ -327,17 +326,16 @@
       const app = document.querySelector("#app")
       const [navBar, aside, main] = app.children
       const [header, messages, texter] = main.children
-      const [navBarItems, channelItems] = [data.navBar, data.channel].map(
-        (items) =>
-          items
-            .map(
-              (item) =>
-                `<div class="nav-item" id="${item.name}">
+      const [navBarItems, channelItems] = [data.navBar, data.channel].map((items) =>
+        items
+          .map(
+            (item) =>
+              `<div class="nav-item" id="${item.name}">
                   <div class="icon icon-${item.icon}"></div>
                   <div class="name">${item.name}</div>
                 </div>`
-            )
-            .join("")
+          )
+          .join("")
       )
       navBar.innerHTML = navBarItems
       aside.innerHTML = channelItems // default aside, default channel
@@ -406,16 +404,19 @@
       let startX = 0
 
       function handleGesture() {
-        main.addEventListener("touchstart", (e) => {
+        document.addEventListener("touchstart", (e) => {
+          main.style.transition = "none"
           startX = e.touches[0].clientX
         })
-        main.addEventListener("touchmove", (e) => {
+        document.addEventListener("touchmove", (e) => {
           const moveX = e.touches[0].clientX
           const distance = moveX - startX
           if (distance < 0) return
           main.style.transform = `translateX(${distance}px)`
+          return false
         })
-        main.addEventListener("touchend", (e) => {
+        document.addEventListener("touchend", (e) => {
+          main.style.transition = "all 0.3s"
           const moveX = e.changedTouches[0].clientX
           const distance = moveX - startX
           main.style.transform = null
