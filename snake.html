@@ -112,8 +112,7 @@
         let rightCollision = head.col === widthInBlocks - 1
         let bottomCollision = head.row === heightInBlocks - 1
 
-        let wallCollision =
-          leftCollision || topCollision || rightCollision || bottomCollision
+        let wallCollision = leftCollision || topCollision || rightCollision || bottomCollision
         let selfCollision = false
 
         for (let i = 0; i < this.segments.length; i++) {
@@ -156,11 +155,7 @@
           }
         }
       }
-      const snake = new Snake([
-        new Block(7, 5),
-        new Block(6, 5),
-        new Block(5, 5),
-      ])
+      const snake = new Snake([new Block(7, 5), new Block(6, 5), new Block(5, 5)])
       const apple = new Apple(new Block(10, 10))
       const gameOver = function () {
         clearTimeout(timeoutId)
@@ -198,6 +193,25 @@
         },
         false
       )
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener(
+          "deviceorientation",
+          function (event) {
+            const gamma = event.gamma
+            const beta = event.beta
+            if (gamma > 5) {
+              snake.setDirection("right")
+            } else if (gamma < -5) {
+              snake.setDirection("left")
+            } else if (beta > 5) {
+              snake.setDirection("down")
+            } else if (beta < -5) {
+              snake.setDirection("up")
+            }
+          },
+          false
+        )
+      }
     </script>
   </body>
 </html>

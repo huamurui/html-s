@@ -117,12 +117,7 @@
         ctx.strokeRect(0 - cameraAnchor.x, 0 - cameraAnchor.y, 800, 600)
 
         objects.forEach((obj) => {
-          ctx.fillRect(
-            obj.position.x - cameraAnchor.x,
-            obj.position.y - cameraAnchor.y,
-            obj.size.x,
-            obj.size.y
-          )
+          ctx.fillRect(obj.position.x - cameraAnchor.x, obj.position.y - cameraAnchor.y, obj.size.x, obj.size.y)
         })
       }
 
@@ -202,6 +197,40 @@
             break
         }
       })
+
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener(
+          "deviceorientation",
+          function (event) {
+            if (event.beta > 10) {
+              key.right = true
+              key.left = false
+            } else if (event.beta < -10) {
+              key.left = true
+              key.right = false
+            } else {
+              key.left = false
+              key.right = false
+            }
+          },
+          false
+        )
+        window.addEventListener(
+          "touchstart",
+          function (event) {
+            key.jump = true
+          },
+          false
+        )
+        window.addEventListener(
+          "touchend",
+          function (event) {
+            key.jump = false
+            objects[0].speed.y = 0
+          },
+          false
+        )
+      }
       // #endregion
 
       // #region constructor
@@ -230,9 +259,7 @@
       let mario = new Mario(new Vector2(0, 0), new Vector2(10, 10))
       objects.push(mario)
       for (let i = 0; i < 20; i++) {
-        objects.push(
-          new Block(new Vector2((i - 1) * 20, i * 30), new Vector2(30, 10))
-        )
+        objects.push(new Block(new Vector2((i - 1) * 20, i * 30), new Vector2(30, 10)))
       }
 
       // #endregion
@@ -275,23 +302,9 @@
         // collision detection
         objects.forEach((obj) => {
           if (obj === mario) return
-          if (
-            mario.position.x < obj.position.x + obj.size.x &&
-            mario.position.x + mario.size.x > obj.position.x &&
-            mario.position.y < obj.position.y + obj.size.y &&
-            mario.position.y + mario.size.y > obj.position.y
-          ) {
+          if (mario.position.x < obj.position.x + obj.size.x && mario.position.x + mario.size.x > obj.position.x && mario.position.y < obj.position.y + obj.size.y && mario.position.y + mario.size.y > obj.position.y) {
             // collision detected!
-            let overlap = new Vector2(
-              Math.min(
-                mario.position.x + mario.size.x,
-                obj.position.x + obj.size.x
-              ) - Math.max(mario.position.x, obj.position.x),
-              Math.min(
-                mario.position.y + mario.size.y,
-                obj.position.y + obj.size.y
-              ) - Math.max(mario.position.y, obj.position.y)
-            )
+            let overlap = new Vector2(Math.min(mario.position.x + mario.size.x, obj.position.x + obj.size.x) - Math.max(mario.position.x, obj.position.x), Math.min(mario.position.y + mario.size.y, obj.position.y + obj.size.y) - Math.max(mario.position.y, obj.position.y))
             if (overlap.x > overlap.y) {
               // collision on y axis
               if (mario.position.y < obj.position.y) {
@@ -338,9 +351,7 @@
       }
 
       function applyCamera() {
-        cameraAnchor = mario.position.add(
-          new Vector2(-playground.width / 2, -playground.height / 2)
-        )
+        cameraAnchor = mario.position.add(new Vector2(-playground.width / 2, -playground.height / 2))
       }
       // #endregion
 
