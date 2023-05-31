@@ -202,15 +202,13 @@
         window.addEventListener(
           "deviceorientation",
           function (event) {
-            if (event.beta > 10) {
-              key.right = true
-              key.left = false
-            } else if (event.beta < -10) {
-              key.left = true
+            const gamma = event.gamma
+            const beta = event.beta
+            if (gamma > 15) key.right = true
+            else if (gamma < -15) key.left = true
+            else {
               key.right = false
-            } else {
               key.left = false
-              key.right = false
             }
           },
           false
