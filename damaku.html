@@ -1,193 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>damaku</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      width: 100vw;
-      height: 100vh;
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>damaku</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100vw;
+        height: 100vh;
 
-      display: flex;
+        display: flex;
 
-      justify-content: center;
-      align-items: center;
-    }
-
-    #playground {
-      width: 80%;
-      height: 80%;
-      position: relative;
-      background-color: aliceblue;
-      overflow:  hidden;
-    }
-
-    .damaku {
-      position: absolute;
-      white-space: nowrap;
-      /* 这个属性还蛮关键的...喵 */
-      animation: damaku 10s linear; 
-      font-size: 20;
-      font-family: 'Arial'
-    }
-
-    .damaku:hover {
-      animation-play-state: paused;
-    }
-
-    /* 悬停的小气泡 */
-    .damaku:hover::after {
-      content: '🥰';
-      position: absolute;
-      /* 怎么对齐啊.. */      
-      font-size: 20px;
-      color: red;
-    }
-
-    @keyframes damaku {
-      from {
-        left: 100%;
+        justify-content: center;
+        align-items: center;
       }
-      to {
-        left: -100%;
+
+      #playground {
+        width: 80%;
+        height: 80%;
+        position: relative;
+        background-color: aliceblue;
+        overflow: hidden;
       }
-    }
-  </style>
-</head>
-<body>
-  <div id="playground">
-  </div>
-  <script>
-    /* 
+
+      .damaku {
+        position: absolute;
+        white-space: nowrap;
+        /* 这个属性还蛮关键的...喵 */
+        animation: damaku 10s linear;
+        font-size: 20;
+        font-family: "Arial";
+      }
+
+      .damaku:hover {
+        animation-play-state: paused;
+      }
+
+      /* 悬停的小气泡 */
+      .damaku:hover::after {
+        content: "🥰";
+        position: absolute;
+        /* 怎么对齐啊.. */
+        font-size: 20px;
+        color: red;
+      }
+
+      @keyframes damaku {
+        from {
+          left: 100%;
+        }
+        to {
+          left: -100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground"></div>
+    <script>
+      /* 
       我会想用 css 动画而不是 canvas 来实现弹幕。
       因为有些东西像给弹幕点赞，悬浮时静止，还是用常规的 dom 操作方便很多。
 
       我搞过一个飘雪花的小 demo，那个是用 canvas 来实现的，虽然这次使用的方式不一样，但有些东西依旧是通的。一个场景/调度中心，一个具体创建更新弹幕的。反正都是飘嘛...
     */
-    function randomDataSource(){
-      const data = [
-        '你好',
-        '我是',
-        '大咪咪',
-        'wwwwwwwwwww',
-        '呜呜呜',
-        'it seems everything is so difficult .. to me',
-        'この rainbow だ',
-        '人的能力是有极限的。',
-        'おれは人间をやめるぞ！'
-      ]
+      function randomDataSource() {
+        const data = ["你好", "我是", "大咪咪", "wwwwwwwwwww", "呜呜呜", "it seems everything is so difficult .. to me", "この rainbow だ", "人的能力是有极限的。", "おれは人间をやめるぞ！"]
 
-      const content  = data[Math.floor(Math.random() * data.length)]
-      const style = {
-        color:`rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`,
-
-      }
-      return {
-        content,
-        style
-      }
-    }
-
-
-    class Damaku {
-      constructor(width, height, lineHeight, dataSource) {
-        this.width = width
-        this.height = height
-        this.lineHeight = lineHeight
-        this.channelNum = Math.floor(height / lineHeight)
-        this.damakuList = new Array(this.channelNum).fill([]).map(() => [])
-
-        this.dataSource = dataSource
-        this.timer = null
-      }
-
-      /* 创建一个弹幕 */
-      createDamaku(channel) {
-        const data = {
-          ...this.dataSource(),
-          top: channel * this.lineHeight,
-          left: this.width
+        const content = data[Math.floor(Math.random() * data.length)]
+        const style = {
+          color: `rgb(${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)}, ${Math.floor(Math.random() * 255)})`,
         }
-        const damaku = new DamakuItem(data)
-        damaku.render()
-        this.damakuList[channel].push(damaku)
-      }
-      /* 查看一下哪一行可以插一插 */
-      checkChannel(channel) {
-        console.log(this.damakuList)
-        const damakuList = this.damakuList[channel]
-        if (damakuList.length === 0) {
-          return true
+        return {
+          content,
+          style,
         }
-        const lastDamaku = damakuList[damakuList.length - 1]
-        const lastDamakuRect = lastDamaku.dom.getBoundingClientRect()
-        return lastDamakuRect.left + lastDamakuRect.width < this.width
       }
 
-      start(){
-        this.timer = setInterval(() => {
-          const channel = Math.floor(Math.random() * this.channelNum)
-          if (this.checkChannel(channel)) {
-            this.createDamaku(channel)
+      class Damaku {
+        constructor(width, height, lineHeight, dataSource) {
+          this.width = width
+          this.height = height
+          this.lineHeight = lineHeight
+          this.channelNum = Math.floor(height / lineHeight)
+          this.damakuList = new Array(this.channelNum).fill([]).map(() => [])
+
+          this.dataSource = dataSource
+          this.timer = null
+        }
+
+        /* 创建一个弹幕 */
+        createDamaku(channel) {
+          const data = {
+            ...this.dataSource(),
+            top: channel * this.lineHeight,
+            left: this.width,
           }
-          this.damakuList.forEach((damakuList, channel) => {
-            damakuList.forEach((damaku, index) => {
-              if (damaku.isDead()) {
-                damaku.unRender()
-                damakuList.splice(index, 1)
-              }
+          const damaku = new DamakuItem(data)
+          damaku.render()
+          this.damakuList[channel].push(damaku)
+        }
+        /* 查看一下哪一行可以插一插 */
+        checkChannel(channel) {
+          const damakuList = this.damakuList[channel]
+          if (damakuList.length === 0) {
+            return true
+          }
+          const lastDamaku = damakuList[damakuList.length - 1]
+          const lastDamakuRect = lastDamaku.dom.getBoundingClientRect()
+          return lastDamakuRect.left + lastDamakuRect.width < this.width
+        }
+
+        start() {
+          this.timer = setInterval(() => {
+            const channel = Math.floor(Math.random() * this.channelNum)
+            if (this.checkChannel(channel)) {
+              this.createDamaku(channel)
+            }
+            this.damakuList.forEach((damakuList, channel) => {
+              damakuList.forEach((damaku, index) => {
+                if (damaku.isDead()) {
+                  damaku.unRender()
+                  damakuList.splice(index, 1)
+                }
+              })
             })
-          })
-        }, 1000)
+          }, 1000)
+        }
+
+        stop() {
+          clearInterval(this.timer)
+        }
       }
 
-      stop() {
-        clearInterval(this.timer)
-      }
-    }
+      class DamakuItem {
+        constructor(damaku) {
+          this.dom = null
 
-    class DamakuItem {
+          this.content = damaku.content
+          this.style = damaku.style
+          this.top = damaku.top
+          this.left = damaku.left
+        }
 
-      constructor(damaku) {
-
-        this.dom = null
-
-        this.content = damaku.content
-        this.style = damaku.style
-        this.top = damaku.top
-        this.left = damaku.left      
-      }
-
-      render() {
-        this.dom = document.createElement('div')
-        this.dom.classList.add('damaku')
-        this.dom.innerText = this.content
-        this.dom.style = `
+        render() {
+          this.dom = document.createElement("div")
+          this.dom.classList.add("damaku")
+          this.dom.innerText = this.content
+          this.dom.style = `
           top: ${this.top}px;
           left: ${this.left}px;
           color: ${this.style.color};
         `
-        playground.appendChild(this.dom)
+          playground.appendChild(this.dom)
+        }
+
+        unRender() {
+          playground.removeChild(this.dom)
+        }
+        isDead() {
+          const { left } = this.dom.getBoundingClientRect()
+          return left + this.dom.getBoundingClientRect().width < 0
+        }
       }
 
-      unRender() {
-        playground.removeChild(this.dom)
-      }
-      isDead() {
-        const { left } = this.dom.getBoundingClientRect()
-        return left + this.dom.getBoundingClientRect().width < 0
-      }
-    }
+      const playground = document.querySelector("#playground")
+      const { width, height } = playground.getBoundingClientRect()
 
-    const playground = document.querySelector('#playground')
-    const { width, height } = playground.getBoundingClientRect()
-
-    let damaku = new Damaku(width, height, 30, randomDataSource)
-    damaku.start()
-  </script>
-</body>
+      let damaku = new Damaku(width, height, 30, randomDataSource)
+      damaku.start()
+    </script>
+  </body>
 </html>

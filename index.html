@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      * {
+        margin: 0;
+        text-decoration: none;
+      }
+      .ribbon {
+        position: fixed;
+        right: 0px;
+        top: 0px;
+        z-index: 1001;
+      }
+      #backto-index {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 1001;
+      }
+      #router-view {
+        position: fixed;
+        z-index: 1000;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #the-index {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+      }
+      #the-index > * {
+        margin: 20px;
+      }
+      #the-index a {
+        text-decoration: none;
+        color: #0366d6;
+      }
+      #the-index a:hover {
+        text-decoration: underline;
+      }
+      #the-index li {
+        margin: 10px 0;
+      }
+
+      #backto-index {
+        margin: 10px;
+      }
+      #backto-index a {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        text-decoration: none;
+        color: #0366d6;
+      }
+      #backto-index a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="widget" class="ribbon">
+      <a href="https://github.com/huamurui/html-s"
+        ><img decoding="async" loading="lazy" width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_darkblue_121621.png?resize=149%2C149" class="attachment-full size-full" alt="Fork me on GitHub" data-recalc-dims="1"
+      /></a>
+    </div>
+    <div id="backto-index"><a href="/#">home</a></div>
+    <div id="router-view"></div>
+    <script>
+      // I want to make a simple fe-router here
+      window.addEventListener("DOMContentLoaded", onHashChange)
+      window.addEventListener("hashchange", onHashChange)
+      // window.addEventListener("popstate", onPopState) // history 需要服务器那边简单配一下，...如果不是自己部署服务，可能并不是很适用，虽然 hash 有点丑...凑活吧。而且区别也没那么大。
+
+      function onHashChange() {
+        renderView(location.hash)
+      }
+
+      let routerView = document.getElementById("router-view")
+      let widget = document.getElementById("widget")
+      function renderView(name) {
+        if (name === "") {
+          routerView.innerHTML = ""
+          routerView.appendChild(renderList(list))
+          widget.style.display = "block"
+        } else {
+          const path = name.replace("#/", "")
+          routerView.innerHTML = `<iframe src="${path}.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>`
+          widget.style.display = "none"
+        }
+      }
+      // the file under this dir
+      const list = ["drag-tree", "virtual-scrolling", "floating-action-button", "heatmap", "markdown-to-markup", "damaku", "a-page", "dialogue-bubbles", "fluid", "slider", "slider-paper-onboarding0", "dialogue-chat-ui", "snake", "mario"]
+
+      function renderList(list) {
+        const theIndex = document.createElement("div")
+        theIndex.id = "the-index"
+
+        const h = document.createElement("h1")
+        const desc = document.createElement("p")
+        const ul = document.createElement("ul")
+        h.innerText = "HTML engineer~"
+        desc.innerText = "i want to make some simple demo just through single html file."
+        list.forEach((item) => {
+          const li = document.createElement("li")
+          const a = document.createElement("a")
+          a.href = `#/${item}`
+          a.innerText = item
+          li.appendChild(a)
+          ul.appendChild(li)
+        })
+        theIndex.appendChild(h)
+        theIndex.appendChild(desc)
+        theIndex.appendChild(ul)
+        return theIndex
+      }
+    </script>
+  </body>
+</html>

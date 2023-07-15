@@ -1,332 +1,323 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>drag tree</title>
-  <style>
-    ul {
-      list-style: none;
-      padding: 0;
-    }
-    li {
-      margin: 5px;
-      padding: 5px;
-      border: 1px solid #ccc;
-      border-radius: 5px;
-    }
-    /* i want to prevent the hover pop up  */
-    .hover {
-      background-color: #ddd;
-      cursor: pointer;
-    }
-    .dragging {
-      background-color: #ccc;
-    }
-    .dragging-over {
-      background-color: #8fff76;
-    }
-    
-    .cannot-drop {
-      background-color: #ff6262;
-    }
-    
-  </style>
-</head>
-<body>
-  <div id="playground"></div>
-  <script>
-    // I want to make it able to using drag to changing the tree structure, like this: when it is being dropped, all the children will be dropped too, and the node will be removed from the old place
-    // also, give a button or other input to add or remove a node at any place(node)
- 
-    // original tree
-    // the name of tree node is unique to enable the findNode by name
-    let tree ={
-      name: 'root',
-      children: [
-        {
-          name: 'a',
-          children: [
-            {
-              name: 'aa',
-              children: [
-                {
-                  name: 'aaa',
-                  children: []
-                },
-                {
-                  name: 'aab',
-                  children: []
-                }
-              ]
-            },
-            {
-              name: 'ab',
-              children: []
-            }
-          ]
-        },
-        {
-          name: 'b',
-          children: [
-            {
-              name: 'ba',
-              children: [
-                {
-                  name: 'baa',
-                  children: []
-                },
-                {
-                  name: 'bab',
-                  children: []
-                }
-              ]
-            },
-            {
-              name: 'bb',
-              children: [
-                {
-                  name: 'bba',
-                  children: []
-                },
-                {
-                  name: 'bbb',
-                  children: []
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-    
-    // update the data of tree according to the data from event, find the movedNode and its children in the data and insert them into the target node of the data
-    function updateData(movedNode, targetNode){
-      // find the movedNode and its children in the data
-      let movedNodeData = findNode(movedNode, tree)
-      let movedNodeChildren = movedNodeData.children
-      // find the targetNode in the data
-      let targetNodeData = findNode(targetNode, tree)
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>drag tree</title>
+    <style>
+      ul {
+        list-style: none;
+        padding: 0;
+      }
+      li {
+        margin: 5px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      /* i want to prevent the hover pop up  */
+      .hover {
+        background-color: #ddd;
+        cursor: pointer;
+      }
+      .dragging {
+        background-color: #ccc;
+      }
+      .dragging-over {
+        background-color: #8fff76;
+      }
 
+      .cannot-drop {
+        background-color: #ff6262;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground"></div>
+    <script>
+      // I want to make it able to using drag to changing the tree structure, like this: when it is being dropped, all the children will be dropped too, and the node will be removed from the old place
+      // also, give a button or other input to add or remove a node at any place(node)
 
-      // 子节点在向包含自己的父节点提升时失效。
-      // 我想我知道发生什么了...在这里我们是以节点的name作为判断唯一的字段的，当子节点提升到自己的父节点时，这一步的 push 操作是已经成功的。但紧接着，在下面的 findParent 的时，第一个找到的就是刚刚 push 进去的自己的新的 parent ，然后接着就把自己给删除了。...再然后导致移动无效。
-      // 某种意义上的... 脏读幻读之类的东西
-      // 但怎么修呢....
+      // original tree
+      // the name of tree node is unique to enable the findNode by name
+      let tree = {
+        name: "root",
+        children: [
+          {
+            name: "a",
+            children: [
+              {
+                name: "aa",
+                children: [
+                  {
+                    name: "aaa",
+                    children: [],
+                  },
+                  {
+                    name: "aab",
+                    children: [],
+                  },
+                ],
+              },
+              {
+                name: "ab",
+                children: [],
+              },
+            ],
+          },
+          {
+            name: "b",
+            children: [
+              {
+                name: "ba",
+                children: [
+                  {
+                    name: "baa",
+                    children: [],
+                  },
+                  {
+                    name: "bab",
+                    children: [],
+                  },
+                ],
+              },
+              {
+                name: "bb",
+                children: [
+                  {
+                    name: "bba",
+                    children: [],
+                  },
+                  {
+                    name: "bbb",
+                    children: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }
 
-      // fix1: 深拷贝，之后先把 movedNodeData 的 children 置空，再 push，这样就不会影响到原来的数据了
-      function deepClone(obj) {
-        if (typeof obj !== 'object' || obj === null) {
-          return obj
-        }
-        let result = Array.isArray(obj) ? [] : {}
-        for (const key in obj) {
-          if (obj.hasOwnProperty(key)) {
-            result[key] = deepClone(obj[key])
+      // update the data of tree according to the data from event, find the movedNode and its children in the data and insert them into the target node of the data
+      function updateData(movedNode, targetNode) {
+        // find the movedNode and its children in the data
+        let movedNodeData = findNode(movedNode, tree)
+        let movedNodeChildren = movedNodeData.children
+        // find the targetNode in the data
+        let targetNodeData = findNode(targetNode, tree)
+
+        // 子节点在向包含自己的父节点提升时失效。
+        // 我想我知道发生什么了...在这里我们是以节点的name作为判断唯一的字段的，当子节点提升到自己的父节点时，这一步的 push 操作是已经成功的。但紧接着，在下面的 findParent 的时，第一个找到的就是刚刚 push 进去的自己的新的 parent ，然后接着就把自己给删除了。...再然后导致移动无效。
+        // 某种意义上的... 脏读幻读之类的东西
+        // 但怎么修呢....
+
+        // fix1: 深拷贝，之后先把 movedNodeData 的 children 置空，再 push，这样就不会影响到原来的数据了
+        function deepClone(obj) {
+          if (typeof obj !== "object" || obj === null) {
+            return obj
           }
-        }
-        return result
-      }
-      let movedNodeDataClone = deepClone(movedNodeData)
-
-      // remove the movedNode and its children from the old place
-      let parent = findParent(movedNode, tree)
-      // deal with the root node
-      if(!parent) tree.children = tree.children.filter((item) => item.name !== movedNode)
-      else parent.children = parent.children.filter((item) => item.name !== movedNode)
-
-      // insert the movedNode and its children into the targetNode
-      // deal with the root node
-      if(!targetNodeData) tree.children.push(movedNodeDataClone)
-      else targetNodeData.children.push(movedNodeDataClone)
-    }
-    // find the node in the data
-    function findNode(node, data) {
-      if(data.name==='root'){
-        return findNode(node, data.children)
-      }
-      for (const item of data) {
-        if (item.name === node) {
-          return item
-        }
-        if (item.children) {
-          let result = findNode(node, item.children)
-          if (result) {
-            return result
+          let result = Array.isArray(obj) ? [] : {}
+          for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+              result[key] = deepClone(obj[key])
+            }
           }
+          return result
         }
+        let movedNodeDataClone = deepClone(movedNodeData)
+
+        // remove the movedNode and its children from the old place
+        let parent = findParent(movedNode, tree)
+        // deal with the root node
+        if (!parent) tree.children = tree.children.filter((item) => item.name !== movedNode)
+        else parent.children = parent.children.filter((item) => item.name !== movedNode)
+
+        // insert the movedNode and its children into the targetNode
+        // deal with the root node
+        if (!targetNodeData) tree.children.push(movedNodeDataClone)
+        else targetNodeData.children.push(movedNodeDataClone)
       }
-    }
-    // find the parent of the node in the data
-    function findParent(node, data) {
-      if(data.name==='root'){
-        return findParent(node, data.children)
-      }
-      for (const item of data) {
-        if (item.children) {
-          if (item.children.find((child) => child.name === node)) {
+      // find the node in the data
+      function findNode(node, data) {
+        if (data.name === "root") {
+          return findNode(node, data.children)
+        }
+        for (const item of data) {
+          if (item.name === node) {
             return item
           }
-          let result = findParent(node, item.children)
-          if (result) {
-            return result
+          if (item.children) {
+            let result = findNode(node, item.children)
+            if (result) {
+              return result
+            }
           }
         }
       }
-    }
-
-    // render the tree according to the data, add event listeners and so on to enable the dnd, and add btn to each node
-    function renderTree(node) {
-      if(node.name==='root'){
-        const ul = document.createElement('ul')
-        createNode(node,ul)
-        return ul
-      }
-      else{
-        const ul = document.createElement('ul')
-        for (const item of node) {
-          createNode(item, ul)
+      // find the parent of the node in the data
+      function findParent(node, data) {
+        if (data.name === "root") {
+          return findParent(node, data.children)
         }
-        return ul
+        for (const item of data) {
+          if (item.children) {
+            if (item.children.find((child) => child.name === node)) {
+              return item
+            }
+            let result = findParent(node, item.children)
+            if (result) {
+              return result
+            }
+          }
+        }
       }
-    }
 
-    function createNode(item, ul = document.body) {
-      const li = document.createElement('li')
+      // render the tree according to the data, add event listeners and so on to enable the dnd, and add btn to each node
+      function renderTree(node) {
+        if (node.name === "root") {
+          const ul = document.createElement("ul")
+          createNode(node, ul)
+          return ul
+        } else {
+          const ul = document.createElement("ul")
+          for (const item of node) {
+            createNode(item, ul)
+          }
+          return ul
+        }
+      }
+
+      function createNode(item, ul = document.body) {
+        const li = document.createElement("li")
         li.innerHTML = item.name
-        li.setAttribute('draggable', true)
+        li.setAttribute("draggable", true)
         ul.appendChild(li)
         if (item.children) {
           li.appendChild(renderTree(item.children))
         }
-        li.addEventListener('dragstart', dragStart)
-        li.addEventListener('dragend', dragEnd)
-        li.addEventListener('dragover', dragOver)
-        li.addEventListener('dragleave', dragLeave)
-        li.addEventListener('drop', drop)
+        li.addEventListener("dragstart", dragStart)
+        li.addEventListener("dragend", dragEnd)
+        li.addEventListener("dragover", dragOver)
+        li.addEventListener("dragleave", dragLeave)
+        li.addEventListener("drop", drop)
 
         // 移动端的事件适配... md，完全不是一套。...不知道怎么做了，而且  dataTransfer 只在 dnd 里有
         // 除了 drag-drop这一套，pc端还有 mouse 的一套，这里面关键的 dragover | mouseover 在移动端是没有的对应的，也许可以通过计算 touch 的偏移量可以完成大小结构较为固定列表的拖拽，但对于树... 可能不太行。
 
-        li.addEventListener('mouseover', (e) => {
-          e.target.classList.add('hover')
+        li.addEventListener("mouseover", (e) => {
+          e.target.classList.add("hover")
         })
-        li.addEventListener('mouseout', (e) => {
-          e.target.classList.remove('hover')
+        li.addEventListener("mouseout", (e) => {
+          e.target.classList.remove("hover")
         })
-    }
+      }
 
-    function dragStart(e) {
-      // 就是说... 移动的时候，是可以直接传递完整的dom，所有子节点都可以被传递，以字符串的形式
-      // 但这样并不好... 我们想要单一的，只关心数据的，创建与删除dom，在别的地方再做就好
-      e.dataTransfer.setData('text/plain', e.target.firstChild.nodeValue)
-      // 这里也同时要，递归的给所有的子节点添加 dragging 类, 用以在之后 dragover 的时候，判断是否可以放置
-      function addDraggingClass(node){
-        node.classList.add('dragging')
-        node.classList.add('cannot-drop')
-        if(node.children){
-          for(const child of node.children){
-            addDraggingClass(child)
+      function dragStart(e) {
+        // 就是说... 移动的时候，是可以直接传递完整的dom，所有子节点都可以被传递，以字符串的形式
+        // 但这样并不好... 我们想要单一的，只关心数据的，创建与删除dom，在别的地方再做就好
+        e.dataTransfer.setData("text/plain", e.target.firstChild.nodeValue)
+        // 这里也同时要，递归的给所有的子节点添加 dragging 类, 用以在之后 dragover 的时候，判断是否可以放置
+        function addDraggingClass(node) {
+          node.classList.add("dragging")
+          node.classList.add("cannot-drop")
+          if (node.children) {
+            for (const child of node.children) {
+              addDraggingClass(child)
+            }
           }
         }
+        addDraggingClass(e.target)
       }
-      addDraggingClass(e.target)
-    }
 
-    function dragEnd(e) {
-      let all = document.querySelectorAll('.dragging','.dragging-over','.cannot-drop')
-      for(const item of all){
-        item.classList.remove('dragging')
-        item.classList.remove('dragging-over')
-        item.classList.remove('cannot-drop')
-      }
-    }
-    function dragOver(e) {
-      e.preventDefault()
-      // 要注意的是，避免将树移动到自己的子树中，这样会造成死循环
-      if(e.target.classList.contains('dragging')){
-        e.target.classList.add('cannot-drop')
-        e.dataTransfer.dropEffect = 'none'
-      }else{
-        e.target.classList.remove('cannot-drop')
-        e.target.classList.add('dragging-over')
-      }
-    }
-    function dragLeave(e)  {
-      e.target.classList.remove('dragging-over')
-      e.target.classList.remove('cannot-drop')
-    }
-
-    function drop(e) {
-      e.stopPropagation()
-      e.target.classList.remove('dragging-over')
-      const movedNode = e.dataTransfer.getData('text/plain')
-      const targetNode = e.target.firstChild.nodeValue
-      updateData(movedNode, targetNode)
-      playground.innerHTML = ''
-      playground.appendChild(renderTree(tree))
-      
-      playground.appendChild(renderArr(treeToArr(tree)))
-    }
-    // render the tree
-    const playground = document.getElementById('playground')
-    playground.appendChild(renderTree(tree))
-
-    // arr to tree
-    function arrToTree (arr) {
-      const map = {}
-      arr.forEach(item => {
-        map[item.name] = item
-      })
-      const tree = []
-      arr.forEach(item => {
-        const parent = map[item.parent]
-        if (parent) {
-          (parent.children || (parent.children = [])).push(item)
-        } else {
-          tree.push(item)
+      function dragEnd(e) {
+        let all = document.querySelectorAll(".dragging", ".dragging-over", ".cannot-drop")
+        for (const item of all) {
+          item.classList.remove("dragging")
+          item.classList.remove("dragging-over")
+          item.classList.remove("cannot-drop")
         }
-      })
-      return tree
-    }
+      }
+      function dragOver(e) {
+        e.preventDefault()
+        // 要注意的是，避免将树移动到自己的子树中，这样会造成死循环
+        if (e.target.classList.contains("dragging")) {
+          e.target.classList.add("cannot-drop")
+          e.dataTransfer.dropEffect = "none"
+        } else {
+          e.target.classList.remove("cannot-drop")
+          e.target.classList.add("dragging-over")
+        }
+      }
+      function dragLeave(e) {
+        e.target.classList.remove("dragging-over")
+        e.target.classList.remove("cannot-drop")
+      }
+
+      function drop(e) {
+        e.stopPropagation()
+        e.target.classList.remove("dragging-over")
+        const movedNode = e.dataTransfer.getData("text/plain")
+        const targetNode = e.target.firstChild.nodeValue
+        updateData(movedNode, targetNode)
+        playground.innerHTML = ""
+        playground.appendChild(renderTree(tree))
+
+        playground.appendChild(renderArr(treeToArr(tree)))
+      }
+      // render the tree
+      const playground = document.getElementById("playground")
+      playground.appendChild(renderTree(tree))
+
+      // arr to tree
+      function arrToTree(arr) {
+        const map = {}
+        arr.forEach((item) => {
+          map[item.name] = item
+        })
+        const tree = []
+        arr.forEach((item) => {
+          const parent = map[item.parent]
+          if (parent) {
+            ;(parent.children || (parent.children = [])).push(item)
+          } else {
+            tree.push(item)
+          }
+        })
+        return tree
+      }
 
       // tree to arr and display the data in arr in form of name:xxx,parent:xxx
       function treeToArr(node, arr = []) {
-      if(node.name==='root'){
-        return treeToArr(node.children, arr)
-      }
-      for (const item of node) {
-        arr.push({
-          name: item.name,
-          parent: findParent(item.name, tree)?.name || 'root',
-        })
-        if (item.children) {
-          treeToArr(item.children, arr)
+        if (node.name === "root") {
+          return treeToArr(node.children, arr)
         }
+        for (const item of node) {
+          arr.push({
+            name: item.name,
+            parent: findParent(item.name, tree)?.name || "root",
+          })
+          if (item.children) {
+            treeToArr(item.children, arr)
+          }
+        }
+        return arr
       }
-      console.log(arr)
-      return arr
-    }
 
-    function renderArr(arr) {
-      const ul = document.createElement('ul')
-      for (const item of arr) {
-        const li = document.createElement('li')
-        li.style.display = 'inline-block'
-        li.style.margin = '10px'
-        li.innerHTML = `<div>name:${item.name}</div> <div>parent:${item.parent}</div>`
-        ul.appendChild(li)
+      function renderArr(arr) {
+        const ul = document.createElement("ul")
+        for (const item of arr) {
+          const li = document.createElement("li")
+          li.style.display = "inline-block"
+          li.style.margin = "10px"
+          li.innerHTML = `<div>name:${item.name}</div> <div>parent:${item.parent}</div>`
+          ul.appendChild(li)
+        }
+        return ul
       }
-      return ul
-    }
 
-    playground.appendChild(renderArr(treeToArr(tree)))
-
-    
-    
-
-
-  </script>
-</body>
+      playground.appendChild(renderArr(treeToArr(tree)))
+    </script>
+  </body>
 </html>
