@@ -1,0 +1,286 @@
+f<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fall~</title>
+    <style>
+      body {
+        margin: 0;
+      }
+      #playground {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background-color: #eee;
+        overflow-y: scroll;
+        overflow-x: hidden;
+      }
+      #pit {
+        height: 70000px;
+        width: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div id="pit"></div>
+    </div>
+    <script>
+      /*
+        布局计算
+        输入：数据，配置
+        输出：布局信息
+
+        waters' | cells' structure
+        columns = [{
+          height: 0,
+          cells: [
+            {
+              rect: {
+                isLoaded: false,
+                isVisible: false,
+                top: 0,
+                left: 0,
+                width: 0,
+                height: 0,
+              },
+            },
+          ],
+        }];
+      */
+      class Waterfall {
+        constructor(data, options) {
+          this.data = data;
+          this.options = options;
+        }
+
+        getLayoutStrategy(width = this.options.width, options = this.options) {
+          let count = width / options.lineGap;
+          let slotWidth;
+          if (options.singleMaxWidth >= width) {
+            count = 1;
+            slotWidth = Math.max(width, options.minLineGap);
+          } else {
+            let maxContentWidth = options.maxLineGap * ~~count;
+            let minGreedyContentWidth = options.minLineGap * ~~(count + 1);
+            let canFit = maxContentWidth >= width;
+            let canFitGreedy = minGreedyContentWidth <= width;
+
+            if (canFit && canFitGreedy) {
+              count = Math.round(count);
+              slotWidth = width / count;
+            } else if (canFit) {
+              count = ~~count;
+              slotWidth = width / count;
+            } else if (canFitGreedy) {
+              count = ~~(count + 1);
+              slotWidth = width / count;
+            } else {
+              count = ~~count;
+              slotWidth = options.maxLineGap;
+            }
+            if (count === 1) {
+              slotWidth = Math.min(width, options.singleMaxWidth);
+              slotWidth = Math.max(slotWidth, options.minLineGap);
+            }
+          }
+          return {
+            columnWidth: slotWidth,
+            columnCount: count,
+          };
+        }
+
+        get nowShortestColumn() {
+          if (!this.columns) {
+            this.columns = this.getColumns();
+          }
+          return this.columns.reduce((prev, cur) => {
+            return prev.height < cur.height ? prev : cur;
+          });
+        }
+
+        getColumns() {
+          const { columnWidth, columnCount } = this.getLayoutStrategy();
+          const columns = [];
+          for (let i = 0; i < columnCount; i++) {
+            columns.push({
+              height: 0,
+              cells: [],
+            });
+          }
+          console.log(columns);
+          return columns;
+        }
+
+        addItems(items) {
+          const { columnWidth, columnCount } = this.getLayoutStrategy();
+          items.forEach((item) => {
+            let width = columnWidth;
+            let height = item.height * (width / item.width);
+
+            const column = this.nowShortestColumn;
+            const cell = {
+              index: item.index,
+              color: item.color,
+              rect: {
+                isLoaded: false,
+                isVisible: false,
+                top: column.height,
+                left: this.columns.indexOf(column) * columnWidth,
+                width: width,
+                height: height,
+              },
+            };
+            column.cells.push(cell);
+            column.height += height;
+          });
+        }
+
+        get cells() {
+          this.addItems(this.data);
+          return this.columns.reduce((prev, cur) => {
+            return prev.concat(cur.cells);
+          }, []);
+        }
+      }
+
+      /* 接受根节点，cells，负责控制挂载卸载 */
+      class VirtualList {
+        constructor(root, cells) {
+          this.root = root;
+          this.cells = cells;
+          this.doms = [];
+          this.visibleCells = [];
+          this.init();
+        }
+
+        init() {
+          console.log("..init");
+          this.root.addEventListener("scroll", this.onScroll.bind(this));
+          this.cells.forEach((cell) => {
+            this.makeDom(cell, this.doms);
+          });
+        }
+
+        onScroll() {
+          this.update();
+        }
+
+        update() {
+          this.visibleCells = [];
+          this.cells.forEach((cell) => {
+            cell.rect.isVisible = this.isVisible(cell.rect);
+            if (cell.rect.isVisible) {
+              this.visibleCells.push(cell);
+            }
+          });
+
+          this.render();
+        }
+
+        render() {
+          /* 
+            这部分... 我觉得你 tmd 真的该去找个视图框架了，虽然全量更新也不是不行...
+          */
+          console.log("..render", this.visibleCells);
+          this.doms.forEach((dom) => {
+            dom.remove();
+          });
+          this.visibleCells.forEach((cell) => {
+            this.root.appendChild(this.doms[cell.index]);
+            cell.rect.isLoaded = true;
+          });
+        }
+
+        isVisible(
+          rect,
+          view = {
+            scrollTop: this.root.scrollTop,
+            height: window.innerHeight,
+          }
+        ) {
+          return (
+            rect.top < view.scrollTop + view.height &&
+            rect.top + rect.height > view.scrollTop
+          );
+        }
+
+        makeDom(cell, domArr) {
+          const div = document.createElement("div");
+          div.style = `
+              position: absolute;
+              top: ${cell.rect.top}px;
+              left: ${cell.rect.left}px;
+              width: ${cell.rect.width}px;
+              height: ${cell.rect.height}px;
+              background-color: ${cell.color};
+            `;
+          div.innerText = cell.index;
+          domArr[cell.index] = div;
+        }
+      }
+
+      /*
+        test
+      */
+      function getItems(num) {
+        const items = [];
+        for (let i = 0; i < num; i++) {
+          let width = Math.floor(Math.random() * 100 + 50);
+          let height = Math.floor(Math.random() * 100 + 50);
+          let color = "#" + Math.floor(Math.random() * 0xffffff).toString(16);
+          items.push({
+            index: i,
+            width: width,
+            height: height,
+            color: color,
+          });
+        }
+        return items;
+      }
+      const initData = getItems(1000);
+      const options = {
+        width: playground.clientWidth,
+        interval: 200,
+        lineGap: 250,
+        minLineGap: 100,
+        maxLineGap: 320,
+        singleMaxWidth: 300,
+      };
+
+      function renderWaterfall(data, options) {
+        const waterfall = new Waterfall(data, options);
+        const playground = document.getElementById("playground");
+        const cells = waterfall.cells;
+        console.log(cells);
+        const virtualList = new VirtualList(playground, cells);
+      }
+      /* 
+        这个... 还有些事件编排的问题，resize 和 scroll... 搞个节流...
+      */
+      renderWaterfall(initData, options);
+
+      /*
+        最基本的布局
+
+        维护一个数组，这个数组的长度是列数，数组的每一项是当前列的高度，每次插入一个元素，就找到最短的那一列，把元素插入到这一列，然后更新这一列的高度。
+        而，如果要做虚拟化，那每个元素的位置的全部信息都是需要掌握的，不能是塞完 style 更新个高度就扔掉。数据结构依旧可以选数组，这样可能会有三个了，
+        1. columnHeights
+        2. cells
+        3. visibleCells
+
+        1. 是基础的布局必须的，也和懒加载支持很相关
+        2.3. 则是，每次滚动都要遍历 cells 来判断是否在可视区域内，如果不在，就从 visibleCells 中移除，如果在，就从 visibleCells 中移除，然后插入到 visibleCells 中。
+        虽然...把这几个合成一下也不是不行。
+
+        这整个过程...会让人想到些调度，虚拟化，队列，缓存，这些概念；操作系统会有，服务部署会有，vue 这种框架会有...而频繁的遍历查找更新会搞些二分查找，区间树之类做做优化...
+        在代码方面，这些概念的实现直接依赖数据结构，而效果上这个例子也直接与视图相关。我会觉得这是一个很好的学习编程的小练习。
+
+        --------
+
+        而，一些更细节的方面，甚至这里才是之后整个工程代码量的大头，元素宽高怎么获取要现算吗，元素加载以及布局变化的的动画怎么插，计算和实际渲染...各个环节怎么对接...
+      */
+    </script>
+  </body>
+</html>
