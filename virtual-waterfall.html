@@ -189,11 +189,11 @@
           const div = document.createElement("div")
           div.style = `
               position: absolute;
-              // top: ${cell.rect.top}px;
-              // left: ${cell.rect.left}px;
-              transform: translate(${cell.rect.left}px, ${cell.rect.top}px);
+              top: 0;
+              left:0;
               width: ${cell.rect.width}px;
               height: ${cell.rect.height}px;
+              transform: translate(${cell.rect.left}px, ${cell.rect.top}px);
               background-color: ${cell.color};
             `
           div.innerText = cell.index
