@@ -16,6 +16,7 @@ i want to make some simple demo just through single html file.
 - [dialogue-chat-ui](./dialogue-chat-ui.html)
 - [snake](./snake.html)
 - [mario](./mario.html)
+- [virtual-waterfall](./virtual-waterfall.html)
 
 other interesting toys:  
 
