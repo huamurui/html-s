@@ -157,15 +157,10 @@
         }
 
         init() {
-          console.log("..init")
-          this.root.addEventListener("scroll", this.onScroll.bind(this))
+          this.root.addEventListener("scroll", throttle(this.update.bind(this), 200))
           this.cells.forEach((cell) => {
             this.makeDom(cell, this.doms)
           })
-        }
-
-        onScroll() {
-          this.update()
         }
 
         update() {
@@ -176,7 +171,6 @@
               this.visibleCells.push(cell)
             }
           })
-
           this.render()
         }
 
@@ -219,6 +213,19 @@
         }
       }
 
+      function throttle(fn, delay) {
+          let timer = null
+          return function () {
+            if (timer) {
+              return
+            }
+            timer = setTimeout(() => {
+              fn()
+              timer = null
+            }, delay)
+          }
+        }
+
       /**
        * @description Get the data for waterfall to render for test
        */
@@ -254,9 +261,6 @@
         const virtualList = new VirtualList(playground, cells)
         virtualList.update()
       }
-      /* 
-        这个... 还有些事件编排的问题，resize 和 scroll... 搞个节流...
-      */
       renderWaterfall(initData, options)
 
       /*
