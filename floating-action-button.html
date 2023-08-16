@@ -133,7 +133,7 @@
               main.style = `
                 opacity: 1;
                 transition: all 0.3s ease-in-out;
-                left: ${document.documentElement.clientWidth - main.clientWidth + "px"};
+                left: ${window.innerWidth - main.clientWidth + "px"};
                 top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
               `
               break
@@ -142,7 +142,7 @@
                 opacity: 1;
                 transition: all 0.3s ease-in-out;
                 left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                top: ${document.documentElement.clientHeight - main.clientHeight + "px"};
+                top: ${window.innerHeight - main.clientHeight + "px"};
               `
               break
             case "left":
@@ -172,7 +172,7 @@
       main.addEventListener("touchstart", onStart)
 
       // 全局变量很坏！但我也不知道怎么办了呜呜
-      let startX, startY, shiftX, shiftY, moveX, moveY
+      let startX, startY, shiftX, shiftY, moveX, moveY, ex, ey
 
       function onStart(e) {
         // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
@@ -210,7 +210,6 @@
         }
       }
       function onMove(e) {
-        let ex, ey
         if (e.type === "mousemove") {
           ex = e.clientX
           ey = e.clientY
@@ -283,8 +282,7 @@
           document.removeEventListener("touchend", onEnd)
         }
         if (state === "dragging") {
-          if (detectEdges(e.clientX, e.clientY)) {
-            state = "sticky"
+          if (detectEdges(ex, ey)) {
             // 把 main 贴到边界上去... 不，应该半埋入边界
             preSticky.style.opacity = 0
             switch(direction) {
@@ -300,7 +298,7 @@
                 main.style = `
                   opacity: 0.8;
                   transition: all 0.3s ease-in-out;
-                  left: ${document.documentElement.clientWidth - main.clientWidth / 2 + "px"};
+                  left: ${window.innerWidth - main.clientWidth / 2 + "px"};
                   top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
                 `
                 break
@@ -309,7 +307,7 @@
                   opacity: 0.8;
                   transition: all 0.3s ease-in-out;
                   left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${document.documentElement.clientHeight - main.clientHeight / 2 + "px"};
+                  top: ${window.innerHeight - main.clientHeight / 2 + "px"};
                 `
                 break
               case "left":
@@ -343,8 +341,8 @@
         // 不仅要检测边界，还要检测碰的是哪个边界，这样才能让 main 贴着边界移动
         let left = ex - shiftX
         let top = ey - shiftY
-        let right = document.documentElement.clientWidth - left - main.clientWidth
-        let bottom = document.documentElement.clientHeight - top - main.clientHeight
+        let right = window.innerWidth - left - main.clientWidth
+        let bottom = window.innerHeight - top - main.clientHeight
         if (left < threshold) {
           direction = "left"
           return true
