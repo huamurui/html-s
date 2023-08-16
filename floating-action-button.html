@@ -18,7 +18,7 @@
         background-color: #f1f1f1;
       }
 
-      .floating-sub-button {
+      .floating-action-button {
         position: fixed;
 
         border-radius: 50%;
@@ -31,30 +31,40 @@
         align-items: center;
 
         cursor: pointer;
+        user-select: none;
 
         z-index: 999;
       }
 
-      .floating-sub-button.main {
+      .floating-action-button.main {
         width: 50px;
         height: 50px;
         font-size: 30px;
       }
-      .floating-sub-button.sub {
+      .floating-action-button.sub {
         width: 20px;
         height: 20px;
         font-size: 10px;
         transition: all 0.3s ease-in-out 0s;
         opacity: 0;
       }
+      .floating-action-button.pre-sticky {
+        width: 120px;
+        height: 60px;
+        border-radius: 60px;
+        transition: opacity 0.3s ease-in-out;
+        opacity: 0;
+        z-index: 1;
+      }
     </style>
   </head>
   <body>
     <div id="playground">
-      <div class="floating-sub-button main">+</div>
-      <div class="floating-sub-button sub">1</div>
-      <div class="floating-sub-button sub">2</div>
-      <div class="floating-sub-button sub">3</div>
+      <div class="floating-action-button main">+</div>
+      <div class="floating-action-button sub">1</div>
+      <div class="floating-action-button sub">2</div>
+      <div class="floating-action-button sub">3</div>
+      <div class="floating-action-button pre-sticky"></div>
       <!-- <div class="sub">4</div>
     <div class="sub">5</div>
     <div class="sub">6</div>
@@ -87,10 +97,11 @@
     */
 
       const main = document.querySelector(".main")
-      const states = ["default", "active", "dragging", "sticky"]
+      const states = ["default", "active", "dragging", "sticky", "pre-sticky"]
       let state = "default"
 
       const subs = document.querySelectorAll(".sub")
+      const preSticky = document.querySelector(".pre-sticky")
 
       function togglesubs(toState) {
         if (toState === "active") {
@@ -109,7 +120,40 @@
           state = "active"
         } else if (toState === "default") {
           // 我们希望在回到默认状态的时候，main 可以弹出来...，以及，sticky 的时候，改成动画，变个样子，现在这样太僵硬了还不如不写。
-          main.style.opacity = 1
+          switch(direction) {
+            case "top":
+              main.style = `
+                opacity: 1;
+                transition: all 0.3s ease-in-out;
+                left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                top: ${0 + "px"};
+              `
+              break
+            case "right":
+              main.style = `
+                opacity: 1;
+                transition: all 0.3s ease-in-out;
+                left: ${document.documentElement.clientWidth - main.clientWidth + "px"};
+                top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+              `
+              break
+            case "bottom":
+              main.style = `
+                opacity: 1;
+                transition: all 0.3s ease-in-out;
+                left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                top: ${document.documentElement.clientHeight - main.clientHeight + "px"};
+              `
+              break
+            case "left":
+              main.style = `
+                opacity: 1;
+                transition: all 0.3s ease-in-out;
+                left: ${0 + "px"};
+                top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+              `
+              break
+          }
           for (let i = 0; i < subs.length; i++) {
             subs[i].style.opacity = 0
             subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
@@ -135,6 +179,7 @@
         // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
         e.preventDefault()
         e.stopPropagation()
+        main.style.transition = "none"
 
         if (e.type === "mousedown") {
           if (state === "default" || state === "active") {
@@ -190,6 +235,41 @@
           if (!detectEdges(ex, ey)) {
             main.style.left = ex - shiftX + "px"
             main.style.top = ey - shiftY + "px"
+            preSticky.style.opacity = 0
+          } else {
+            switch(direction) {
+              case "top":
+                preSticky.style = `
+                  opacity: 0.5;
+                  left: ${main.offsetLeft + main.clientWidth / 2 - preSticky.clientWidth / 2 + "px"};
+                  top: ${main.offsetTop - preSticky.clientHeight / 2 + "px"};
+                  transform: rotate(90deg);
+                `
+                break
+              case "right":
+                preSticky.style = `
+                  opacity: 0.5;
+                  left: ${main.offsetLeft + 10 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - preSticky.clientHeight / 2 + "px"};
+                  transform: rotate(180deg);
+                `
+                break
+              case "bottom":
+                preSticky.style = `
+                  opacity: 0.5;
+                  left: ${main.offsetLeft + main.clientWidth / 2 - preSticky.clientWidth / 2 + "px"};
+                  top: ${main.offsetTop + main.clientHeight - preSticky.clientHeight / 2 + "px"};
+                  transform: rotate(270deg);
+                `
+                break
+              case "left":
+                preSticky.style = `
+                  opacity: 0.5;
+                  left: ${main.offsetLeft + main.clientWidth - preSticky.clientWidth + 10 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - preSticky.clientHeight / 2 + "px"};
+                `
+                break
+            }
           }
         }
       }
@@ -205,6 +285,42 @@
         if (state === "dragging") {
           if (detectEdges(e.clientX, e.clientY)) {
             state = "sticky"
+            // 把 main 贴到边界上去... 不，应该半埋入边界
+            preSticky.style.opacity = 0
+            switch(direction) {
+              case "top":
+                main.style = `
+                  opacity: 0.8;
+                  transition: all 0.3s ease-in-out;
+                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                  top: ${0 - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "right":
+                main.style = `
+                  opacity: 0.8;
+                  transition: all 0.3s ease-in-out;
+                  left: ${document.documentElement.clientWidth - main.clientWidth / 2 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "bottom":
+                main.style = `
+                  opacity: 0.8;
+                  transition: all 0.3s ease-in-out;
+                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                  top: ${document.documentElement.clientHeight - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "left":
+                main.style = `
+                  opacity: 0.8;
+                  transition: all 0.3s ease-in-out;
+                  left: ${0 - main.clientWidth / 2 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+                `
+                break
+            }
             togglesubs("sticky")
           } else {
             state = "default"
@@ -220,10 +336,29 @@
       // detecting the edges of the screen
       const playground = document.querySelector("#playground")
 
+      const directions = ["top", "right", "bottom", "left"]
+      const  threshold = 30
+      let direction = ""
       function detectEdges(ex, ey) {
-        if (ex < 0 + shiftX || ex > document.documentElement.clientWidth + shiftX - main.clientWidth || ey < 0 + shiftY || ey > document.documentElement.clientHeight + shiftY - main.clientHeight) {
+        // 不仅要检测边界，还要检测碰的是哪个边界，这样才能让 main 贴着边界移动
+        let left = ex - shiftX
+        let top = ey - shiftY
+        let right = document.documentElement.clientWidth - left - main.clientWidth
+        let bottom = document.documentElement.clientHeight - top - main.clientHeight
+        if (left < threshold) {
+          direction = "left"
+          return true
+        } else if (right < threshold) {
+          direction = "right"
+          return true
+        } else if (top < threshold) {
+          direction = "top"
+          return true
+        } else if (bottom < threshold) {
+          direction = "bottom"
           return true
         } else {
+          direction = ""
           return false
         }
       }
