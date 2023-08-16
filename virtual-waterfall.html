@@ -27,12 +27,15 @@
       <div id="pit"></div>
     </div>
     <script>
-      /*
-        布局计算
-        输入：数据，配置
-        输出：布局信息
-      */
+      /**
+       * Calculate the layout of waterfall
+       */ 
       class Waterfall {
+        /**
+         * @constructor
+         * @param {Array<Data>} data - The data of waterfall
+         * @param {Options} options - The options of waterfall
+         */
         constructor(data, options) {
           this.data = data
           this.options = options
@@ -128,8 +131,16 @@
         }
       }
 
-      /* 接受根节点，cells，负责控制挂载卸载 */
+      /**
+       * 
+       * @class VirtualList 接受根节点，cells，负责控制挂载卸载
+       */
       class VirtualList {
+      /**
+        * @constructor
+        * @param {HTMLElement} root - The root element of virtual list
+        * @param {Array<Cell>} cells - The cells of virtual list
+        */
         constructor(root, cells) {
           this.root = root
           this.cells = cells

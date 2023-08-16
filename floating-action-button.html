@@ -54,59 +54,33 @@
         border-radius: 60px;
         transition: opacity 0.3s ease-in-out;
         opacity: 0;
+
+        transform-origin: 90px 30px;
+        transform: translate(-30px,0) rotate(0deg);
         z-index: 1;
       }
     </style>
   </head>
   <body>
     <div id="playground">
-      <div class="floating-action-button main">+</div>
-      <div class="floating-action-button sub">1</div>
-      <div class="floating-action-button sub">2</div>
-      <div class="floating-action-button sub">3</div>
-      <div class="floating-action-button pre-sticky"></div>
-      <!-- <div class="sub">4</div>
-    <div class="sub">5</div>
-    <div class="sub">6</div>
-    <div class="sub">7</div> -->
+      <div class="floating-action-button main">
+        <div class="floating-action-button icon">+</div>
+        <div class="floating-action-button sub">1</div>
+        <div class="floating-action-button sub">2</div>
+        <div class="floating-action-button sub">3</div>
+        <div class="floating-action-button pre-sticky"></div>
+      </div>
     </div>
     <script>
-      // i want to create a main which is draggable and can stick to the edges of the screen when it is dragged closed to the edges of the screen
-      // and when the main is clicked or touched, the sub subs should appear
-
-      /* 
-      but ... this is a bad practice, i mean .... really. bad code, bad thought, bad design, bad everything.
-    */
-
-      /* 
-      一些小小的技术选型问题。
-      1.  
-      drag drop 事件是 html5 的，这些新出的事件，也是基于原本的 mouse 事件的。这些事件目前依旧... 有些问题，移动端是一回事，click 和 drop 事件冲突又是一回事，好吧现在并不会冲突。但我想说的是，click 事件或者 drag 事件，它们都是 mouse 事件的组合继承而来的...
-
-      我们完全可以只用 mouse 事件就把这些实现了，并且能掌握更多细节可能反而更方便。
-      mdn 上已经明确说 click 事件会在 mousedown 和 mouseup 事件依次触发后触发。
-      而 drag 事件可以看成是 mousedown 和 mousemove 的组合。 以下链接就是对如何区分事件的一个讨论。可以给 mousemove 一个阈值，比如 7px，超过了就视为移动；当然还有笨蛋建议用计时器的。 
-      https://stackoverflow.com/questions/6042202/how-to-distinguish-mouse-click-and-drag
-      
-      2.  
-      可能你之前写 drag-tree 的时候，只给单元素加那些事件，一条顺看着很爽，为什么这么爽？因为事件流状态转换啥的给的就已经很完善了，还附送一个数据传输。 但是，但是如果使用基本的 mouse 事件去搞，那事件流以及传数据就不得不自己去用回调去接起来... 这很烦。
-      (在另外，你之前的那个joy-stick，mousemove事件监听是tmd一直挂在document上的...傻冒！)
-      
-      (还有一件事，就选型和代码工程质量的问题，用该用的方法做该做的事，而不是各种 trick 去各种糊；代码可读性某种时候也是思路的清晰明确性，只要能把事情说清楚说出一套道理来怎么写都好。猜想，css 容易搞成屎山的一个原因就是，web 发展需要新功能了却依旧用过去的api，用旧 api 上的一堆堆的 trick 去实现新功能，用 float, table 做布局，用 html 的标题元素去搞字体... 可能对代码而言有些悲伤，但我们确实是希望每个功能都是局限住，可控制的；太跳了的话真的会难理解...或者说，难以控制)
-      
-    */
-
       const main = document.querySelector(".main")
+      const subs = main.querySelectorAll(".sub")
+      const preSticky  = main.querySelector(".pre-sticky")
       const states = ["default", "active", "dragging", "sticky", "pre-sticky"]
       let state = "default"
-
-      const subs = document.querySelectorAll(".sub")
-      const preSticky = document.querySelector(".pre-sticky")
 
       function togglesubs(toState) {
         if (toState === "active") {
           for (let i = 0; i < subs.length; i++) {
-            // coollllllllllllllllll!
             let unit = (2 * Math.PI) / subs.length
             let angle = unit * i
             let x = Math.cos(angle) * 40
@@ -119,7 +93,6 @@
           }
           state = "active"
         } else if (toState === "default") {
-          // 我们希望在回到默认状态的时候，main 可以弹出来...，以及，sticky 的时候，改成动画，变个样子，现在这样太僵硬了还不如不写。
           switch(direction) {
             case "top":
               main.style = `
@@ -171,12 +144,9 @@
       main.addEventListener("mousedown", onStart)
       main.addEventListener("touchstart", onStart)
 
-      // 全局变量很坏！但我也不知道怎么办了呜呜
       let startX, startY, shiftX, shiftY, moveX, moveY, ex, ey
 
       function onStart(e) {
-        // 救命... 写个这个就可以阻止移动端的 touch 事件和 mouse 事件的重复触发了...
-        // 还有一件事。Normally the event order is : 1) touchstart 2) touchmove 3) touchend 4) mousemove 5) mousedown 6) mouseup 7) click
         e.preventDefault()
         e.stopPropagation()
         main.style.transition = "none"
@@ -240,32 +210,25 @@
               case "top":
                 preSticky.style = `
                   opacity: 0.5;
-                  left: ${main.offsetLeft + main.clientWidth / 2 - preSticky.clientWidth / 2 + "px"};
-                  top: ${main.offsetTop - preSticky.clientHeight / 2 + "px"};
-                  transform: rotate(90deg);
+                  transform: rotate(90deg) translate(0px, 30px);
                 `
                 break
               case "right":
                 preSticky.style = `
                   opacity: 0.5;
-                  left: ${main.offsetLeft + 10 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - preSticky.clientHeight / 2 + "px"};
-                  transform: rotate(180deg);
+                  transform: rotate(180deg) translate(30px, 0px);
                 `
                 break
               case "bottom":
                 preSticky.style = `
                   opacity: 0.5;
-                  left: ${main.offsetLeft + main.clientWidth / 2 - preSticky.clientWidth / 2 + "px"};
-                  top: ${main.offsetTop + main.clientHeight - preSticky.clientHeight / 2 + "px"};
-                  transform: rotate(270deg);
+                  transform: rotate(270deg) translate(0px, -30px);
                 `
                 break
               case "left":
                 preSticky.style = `
                   opacity: 0.5;
-                  left: ${main.offsetLeft + main.clientWidth - preSticky.clientWidth + 10 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - preSticky.clientHeight / 2 + "px"};
+                  transform: rotate(0deg) translate(-30px, 0px);
                 `
                 break
             }
@@ -283,7 +246,6 @@
         }
         if (state === "dragging") {
           if (detectEdges(ex, ey)) {
-            // 把 main 贴到边界上去... 不，应该半埋入边界
             preSticky.style.opacity = 0
             switch(direction) {
               case "top":
@@ -331,14 +293,11 @@
         }
       }
 
-      // detecting the edges of the screen
-      const playground = document.querySelector("#playground")
 
       const directions = ["top", "right", "bottom", "left"]
       const  threshold = 30
       let direction = ""
       function detectEdges(ex, ey) {
-        // 不仅要检测边界，还要检测碰的是哪个边界，这样才能让 main 贴着边界移动
         let left = ex - shiftX
         let top = ey - shiftY
         let right = window.innerWidth - left - main.clientWidth
@@ -360,9 +319,6 @@
           return false
         }
       }
-
-      // this small file could be extended ... to a web page pet, i have just learned compiler, dfa ... and dfa or decision tree could be used to create a little pet that have a lots of behaviors automatically.
-      // and also learn to publish a browser extension. or even a cross platform app.
     </script>
   </body>
 </html>
