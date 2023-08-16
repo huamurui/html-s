@@ -34,7 +34,9 @@
         /**
          * @constructor
          * @param {Array<Data>} data - The data of waterfall
-         * @param {Options} options - The options of waterfall
+         * @param {Options} options - The options of 
+         * @typedef {{ index: number, width: number, height: number }} Data
+         * @typedef {{ width: number, interval: number, lineGap: number, minLineGap: number, maxLineGap: number, singleMaxWidth: number }} Options
          */
         constructor(data, options) {
           this.data = data
@@ -95,7 +97,6 @@
               cells: [],
             })
           }
-          console.log(columns)
           return columns
         }
 
@@ -123,6 +124,12 @@
           })
         }
 
+      /**
+       * 
+       * @property {Array<Cell>} cells - The cells of waterfall
+       * @typedef {{ index: number, rect: Rect }} Cell
+       * @typedef {{ isLoaded: boolean, isVisible: boolean, top: number, left: number, width: number, height: number }} Rect
+       */
         get cells() {
           this.addItems(this.data)
           return this.columns.reduce((prev, cur) => {
@@ -212,9 +219,9 @@
         }
       }
 
-      /*
-        test
-      */
+      /**
+       * @description Get the data for waterfall to render for test
+       */
       function getItems(num) {
         const items = []
         for (let i = 0; i < num; i++) {
@@ -245,6 +252,7 @@
         const playground = document.getElementById("playground")
         const cells = waterfall.cells
         const virtualList = new VirtualList(playground, cells)
+        virtualList.update()
       }
       /* 
         这个... 还有些事件编排的问题，resize 和 scroll... 搞个节流...
@@ -252,9 +260,7 @@
       renderWaterfall(initData, options)
 
       /*
-        最基本的布局
-
-        维护一个数组，这个数组的长度是列数，数组的每一项是当前列的高度，每次插入一个元素，就找到最短的那一列，把元素插入到这一列，然后更新这一列的高度。
+        最基本的布局是维护一个数组，这个数组的长度是列数，数组的每一项是当前列的高度，每次插入一个元素，就找到最短的那一列，把元素插入到这一列，然后更新这一列的高度。
         而，如果要做虚拟化，那每个元素的位置的全部信息都是需要掌握的，不能是塞完 style 更新个高度就扔掉。数据结构依旧可以选数组，这样可能会有三个了，
         1. columnHeights
         2. cells
@@ -262,28 +268,10 @@
 
         1. 是基础的布局必须的，也和懒加载支持很相关
         2.3. 则是，每次滚动都要遍历 cells 来判断是否在可视区域内，如果不在，就从 visibleCells 中移除，如果在，就从 visibleCells 中移除，然后插入到 visibleCells 中。
-        虽然...把这几个合成一下也不是不行。        
-            waters' | cells' structure
-            columns = [{
-              height: 0,
-              cells: [
-                {
-                  rect: {
-                    isLoaded: false,
-                    isVisible: false,
-                    top: 0,
-                    left: 0,
-                    width: 0,
-                    height: 0,
-                  },
-                },
-              ],
-            }];
+        虽然...把这几个合成一下也不是不行。...我这里就是这么干的。
 
         这整个过程...会让人想到些调度，虚拟化，队列，缓存，这些概念；操作系统会有，服务部署会有，vue 这种框架会有...而频繁的遍历查找更新会搞些二分查找，区间树之类做做优化...
         在代码方面，这些概念的实现直接依赖数据结构，而效果上这个例子也直接与视图相关。我会觉得这是一个很好的学习编程的小练习。
-
-        --------
 
         而，一些更细节的方面，甚至这里才是之后整个工程代码量的大头，元素宽高怎么获取要现算吗，元素加载以及布局变化的的动画怎么插，计算和实际渲染...各个环节怎么对接...
       */

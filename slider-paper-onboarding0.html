@@ -221,6 +221,36 @@
       /* 
       不知道咋说... 我这个写的更简单，但就目前效果而言，比之前那个好些。
       */
+
+      window.addEventListener("wheel", (e) => {
+        if (e.deltaY > 0) {
+          currentIndex++
+        } else {
+          currentIndex--
+        }
+        if (currentIndex < 0) currentIndex = 0
+        if (currentIndex > sections.length - 1) currentIndex = sections.length - 1
+        swiper.style.transform = `translate3d(0px, ${-currentIndex * height}px, 0px)`
+        dots.querySelectorAll(".dot").forEach((dot) => {
+          dot.classList.remove("active")
+        })
+        dots.querySelectorAll(".dot")[currentIndex].classList.add("active")
+      })
+
+      window.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowDown") {
+          currentIndex++
+        } else if (e.key === "ArrowUp") {
+          currentIndex--
+        }
+        if (currentIndex < 0) currentIndex = 0
+        if (currentIndex > sections.length - 1) currentIndex = sections.length - 1
+        swiper.style.transform = `translate3d(0px, ${-currentIndex * height}px, 0px)`
+        dots.querySelectorAll(".dot").forEach((dot) => {
+          dot.classList.remove("active")
+        })
+        dots.querySelectorAll(".dot")[currentIndex].classList.add("active")
+      })
     </script>
   </body>
 </html>
