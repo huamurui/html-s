@@ -59,6 +59,23 @@
         transform: translate(-30px,0) rotate(0deg);
         z-index: 1;
       }
+
+      .active {
+        opacity: 1;
+        transition: all 0.3s ease-in-out 0s;
+      }
+      .default {
+        opacity: 1;
+        transition: all 0.3s ease-in-out 0s;
+      }
+      .sticky {
+        opacity: 0.8;
+        transition: all 0.3s ease-in-out 0s;
+      }
+      .dragging {
+        transition: none;
+      }
+
     </style>
   </head>
   <body>
@@ -78,65 +95,107 @@
       const states = ["default", "active", "dragging", "sticky", "pre-sticky"]
       let state = "default"
 
-      function togglesubs(toState) {
-        if (toState === "active") {
-          for (let i = 0; i < subs.length; i++) {
-            let unit = (2 * Math.PI) / subs.length
-            let angle = unit * i
-            let x = Math.cos(angle) * 40
-            let y = Math.sin(angle) * 40
-            subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
-            subs[i].style.left = main.offsetLeft + main.clientWidth / 2 - subs[i].clientWidth / 2 + "px"
+      function toggleState(toState) {
+        preSticky.style.opacity = 0
+        switch(toState) {
+          case "dragging" :
+            main.classList = "floating-action-button main dragging"
+            state = "dragging"
+            break
+          case "active":
+            for (let i = 0; i < subs.length; i++) {
+              let unit = (2 * Math.PI) / subs.length
+              let angle = unit * i
+              let x = Math.cos(angle) * 40
+              let y = Math.sin(angle) * 40
+              subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
+              subs[i].style.left = main.offsetLeft + main.clientWidth / 2 - subs[i].clientWidth / 2 + "px"
 
-            subs[i].style.opacity = 1
-            subs[i].style.transform = `translate(${x}px, ${y}px)`
-          }
-          state = "active"
-        } else if (toState === "default") {
-          switch(direction) {
-            case "top":
-              main.style = `
-                opacity: 1;
-                transition: all 0.3s ease-in-out;
-                left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                top: ${0 + "px"};
-              `
-              break
-            case "right":
-              main.style = `
-                opacity: 1;
-                transition: all 0.3s ease-in-out;
-                left: ${window.innerWidth - main.clientWidth + "px"};
-                top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-              `
-              break
-            case "bottom":
-              main.style = `
-                opacity: 1;
-                transition: all 0.3s ease-in-out;
-                left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                top: ${window.innerHeight - main.clientHeight + "px"};
-              `
-              break
-            case "left":
-              main.style = `
-                opacity: 1;
-                transition: all 0.3s ease-in-out;
-                left: ${0 + "px"};
-                top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-              `
-              break
-          }
-          for (let i = 0; i < subs.length; i++) {
-            subs[i].style.opacity = 0
-            subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
-            subs[i].style.left = main.offsetLeft + main.clientWidth / 2 - subs[i].clientWidth / 2 + "px"
-            subs[i].style.transform = `translate(0px, 0px)`
-          }
-          state = "default"
-        } else if (toState === "sticky") {
-          main.style.opacity = 0.5
-          state = "sticky"
+              subs[i].style.opacity = 1
+              subs[i].style.transform = `translate(${x}px, ${y}px)`
+            }
+            state = "active"
+          break
+          case "default":
+            main.classList = "floating-action-button main default"
+            switch(direction) {
+              case "top":
+                main.style = `
+                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                  top: ${0 + "px"};
+                `
+                break
+              case "right":
+                main.style = `
+                  left: ${window.innerWidth - main.clientWidth + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "bottom":
+                main.style = `
+                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                  top: ${window.innerHeight - main.clientHeight + "px"};
+                `
+                break
+              case "left":
+                main.style = `
+                  left: ${0 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+                `
+                break
+            }
+            for (let i = 0; i < subs.length; i++) {
+              subs[i].style.opacity = 0
+              subs[i].style.top = main.offsetTop + main.clientHeight / 2 - subs[i].clientHeight / 2 + "px"
+              subs[i].style.left = main.offsetLeft + main.clientWidth / 2 - subs[i].clientWidth / 2 + "px"
+              subs[i].style.transform = `translate(0px, 0px)`
+            }
+            state = "default"
+            break
+          case "sticky":
+            main.classList = "floating-action-button main sticky"
+            switch(direction) {
+              case "top":
+                main.style = `
+                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                  top: ${0 - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "right":
+                main.style = `
+                  left: ${window.innerWidth - main.clientWidth / 2 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "bottom":
+                main.style = `
+                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
+                  top: ${window.innerHeight - main.clientHeight / 2 + "px"};
+                `
+                break
+              case "left":
+                main.style = `
+                  left: ${0 - main.clientWidth / 2 + "px"};
+                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
+                `
+                break
+            }
+            state = "sticky"
+          case "pre-sticky":
+            switch(direction) {
+              case "top":
+                preSticky.style = `opacity: 0.5;transform: rotate(90deg) translate(0px, 30px);`
+                break
+              case "right":
+                preSticky.style = `opacity: 0.5;transform: rotate(180deg) translate(30px, 0px);`
+                break
+              case "bottom":
+                preSticky.style = `opacity: 0.5;transform: rotate(270deg) translate(0px, -30px);`
+                break
+              case "left":
+                preSticky.style = `opacity: 0.5;transform: rotate(0deg) translate(-30px, 0px);`
+                break
+            }
         }
       }
 
@@ -149,8 +208,6 @@
       function onStart(e) {
         e.preventDefault()
         e.stopPropagation()
-        main.style.transition = "none"
-
         if (e.type === "mousedown") {
           if (state === "default" || state === "active") {
             startX = e.clientX
@@ -162,7 +219,7 @@
             document.addEventListener("mousemove", onMove)
             document.addEventListener("mouseup", onEnd)
           } else if (state === "sticky") {
-            togglesubs("default")
+            toggleState("default")
           }
         } else if (e.type === "touchstart") {
           if (state === "default" || state === "active") {
@@ -175,7 +232,7 @@
             document.addEventListener("touchmove", onMove)
             document.addEventListener("touchend", onEnd)
           } else if (state === "sticky") {
-            togglesubs("default")
+            toggleState("default")
           }
         }
       }
@@ -189,49 +246,21 @@
         }
         moveX = ex - startX
         moveY = ey - startY
+
         if (state === "default" || state === "active") {
           if (moveX * moveX + moveY * moveY > 10) {
             if (state === "active") {
-              togglesubs("default")
+              toggleState("default")
             }
-            state = "dragging"
-            if (!detectEdges(ex, ey)) {
-              main.style.left = ex - shiftX + "px"
-              main.style.top = ey - shiftY + "px"
-            }
+            toggleState("dragging")
           }
         } else if (state === "dragging") {
-          if (!detectEdges(ex, ey)) {
-            main.style.left = ex - shiftX + "px"
-            main.style.top = ey - shiftY + "px"
-            preSticky.style.opacity = 0
+          main.style.left = ex - shiftX + "px"
+          main.style.top = ey - shiftY + "px"
+          if (detectEdges(ex, ey)) {
+            toggleState("pre-sticky")
           } else {
-            switch(direction) {
-              case "top":
-                preSticky.style = `
-                  opacity: 0.5;
-                  transform: rotate(90deg) translate(0px, 30px);
-                `
-                break
-              case "right":
-                preSticky.style = `
-                  opacity: 0.5;
-                  transform: rotate(180deg) translate(30px, 0px);
-                `
-                break
-              case "bottom":
-                preSticky.style = `
-                  opacity: 0.5;
-                  transform: rotate(270deg) translate(0px, -30px);
-                `
-                break
-              case "left":
-                preSticky.style = `
-                  opacity: 0.5;
-                  transform: rotate(0deg) translate(-30px, 0px);
-                `
-                break
-            }
+            toggleState("dragging")
           }
         }
       }
@@ -244,52 +273,21 @@
           document.removeEventListener("touchmove", onMove)
           document.removeEventListener("touchend", onEnd)
         }
-        if (state === "dragging") {
-          if (detectEdges(ex, ey)) {
-            preSticky.style.opacity = 0
-            switch(direction) {
-              case "top":
-                main.style = `
-                  opacity: 0.8;
-                  transition: all 0.3s ease-in-out;
-                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${0 - main.clientHeight / 2 + "px"};
-                `
-                break
-              case "right":
-                main.style = `
-                  opacity: 0.8;
-                  transition: all 0.3s ease-in-out;
-                  left: ${window.innerWidth - main.clientWidth / 2 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-                `
-                break
-              case "bottom":
-                main.style = `
-                  opacity: 0.8;
-                  transition: all 0.3s ease-in-out;
-                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${window.innerHeight - main.clientHeight / 2 + "px"};
-                `
-                break
-              case "left":
-                main.style = `
-                  opacity: 0.8;
-                  transition: all 0.3s ease-in-out;
-                  left: ${0 - main.clientWidth / 2 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-                `
-                break
-            }
-            togglesubs("sticky")
-          } else {
-            state = "default"
-            togglesubs("default")
-          }
-        } else if (state === "default") {
-          togglesubs("active")
-        } else if (state === "active") {
-          togglesubs("default")
+
+        switch (state) {
+          case "dragging":
+            if(detectEdges(ex, ey)) toggleState("sticky")
+            else toggleState("default")
+            break
+          case "default":
+            toggleState("active")
+            break
+          case "active":
+            toggleState("default")
+            break
+          case "sticky":
+            toggleState("default")
+            break
         }
       }
 
