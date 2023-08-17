@@ -119,6 +119,10 @@ aaa
 
 oh...this is dangerous, but who cares?
 `
+
+    const data = { markdown: ''}
+    const markdown = document.querySelector('#markdown')
+    const markupPreview = document.querySelector('#markup-preview')
     /* 打表是很爽啦...  */
     const rules = {
       regexp:{
@@ -174,49 +178,47 @@ oh...this is dangerous, but who cares?
         },
       }
     }
-    const markdown = document.querySelector('#markdown')
-    const markupPreview = document.querySelector('#markup-preview')
-    
-    // let parserWithCache = AddCache(parser)
-    const data = new Proxy(
-      { 
-        markdown: '',
-        tokens: [],
-        ast: [],
-      }, 
-      {
-        set(target, key, value) {
-          target[key] = value
-          if(key === 'markdown') {
-            // markupPreview.innerHTML = render(parser(lexer(value)))  
-            // console.time('parser')
-            markupPreview.innerHTML = parser(value)
-            // markupPreview.innerHTML = parserWithCache(value)      
-            // console.timeEnd('parser')
-          }
-          return true
+  /**
+   * 
+   * 响应式系统
+   */
+    const bucket = new WeakMap()
+    const reactiveData = new Proxy(data,{
+      get(target, key, receiver) {
+        if(activeEffect) {
+          if(!bucket.has(target)) bucket.set(target, new Map())
+          if(!bucket.get(target).has(key)) bucket.get(target).set(key, [])
+          bucket.get(target).get(key).push(activeEffect)
         }
+        return Reflect.get(target, key, receiver)
+      },
+      set(target, key, value, receiver) {
+        const res = Reflect.set(target, key, value, receiver)
+        if(bucket.has(target) && bucket.get(target).has(key)) {
+          bucket.get(target).get(key).forEach(fn => fn())
+        }
+        return res
       }
-    )
+    })
+
+    let activeEffect
+    function effect(fn) {
+      activeEffect = fn
+      fn()
+      activeEffect = null
+    }
+    effect(() => {
+      markupPreview.innerHTML = parser(reactiveData.markdown)
+    })
 
     // init value
-    data.markdown = testal
-    markdown.value = data.markdown
+    reactiveData.markdown = testal
+    markdown.value = reactiveData.markdown
     markdown.addEventListener('input', debounce(update, 500))
     function update(e) {
-      data.markdown = e.target.value
+      reactiveData.markdown = e.target.value
     }
 
-    // function lexer(markdown) {
-    //   const tokens = []
-    // }
-    // // it take tokens as input and return ast as output
-    // function parser(tokens) {
-    //   const ast = [] // 如果你以后要缓存的话..也许要用一下下“闭包”哦  
-      
-    //   return html
-    // }
-    
     function parser(markdown){
       let html = markdown
       for(let key in rules.regexp) {
@@ -225,17 +227,6 @@ oh...this is dangerous, but who cares?
       }
       return html
     }
-    
-    // function AddCache(fn) {
-    //   let cache = {}
-    //   return function (markdown) {
-    //     if(cache[markdown]) return cache[markdown]
-    //     let html = fn(markdown)
-    //     cache[markdown] = html
-    //     return html
-    //   }
-    // }
-
 
     /* 
       tools~~
@@ -259,11 +250,11 @@ oh...this is dangerous, but who cares?
       }
       
       nodes.forEach((ele, index) => {
-          ele.addEventListener('scroll', event)
+        ele.addEventListener('scroll', event)
       })
       return () => {
         nodes.forEach((ele, index) => {
-            ele.removeEventListener('scroll', event)
+          ele.removeEventListener('scroll', event)
         })
       }
     }
