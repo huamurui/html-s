@@ -120,28 +120,16 @@
             main.classList = "floating-action-button main default"
             switch(direction) {
               case "top":
-                main.style = `
-                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${0 + "px"};
-                `
+                main.style = `left: ${main.offsetLeft  + "px"};top: ${0 + "px"};`
                 break
               case "right":
-                main.style = `
-                  left: ${window.innerWidth - main.clientWidth + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-                `
+                main.style = `left: ${window.innerWidth - main.clientWidth + "px"};top: ${main.offsetTop  + "px"};`
                 break
               case "bottom":
-                main.style = `
-                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${window.innerHeight - main.clientHeight + "px"};
-                `
+                main.style = `left: ${main.offsetLeft  + "px"};top: ${window.innerHeight - main.clientHeight + "px"};`
                 break
               case "left":
-                main.style = `
-                  left: ${0 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-                `
+                main.style = `left: ${0 + "px"};top: ${main.offsetTop  + "px"};`
                 break
             }
             for (let i = 0; i < subs.length; i++) {
@@ -156,28 +144,16 @@
             main.classList = "floating-action-button main sticky"
             switch(direction) {
               case "top":
-                main.style = `
-                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${0 - main.clientHeight / 2 + "px"};
-                `
+                main.style = `left: ${main.offsetLeft  + "px"};top: ${0 - main.clientHeight / 2 + "px"};`
                 break
               case "right":
-                main.style = `
-                  left: ${window.innerWidth - main.clientWidth / 2 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-                `
+                main.style = `left: ${window.innerWidth - main.clientWidth / 2 + "px"};top: ${main.offsetTop  + "px"};`
                 break
               case "bottom":
-                main.style = `
-                  left: ${main.offsetLeft + main.clientWidth / 2 - main.clientWidth / 2 + "px"};
-                  top: ${window.innerHeight - main.clientHeight / 2 + "px"};
-                `
+                main.style = `left: ${main.offsetLeft  + "px"};top: ${window.innerHeight - main.clientHeight / 2 + "px"};`
                 break
               case "left":
-                main.style = `
-                  left: ${0 - main.clientWidth / 2 + "px"};
-                  top: ${main.offsetTop + main.clientHeight / 2 - main.clientHeight / 2 + "px"};
-                `
+                main.style = `left: ${0 - main.clientWidth / 2 + "px"};top: ${main.offsetTop  + "px"};`
                 break
             }
             state = "sticky"
@@ -282,15 +258,10 @@
           case "default":
             toggleState("active")
             break
-          case "active":
+          default:
             toggleState("default")
-            break
-          case "sticky":
-            toggleState("default")
-            break
         }
       }
-
 
       const directions = ["top", "right", "bottom", "left"]
       const  threshold = 30
@@ -300,22 +271,11 @@
         let top = ey - shiftY
         let right = window.innerWidth - left - main.clientWidth
         let bottom = window.innerHeight - top - main.clientHeight
-        if (left < threshold) {
-          direction = "left"
-          return true
-        } else if (right < threshold) {
-          direction = "right"
-          return true
-        } else if (top < threshold) {
-          direction = "top"
-          return true
-        } else if (bottom < threshold) {
-          direction = "bottom"
-          return true
-        } else {
-          direction = ""
-          return false
-        }
+        if (left < threshold) { direction = "left"; return true } else 
+        if (right < threshold) { direction = "right"; return true} else 
+        if (top < threshold) { direction = "top"; return true } else 
+        if (bottom < threshold) { direction = "bottom"; return true } 
+        else { direction = ""; return false }
       }
     </script>
   </body>
