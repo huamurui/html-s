@@ -20,6 +20,18 @@
         height: 70000px;
         width: 0;
       }
+      .cell {
+        animation: appear 0.5s ease-in-out 0;
+      }
+      @keyframes appear {
+        from {
+          scale: 0.5;
+        }
+        to {
+          scale: 1;
+        }
+      }
+
     </style>
   </head>
   <body>
@@ -36,7 +48,7 @@
          * @param {Array<Data>} data - The data of waterfall
          * @param {Options} options - The options of 
          * @typedef {{ index: number, width: number, height: number }} Data
-         * @typedef {{ width: number, interval: number, lineGap: number, minLineGap: number, maxLineGap: number, singleMaxWidth: number }} Options
+         * @typedef {{ width: number, columnGap: number, minColumnGap: number, maxColumnGap: number, singleMaxWidth: number }} Options
          */
         constructor(data, options) {
           this.data = data
@@ -44,14 +56,14 @@
         }
 
         getLayoutStrategy(width = this.options.width, options = this.options) {
-          let count = width / options.lineGap
+          let count = width / options.columnGap
           let slotWidth
-          if (options.singleMaxWidth >= width) {
+          if (false) {
             count = 1
-            slotWidth = Math.max(width, options.minLineGap)
+            slotWidth = Math.max(width, options.minColumnGap)
           } else {
-            let maxContentWidth = options.maxLineGap * ~~count
-            let minGreedyContentWidth = options.minLineGap * ~~(count + 1)
+            let maxContentWidth = options.maxColumnGap * ~~count
+            let minGreedyContentWidth = options.minColumnGap * ~~(count + 1)
             let canFit = maxContentWidth >= width
             let canFitGreedy = minGreedyContentWidth <= width
 
@@ -66,11 +78,11 @@
               slotWidth = width / count
             } else {
               count = ~~count
-              slotWidth = options.maxLineGap
+              slotWidth = options.maxColumnGap
             }
             if (count === 1) {
-              slotWidth = Math.min(width, options.singleMaxWidth)
-              slotWidth = Math.max(slotWidth, options.minLineGap)
+              slotWidth = Math.min(width, Infinity)
+              slotWidth = Math.max(slotWidth, options.minColumnGap)
             }
           }
           return {
@@ -103,6 +115,7 @@
         addItems(items) {
           const { columnWidth, columnCount } = this.getLayoutStrategy()
           items.forEach((item) => {
+            // 这边传进来还是url...
             let width = columnWidth
             let height = item.height * (width / item.width)
 
@@ -110,6 +123,7 @@
             const cell = {
               index: item.index,
               color: item.color,
+              url: item.url,
               rect: {
                 isLoaded: false,
                 isVisible: false,
@@ -122,6 +136,7 @@
             column.cells.push(cell)
             column.height += height
           })
+          console.log(this.columns)
         }
 
       /**
@@ -161,14 +176,15 @@
           this.cells.forEach((cell) => {
             this.makeDom(cell, this.doms)
           })
+          console.log(this.doms.length)
         }
-
         update() {
           this.visibleCells = []
           this.cells.forEach((cell) => {
             cell.rect.isVisible = this.isVisible(cell.rect)
             if (cell.rect.isVisible) {
               this.visibleCells.push(cell)
+              this.doms[cell.index].children[0].src = cell.url
             }
           })
           this.render()
@@ -199,6 +215,7 @@
 
         makeDom(cell, domArr) {
           const div = document.createElement("div")
+          const img = document.createElement("img")
           div.style = `
               position: absolute;
               top: 0;
@@ -206,62 +223,33 @@
               width: ${cell.rect.width}px;
               height: ${cell.rect.height}px;
               transform: translate(${cell.rect.left}px, ${cell.rect.top}px);
+              transition: transform 0.3s ease;
               background-color: ${cell.color};
             `
+          div.classList.add("cell")
+          // 我觉得可以更绝一点，getComputedStyle。
+          img.style = `
+              width: 100%;
+              height: 100%;
+            `
           div.innerText = cell.index
+          div.appendChild(img)
           domArr[cell.index] = div
         }
       }
 
       function throttle(fn, delay) {
-          let timer = null
-          return function () {
-            if (timer) {
-              return
-            }
-            timer = setTimeout(() => {
-              fn()
-              timer = null
-            }, delay)
+        let timer = null
+        return function () {
+          if (timer) {
+            return
           }
+          timer = setTimeout(() => {
+            fn()
+            timer = null
+          }, delay)
         }
-
-      /**
-       * @description Get the data for waterfall to render for test
-       */
-      function getItems(num) {
-        const items = []
-        for (let i = 0; i < num; i++) {
-          let width = Math.floor(Math.random() * 100 + 50)
-          let height = Math.floor(Math.random() * 100 + 50)
-          let color = "#" + Math.floor(Math.random() * 0xffffff).toString(16)
-          items.push({
-            index: i,
-            width: width,
-            height: height,
-            color: color,
-          })
-        }
-        return items
       }
-      const initData = getItems(1000)
-      const options = {
-        width: playground.clientWidth,
-        interval: 200,
-        lineGap: 250,
-        minLineGap: 100,
-        maxLineGap: 320,
-        singleMaxWidth: 300,
-      }
-
-      function renderWaterfall(data, options) {
-        const waterfall = new Waterfall(data, options)
-        const playground = document.getElementById("playground")
-        const cells = waterfall.cells
-        const virtualList = new VirtualList(playground, cells)
-        virtualList.update()
-      }
-      renderWaterfall(initData, options)
 
       /*
         最基本的布局是维护一个数组，这个数组的长度是列数，数组的每一项是当前列的高度，每次插入一个元素，就找到最短的那一列，把元素插入到这一列，然后更新这一列的高度。
@@ -279,6 +267,167 @@
 
         而，一些更细节的方面，甚至这里才是之后整个工程代码量的大头，元素宽高怎么获取要现算吗，元素加载以及布局变化的的动画怎么插，计算和实际渲染...各个环节怎么对接...
       */
+
+      /**
+       * Test 
+       * 就是说... 搞一组图片放上去看看，有两个需要注意的，一个是宽高的获取，这个可以只请求部分数据就能拿到，另一个是图片的懒加载，在视口检测需要加载时，再去加载完整的图片资源。
+       */
+      class ImageSize {
+        constructor() {
+          this.IMAGE_HEAD = {
+            GIF: [0x47, 0x49, 0x46], //'G' 'I' 'F' ascii
+            PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+            JPG: [0xff, 0xd8, 0xff, 0xe0],
+            BMP: [0x42, 0x4d]
+          }
+          this.IMAGE_HEAD_SIGS = {
+            GIF: [0x47, 0x49, 0x46], //'G' 'I' 'F' ascii
+            PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
+            JPG: [0xff, 0xd8, 0xff, 0xe0],
+            BMP: [0x42, 0x4d]
+          }
+        }
+
+        readUint16BE(bytes, start) {
+          var uarr = new Uint32Array(1);
+          uarr[0] = (bytes[start + 0] & 0xFF) << 8;
+          uarr[0] = uarr[0] | (bytes[start + 1] & 0xFF);
+          return uarr[0];
+        }
+        readUint32BE(bytes, start) {
+          var uarr = new Uint32Array(1);
+          uarr[0] = (bytes[start + 0] & 0xFF) << 24
+          uarr[0] = uarr[0] | ((bytes[start + 1] & 0xFF) << 16)
+          uarr[0] = uarr[0] | ((bytes[start + 2] & 0xFF) << 8)
+          uarr[0] = uarr[0] | (bytes[start + 3] & 0xFF)
+          return uarr[0]
+        }
+
+
+        ReadPNG(bytes) {
+          if (bytes.slice(0, 8).toString() === this.IMAGE_HEAD_SIGS.PNG.toString()) {
+            let width = this.readUint32BE(bytes, 16);
+            let height = this.readUint32BE(bytes, 20);
+            return { width, height }
+          }
+        }
+
+        ReadJPG(bytes) {
+          if (bytes.slice(0, 4).toString() === this.IMAGE_HEAD_SIGS.JPG.toString()) { 
+            const M_SOF0 = 0xC0; /* Start Of Frame N */
+            const M_SOF1 = 0xC1; /* N indicates which compression process */
+            const M_SOF2 = 0xC2; /* Only SOF0-SOF2 are now in common use */
+            const M_SOF3 = 0xC3;
+            const M_SOF5 = 0xC5; /* NB: codes C4 and CC are NOT SOF markers */
+            const M_SOF6 = 0xC6;
+            const M_SOF7 = 0xC7;
+            const M_SOF9 = 0xC9;
+            const M_SOF10 = 0xCA;
+            const M_SOF11 = 0xCB;
+            const M_SOF13 = 0xCD;
+            const M_SOF14 = 0xCE;
+            const M_SOF15 = 0xCF;
+            for (let i = 0; i < bytes.length; i++) {
+              if (bytes[i] === 0xFF) {
+                switch (bytes[i + 1]) {
+                  case M_SOF0:
+                  case M_SOF1:
+                  case M_SOF2:
+                  case M_SOF3:
+                  case M_SOF5:
+                  case M_SOF6:
+                  case M_SOF7:
+                  case M_SOF9:
+                  case M_SOF10:
+                  case M_SOF11:
+                  case M_SOF13:
+                  case M_SOF14:
+                  case M_SOF15:
+                    {
+                        //高在前，宽在后。
+                        let width = this.readUint16BE(bytes, i + 7)
+                        let height = this.readUint16BE(bytes, i + 5)
+                        return { width, height }
+                    }
+                  default:
+                      break;
+                }
+              }
+            }
+          }
+        }
+      }
+      const imageSize = new ImageSize()
+
+      async function UrlToCellsdata(){
+        const urlData = 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/crawler/data.json'
+        const urls = await fetch(urlData).then(res=>res.json().then(data=>data.map(item=>`https://huamurui.github.io/data_and_so_on/images/paintings/shameful/${item.name}`)))
+        const cells = await requestControl(urls.map((url, index)=>requestForSize(url).then(size=>({index, url, ...size}))), 10)
+        return await Promise.all(cells)
+
+        function requestForSize(url) {
+          return new Promise((resolve, reject)=>{
+            fetch(url).then(res=>{
+              res.blob().then(blob=>{
+                const reader = new FileReader()
+                reader.readAsArrayBuffer(blob)
+                reader.onload = function(){
+                  const bytes = new Uint8Array(reader.result)
+                  let size = imageSize.ReadJPG(bytes)
+                  // 判断得到的数据是否合法...至少要解析成数字...不然给个默认值，或者，那个工具类是可以优化的
+                  if(!size || !size.width || !size.height){
+                    size = { width: 100, height: 100}
+                  }
+                  resolve(size)
+                }
+              })
+            })
+          })
+        }
+
+        function requestControl(promises, max) {
+          return new Promise((resolve, reject) => {
+            let tasks = promises.slice(0);
+            let pending = [];
+            let result = [];
+            function run() {
+              if(tasks.length && pending.length < max) {
+                let p = tasks.shift();
+                pending.push(p);
+                p.finally(() => {
+                  result.push(pending.find((item) => item === p));
+                  pending.splice(pending.indexOf(p), 1);
+                  run();
+                  if(!tasks.length && !pending.length) {
+                    resolve(result);
+                  }
+                })
+              }
+            }
+            for(let i = 0; i < max; i++) run()
+          })
+        }
+      }
+
+      const options = {
+        width: playground.clientWidth,
+        columnGap: 250,
+        minColumnGap: 150,
+        maxColumnGap: 600,
+        singleMaxWidth: 600,
+      }
+
+      function renderWaterfall(data, options) {
+        const waterfall = new Waterfall(data, options)
+        const playground = document.getElementById("playground")
+        const cells = waterfall.cells
+        const virtualList = new VirtualList(playground, cells)
+        virtualList.update()
+      }
+      
+      UrlToCellsdata().then(data=>{
+        renderWaterfall(data, options)
+      })
     </script>
   </body>
 </html>
