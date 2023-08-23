@@ -21,17 +21,16 @@
         width: 0;
       }
       .cell {
-        animation: appear 0.5s ease-in-out 0;
+        animation: appear 8s ease-in-out 0;
       }
       @keyframes appear {
         from {
-          scale: 0.5;
+          transform: scale(0.5);
         }
         to {
-          scale: 1;
+          transform: scale(1);
         }
       }
-
     </style>
   </head>
   <body>
@@ -41,49 +40,45 @@
     <script>
       /**
        * Calculate the layout of waterfall
-       */ 
+       */
       class Waterfall {
         /**
          * @constructor
          * @param {Array<Data>} data - The data of waterfall
-         * @param {Options} options - The options of 
+         * @param {Options} options - The options of
          * @typedef {{ index: number, width: number, height: number }} Data
-         * @typedef {{ width: number, columnGap: number, minColumnGap: number, maxColumnGap: number, singleMaxWidth: number }} Options
+         * @typedef {{ width: Function, columnGap: number, minColumnGap: number, maxColumnGap: number, singleMaxWidth: number }} Options
          */
         constructor(data, options) {
           this.data = data
           this.options = options
         }
 
-        getLayoutStrategy(width = this.options.width, options = this.options) {
-          let count = width / options.columnGap
+        get layoutStrategy() {
+          let count = this.options.width() / options.columnGap
           let slotWidth
-          if (false) {
-            count = 1
-            slotWidth = Math.max(width, options.minColumnGap)
-          } else {
-            let maxContentWidth = options.maxColumnGap * ~~count
-            let minGreedyContentWidth = options.minColumnGap * ~~(count + 1)
-            let canFit = maxContentWidth >= width
-            let canFitGreedy = minGreedyContentWidth <= width
 
-            if (canFit && canFitGreedy) {
-              count = Math.round(count)
-              slotWidth = width / count
-            } else if (canFit) {
-              count = ~~count
-              slotWidth = width / count
-            } else if (canFitGreedy) {
-              count = ~~(count + 1)
-              slotWidth = width / count
-            } else {
-              count = ~~count
-              slotWidth = options.maxColumnGap
-            }
-            if (count === 1) {
-              slotWidth = Math.min(width, Infinity)
-              slotWidth = Math.max(slotWidth, options.minColumnGap)
-            }
+          let maxContentWidth = this.options.maxColumnGap * ~~count
+          let minGreedyContentWidth = this.options.minColumnGap * ~~(count + 1)
+          let canFit = maxContentWidth >= this.options.width()
+          let canFitGreedy = minGreedyContentWidth <= this.options.width()
+
+          if (canFit && canFitGreedy) {
+            count = Math.round(count)
+            slotWidth = this.options.width() / count
+          } else if (canFit) {
+            count = ~~count
+            slotWidth = this.options.width() / count
+          } else if (canFitGreedy) {
+            count = ~~(count + 1)
+            slotWidth = this.options.width() / count
+          } else {
+            count = ~~count
+            slotWidth = this.options.maxColumnGap
+          }
+          if (count === 1) {
+            slotWidth = Math.min(this.options.width(), Infinity)
+            slotWidth = Math.max(slotWidth, this.options.minColumnGap)
           }
           return {
             columnWidth: slotWidth,
@@ -93,15 +88,15 @@
 
         get nowShortestColumn() {
           if (!this.columns) {
-            this.columns = this.getColumns()
+            this.columns = this.initColumns
           }
           return this.columns.reduce((prev, cur) => {
             return prev.height < cur.height ? prev : cur
           })
         }
 
-        getColumns() {
-          const { columnWidth, columnCount } = this.getLayoutStrategy()
+        get initColumns() {
+          const { columnWidth, columnCount } = this.layoutStrategy
           const columns = []
           for (let i = 0; i < columnCount; i++) {
             columns.push({
@@ -112,10 +107,15 @@
           return columns
         }
 
+        reflow() {
+          this.columns = this.initColumns
+          this.addItems(this.data)
+          console.log(this.columns, this.options.width())
+        }
+
         addItems(items) {
-          const { columnWidth, columnCount } = this.getLayoutStrategy()
+          const { columnWidth, columnCount } = this.layoutStrategy
           items.forEach((item) => {
-            // 这边传进来还是url...
             let width = columnWidth
             let height = item.height * (width / item.width)
 
@@ -136,17 +136,16 @@
             column.cells.push(cell)
             column.height += height
           })
-          console.log(this.columns)
         }
 
-      /**
-       * 
-       * @property {Array<Cell>} cells - The cells of waterfall
-       * @typedef {{ index: number, rect: Rect }} Cell
-       * @typedef {{ isLoaded: boolean, isVisible: boolean, top: number, left: number, width: number, height: number }} Rect
-       */
+        /**
+         *
+         * @property {Array<Cell>} cells - The cells of waterfall
+         * @typedef {{ index: number, rect: Rect }} Cell
+         * @typedef {{ isLoaded: boolean, isVisible: boolean, top: number, left: number, width: number, height: number }} Rect
+         */
         get cells() {
-          this.addItems(this.data)
+          this.reflow()
           return this.columns.reduce((prev, cur) => {
             return prev.concat(cur.cells)
           }, [])
@@ -154,15 +153,15 @@
       }
 
       /**
-       * 
+       *
        * @class VirtualList 接受根节点，cells，负责控制挂载卸载
        */
       class VirtualList {
-      /**
-        * @constructor
-        * @param {HTMLElement} root - The root element of virtual list
-        * @param {Array<Cell>} cells - The cells of virtual list
-        */
+        /**
+         * @constructor
+         * @param {HTMLElement} root - The root element of virtual list
+         * @param {Array<Cell>} cells - The cells of virtual list
+         */
         constructor(root, cells) {
           this.root = root
           this.cells = cells
@@ -176,8 +175,19 @@
           this.cells.forEach((cell) => {
             this.makeDom(cell, this.doms)
           })
-          console.log(this.doms.length)
         }
+
+        reflow(cells) {
+          this.cells = cells
+          this.doms.map((dom) => dom.remove())
+          this.doms = []
+          this.visibleCells = []
+          this.cells.forEach((cell) => {
+            this.makeDom(cell, this.doms)
+          })
+          this.update()
+        }
+
         update() {
           this.visibleCells = []
           this.cells.forEach((cell) => {
@@ -198,7 +208,10 @@
             dom.remove()
           })
           this.visibleCells.forEach((cell) => {
+            this.doms[cell.index].classList.remove("cell")
             this.root.appendChild(this.doms[cell.index])
+            window.getComputedStyle(this.doms[cell.index]).opacity
+            this.doms[cell.index].classList.add("cell")
             cell.rect.isLoaded = true
           })
         }
@@ -226,12 +239,12 @@
               transition: transform 0.3s ease;
               background-color: ${cell.color};
             `
-          div.classList.add("cell")
           // 我觉得可以更绝一点，getComputedStyle。
           img.style = `
               width: 100%;
               height: 100%;
             `
+
           div.innerText = cell.index
           div.appendChild(img)
           domArr[cell.index] = div
@@ -269,7 +282,7 @@
       */
 
       /**
-       * Test 
+       * Test
        * 就是说... 搞一组图片放上去看看，有两个需要注意的，一个是宽高的获取，这个可以只请求部分数据就能拿到，另一个是图片的懒加载，在视口检测需要加载时，再去加载完整的图片资源。
        */
       class ImageSize {
@@ -278,57 +291,56 @@
             GIF: [0x47, 0x49, 0x46], //'G' 'I' 'F' ascii
             PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
             JPG: [0xff, 0xd8, 0xff, 0xe0],
-            BMP: [0x42, 0x4d]
+            BMP: [0x42, 0x4d],
           }
           this.IMAGE_HEAD_SIGS = {
             GIF: [0x47, 0x49, 0x46], //'G' 'I' 'F' ascii
             PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
             JPG: [0xff, 0xd8, 0xff, 0xe0],
-            BMP: [0x42, 0x4d]
+            BMP: [0x42, 0x4d],
           }
         }
 
         readUint16BE(bytes, start) {
-          var uarr = new Uint32Array(1);
-          uarr[0] = (bytes[start + 0] & 0xFF) << 8;
-          uarr[0] = uarr[0] | (bytes[start + 1] & 0xFF);
-          return uarr[0];
+          var uarr = new Uint32Array(1)
+          uarr[0] = (bytes[start + 0] & 0xff) << 8
+          uarr[0] = uarr[0] | (bytes[start + 1] & 0xff)
+          return uarr[0]
         }
         readUint32BE(bytes, start) {
-          var uarr = new Uint32Array(1);
-          uarr[0] = (bytes[start + 0] & 0xFF) << 24
-          uarr[0] = uarr[0] | ((bytes[start + 1] & 0xFF) << 16)
-          uarr[0] = uarr[0] | ((bytes[start + 2] & 0xFF) << 8)
-          uarr[0] = uarr[0] | (bytes[start + 3] & 0xFF)
+          var uarr = new Uint32Array(1)
+          uarr[0] = (bytes[start + 0] & 0xff) << 24
+          uarr[0] = uarr[0] | ((bytes[start + 1] & 0xff) << 16)
+          uarr[0] = uarr[0] | ((bytes[start + 2] & 0xff) << 8)
+          uarr[0] = uarr[0] | (bytes[start + 3] & 0xff)
           return uarr[0]
         }
 
-
         ReadPNG(bytes) {
           if (bytes.slice(0, 8).toString() === this.IMAGE_HEAD_SIGS.PNG.toString()) {
-            let width = this.readUint32BE(bytes, 16);
-            let height = this.readUint32BE(bytes, 20);
+            let width = this.readUint32BE(bytes, 16)
+            let height = this.readUint32BE(bytes, 20)
             return { width, height }
           }
         }
 
         ReadJPG(bytes) {
-          if (bytes.slice(0, 4).toString() === this.IMAGE_HEAD_SIGS.JPG.toString()) { 
-            const M_SOF0 = 0xC0; /* Start Of Frame N */
-            const M_SOF1 = 0xC1; /* N indicates which compression process */
-            const M_SOF2 = 0xC2; /* Only SOF0-SOF2 are now in common use */
-            const M_SOF3 = 0xC3;
-            const M_SOF5 = 0xC5; /* NB: codes C4 and CC are NOT SOF markers */
-            const M_SOF6 = 0xC6;
-            const M_SOF7 = 0xC7;
-            const M_SOF9 = 0xC9;
-            const M_SOF10 = 0xCA;
-            const M_SOF11 = 0xCB;
-            const M_SOF13 = 0xCD;
-            const M_SOF14 = 0xCE;
-            const M_SOF15 = 0xCF;
+          if (bytes.slice(0, 4).toString() === this.IMAGE_HEAD_SIGS.JPG.toString()) {
+            const M_SOF0 = 0xc0 /* Start Of Frame N */
+            const M_SOF1 = 0xc1 /* N indicates which compression process */
+            const M_SOF2 = 0xc2 /* Only SOF0-SOF2 are now in common use */
+            const M_SOF3 = 0xc3
+            const M_SOF5 = 0xc5 /* NB: codes C4 and CC are NOT SOF markers */
+            const M_SOF6 = 0xc6
+            const M_SOF7 = 0xc7
+            const M_SOF9 = 0xc9
+            const M_SOF10 = 0xca
+            const M_SOF11 = 0xcb
+            const M_SOF13 = 0xcd
+            const M_SOF14 = 0xce
+            const M_SOF15 = 0xcf
             for (let i = 0; i < bytes.length; i++) {
-              if (bytes[i] === 0xFF) {
+              if (bytes[i] === 0xff) {
                 switch (bytes[i + 1]) {
                   case M_SOF0:
                   case M_SOF1:
@@ -342,15 +354,14 @@
                   case M_SOF11:
                   case M_SOF13:
                   case M_SOF14:
-                  case M_SOF15:
-                    {
-                        //高在前，宽在后。
-                        let width = this.readUint16BE(bytes, i + 7)
-                        let height = this.readUint16BE(bytes, i + 5)
-                        return { width, height }
-                    }
+                  case M_SOF15: {
+                    //高在前，宽在后。
+                    let width = this.readUint16BE(bytes, i + 7)
+                    let height = this.readUint16BE(bytes, i + 5)
+                    return { width, height }
+                  }
                   default:
-                      break;
+                    break
                 }
               }
             }
@@ -359,24 +370,29 @@
       }
       const imageSize = new ImageSize()
 
-      async function UrlToCellsdata(){
-        const urlData = 'https://huamurui.github.io/data_and_so_on/images/paintings/shameful/crawler/data.json'
-        const urls = await fetch(urlData).then(res=>res.json().then(data=>data.map(item=>`https://huamurui.github.io/data_and_so_on/images/paintings/shameful/${item.name}`)))
-        const cells = await requestControl(urls.map((url, index)=>requestForSize(url).then(size=>({index, url, ...size}))), 10)
-        return await Promise.all(cells)
+      async function UrlToCellsdata() {
+        const base = "https://huamurui.github.io/data_and_so_on"
+        const common = `${base}/images/paintings/shameful/`
+        const urlData = `${common}crawler/data.json`
+        const urls = await fetch(urlData).then((res) => res.json().then((data) => data.map((item) => `${common}${item.name}`)))
+        const cells = Promise.all(
+          urls.map((url, index) => requestForSize(url).then((size) => ({ index, url, ...size }))),
+          10
+        )
+        return cells
 
         function requestForSize(url) {
-          return new Promise((resolve, reject)=>{
-            fetch(url).then(res=>{
-              res.blob().then(blob=>{
+          return new Promise((resolve, reject) => {
+            fetch(url).then((res) => {
+              res.blob().then((blob) => {
                 const reader = new FileReader()
                 reader.readAsArrayBuffer(blob)
-                reader.onload = function(){
+                reader.onload = function () {
                   const bytes = new Uint8Array(reader.result)
                   let size = imageSize.ReadJPG(bytes)
                   // 判断得到的数据是否合法...至少要解析成数字...不然给个默认值，或者，那个工具类是可以优化的
-                  if(!size || !size.width || !size.height){
-                    size = { width: 100, height: 100}
+                  if (!size || !size.width || !size.height) {
+                    size = { width: 100, height: 100 }
                   }
                   resolve(size)
                 }
@@ -387,30 +403,30 @@
 
         function requestControl(promises, max) {
           return new Promise((resolve, reject) => {
-            let tasks = promises.slice(0);
-            let pending = [];
-            let result = [];
+            let tasks = promises.slice(0)
+            let pending = []
+            let result = []
             function run() {
-              if(tasks.length && pending.length < max) {
-                let p = tasks.shift();
-                pending.push(p);
+              if (tasks.length && pending.length < max) {
+                let p = tasks.shift()
+                pending.push(p)
                 p.finally(() => {
-                  result.push(pending.find((item) => item === p));
-                  pending.splice(pending.indexOf(p), 1);
-                  run();
-                  if(!tasks.length && !pending.length) {
-                    resolve(result);
+                  result.push(pending.find((item) => item === p))
+                  pending.splice(pending.indexOf(p), 1)
+                  run()
+                  if (!tasks.length && !pending.length) {
+                    resolve(result)
                   }
                 })
               }
             }
-            for(let i = 0; i < max; i++) run()
+            for (let i = 0; i < max; i++) run()
           })
         }
       }
 
       const options = {
-        width: playground.clientWidth,
+        width: () => window.innerWidth,
         columnGap: 250,
         minColumnGap: 150,
         maxColumnGap: 600,
@@ -421,11 +437,14 @@
         const waterfall = new Waterfall(data, options)
         const playground = document.getElementById("playground")
         const cells = waterfall.cells
+        window.addEventListener("resize", () => {
+          waterfall.reflow()
+          virtualList.reflow(waterfall.cells)
+        })
         const virtualList = new VirtualList(playground, cells)
         virtualList.update()
       }
-      
-      UrlToCellsdata().then(data=>{
+      UrlToCellsdata().then((data) => {
         renderWaterfall(data, options)
       })
     </script>
