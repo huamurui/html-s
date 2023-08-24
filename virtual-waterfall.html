@@ -50,8 +50,8 @@
          * @typedef {{ width: Function, columnGap: number, minColumnGap: number, maxColumnGap: number, singleMaxWidth: number }} Options
          */
         constructor(data, options) {
-          this.data = data
           this.options = options
+          this.addItems(data)
         }
 
         get layoutStrategy() {
@@ -104,8 +104,9 @@
           })
         }
 
-        get isBottom() {
-          return this.nowTallestColumn > document.documentElement.scrollTop
+        isBottom() {
+          console.log(this.nowTallestColumn.height, playground.scrollTop)
+          return this.nowTallestColumn.height < playground.scrollTop + window.innerHeight
         }
 
         get initColumns() {
@@ -126,6 +127,8 @@
         }
 
         addItems(items) {
+          if(!this.data) this.data = []
+          this.data.push(...items)
           const { columnWidth, columnCount } = this.layoutStrategy
           items.forEach((item) => {
             let width = columnWidth
@@ -392,7 +395,7 @@
 
         function requestForSize(url) {
           return new Promise((resolve, reject) => {
-            fetch(url).then((res) => {
+            fetch(url,{headers:{"Range":"bytes=0-512"}}).then((res) => {
               res.blob().then((blob) => {
                 const reader = new FileReader()
                 reader.readAsArrayBuffer(blob)
@@ -450,11 +453,10 @@
           waterfall.reflow()
           virtualList.reflow(waterfall.cells)
         })
-
-        window.addEventListener("scroll", () => {
-          if (waterfall.isBottom) {
+        playground.addEventListener("scroll", () => {
+          if (waterfall.isBottom()) {
             waterfall.addItems(fakeData())
-            console.log("add")
+            waterfall.reflow()
             virtualList.reflow(waterfall.cells)
           }
         })
