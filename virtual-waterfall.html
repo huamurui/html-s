@@ -95,6 +95,19 @@
           })
         }
 
+        get nowTallestColumn() {
+          if (!this.columns) {
+            this.columns = this.initColumns
+          }
+          return this.columns.reduce((prev, cur) => {
+            return prev.height > cur.height ? prev : cur
+          })
+        }
+
+        get isBottom() {
+          return this.nowTallestColumn > document.documentElement.scrollTop
+        }
+
         get initColumns() {
           const { columnWidth, columnCount } = this.layoutStrategy
           const columns = []
@@ -110,7 +123,6 @@
         reflow() {
           this.columns = this.initColumns
           this.addItems(this.data)
-          console.log(this.columns, this.options.width())
         }
 
         addItems(items) {
@@ -375,10 +387,7 @@
         const common = `${base}/images/paintings/shameful/`
         const urlData = `${common}crawler/data.json`
         const urls = await fetch(urlData).then((res) => res.json().then((data) => data.map((item) => `${common}${item.name}`)))
-        const cells = Promise.all(
-          urls.map((url, index) => requestForSize(url).then((size) => ({ index, url, ...size }))),
-          10
-        )
+        const cells = Promise.all(urls.map((url, index) => requestForSize(url).then((size) => ({ index, url, ...size }))))
         return cells
 
         function requestForSize(url) {
@@ -441,6 +450,34 @@
           waterfall.reflow()
           virtualList.reflow(waterfall.cells)
         })
+
+        window.addEventListener("scroll", () => {
+          if (waterfall.isBottom) {
+            waterfall.addItems(fakeData())
+            console.log("add")
+            virtualList.reflow(waterfall.cells)
+          }
+        })
+
+        function fake(data) {
+          let lastIndex = data[data.length - 1].index
+          return function () {
+            let fakeData = []
+            for (let i = 0; i < 50; i++) {
+              fakeData.push({
+                index: ++lastIndex,
+                url: data[i].url,
+                width: data[i].width,
+                height: data[i].height,
+                color: data[i].color,
+              })
+            }
+            return fakeData
+          }
+        }
+
+        var fakeData = fake(data)
+
         const virtualList = new VirtualList(playground, cells)
         virtualList.update()
       }
