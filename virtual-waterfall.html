@@ -198,30 +198,31 @@
               this.doms[cell.index].children[0].src = cell.url
             }
           })
+          this.mountedCells = this.cells.filter((cell) => cell.rect.isLoaded)
           this.render()
         }
 
         render() {
-          /* 
-            这部分... 我觉得你 tmd 真的该去找个视图框架了，虽然全量更新也不是不行...
-            不行，绝对不行，动画这样会被触发多次，根本没法做...对，该上了
-          */
-          this.doms.forEach((dom) => {
+          const toBeUnmountedCells = this.mountedCells.filter((cell) => !cell.rect.isVisible)
+          const toBeMountedCells = this.visibleCells.filter((cell) => !cell.rect.isLoaded)
+          toBeUnmountedCells.forEach((cell) => {
+            const dom = this.doms[cell.index]
             dom.remove()
+            cell.rect.isLoaded = false
           })
-          this.visibleCells.forEach((cell) => {
+          toBeMountedCells.forEach((cell) => {
             const dom = this.doms[cell.index]
             this.root.appendChild(dom)
-            // dom.animate(
-            //   [
-            //     { transform: `translate(${dom.style.transform.match(/translate\((.*)\)/)[1]}) scale(0.5)` },
-            //     { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(1)` },
-            //   ],
-            //   {
-            //     duration: 300,
-            //     easing: "ease",
-            //   }
-            // )
+            dom.animate(
+              [
+                { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(0.5)` },
+                { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(1)` },
+              ],
+              {
+                duration: 300,
+                easing: "ease",
+              }
+            )
             cell.rect.isLoaded = true
           })
         }
@@ -248,7 +249,6 @@
               transform: translate(${cell.rect.left}px, ${cell.rect.top}px);
               background-color: ${cell.color};
             `
-          // 我觉得可以更绝一点，getComputedStyle。
           img.style = `
               width: 100%;
               height: 100%;
@@ -267,7 +267,7 @@
             return
           }
           timer = setTimeout(() => {
-            fn()
+            fn.apply(this, arguments)
             timer = null
           }, delay)
         }
