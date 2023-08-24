@@ -20,17 +20,6 @@
         height: 70000px;
         width: 0;
       }
-      /* .cell {
-        animation: appear 8s ease-in-out 0;
-      }
-      @keyframes appear {
-        from {
-          transform: scale(0.5);
-        }
-        to {
-          transform: scale(1);
-        }
-      } */
     </style>
   </head>
   <body>
@@ -104,10 +93,6 @@
           })
         }
 
-        isBottom() {
-          return this.nowTallestColumn.height < playground.scrollTop + window.innerHeight
-        }
-
         get initColumns() {
           const { columnWidth, columnCount } = this.layoutStrategy
           const columns = []
@@ -145,6 +130,11 @@
             column.height += height
           })
         }
+
+        isBottom() {
+          return this.nowTallestColumn.height < this.options.scrollHeight()
+        }
+
         addItems(items) {
           if(!this.data) this.data = []
           this.data.push(...items)
@@ -214,15 +204,24 @@
         render() {
           /* 
             这部分... 我觉得你 tmd 真的该去找个视图框架了，虽然全量更新也不是不行...
+            不行，绝对不行，动画这样会被触发多次，根本没法做...对，该上了
           */
           this.doms.forEach((dom) => {
             dom.remove()
           })
           this.visibleCells.forEach((cell) => {
-            this.doms[cell.index].classList.remove("cell")
-            this.root.appendChild(this.doms[cell.index])
-            window.getComputedStyle(this.doms[cell.index]).opacity
-            this.doms[cell.index].classList.add("cell")
+            const dom = this.doms[cell.index]
+            this.root.appendChild(dom)
+            // dom.animate(
+            //   [
+            //     { transform: `translate(${dom.style.transform.match(/translate\((.*)\)/)[1]}) scale(0.5)` },
+            //     { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(1)` },
+            //   ],
+            //   {
+            //     duration: 300,
+            //     easing: "ease",
+            //   }
+            // )
             cell.rect.isLoaded = true
           })
         }
@@ -247,7 +246,6 @@
               width: ${cell.rect.width}px;
               height: ${cell.rect.height}px;
               transform: translate(${cell.rect.left}px, ${cell.rect.top}px);
-              transition: transform 0.3s ease;
               background-color: ${cell.color};
             `
           // 我觉得可以更绝一点，getComputedStyle。
@@ -298,12 +296,6 @@
        */
       class ImageSize {
         constructor() {
-          this.IMAGE_HEAD = {
-            GIF: [0x47, 0x49, 0x46], //'G' 'I' 'F' ascii
-            PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
-            JPG: [0xff, 0xd8, 0xff, 0xe0],
-            BMP: [0x42, 0x4d],
-          }
           this.IMAGE_HEAD_SIGS = {
             GIF: [0x47, 0x49, 0x46], //'G' 'I' 'F' ascii
             PNG: [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a],
@@ -435,6 +427,7 @@
 
       const options = {
         width: () => window.innerWidth,
+        scrollHeight: () => playground.scrollHeight + window.innerHeight,
         columnGap: 250,
         minColumnGap: 150,
         maxColumnGap: 600,
@@ -449,13 +442,13 @@
           waterfall.reflow()
           virtualList.reflow(waterfall.cells)
         })
-        playground.addEventListener("scroll", () => {
+        playground.addEventListener("scroll", throttle(() => {
           if (waterfall.isBottom()) {
-            waterfall.addItems(fakeData())
+            waterfall.addItems(fake(data))
             waterfall.reflow()
             virtualList.reflow(waterfall.cells)
           }
-        })
+        }, 200))
 
         function fake(data) {
           let lastIndex = data[data.length - 1].index
@@ -473,8 +466,6 @@
             return fakeData
           }
         }
-
-        var fakeData = fake(data)
 
         const virtualList = new VirtualList(playground, cells)
         virtualList.update()
