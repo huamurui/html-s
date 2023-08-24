@@ -20,7 +20,7 @@
         height: 70000px;
         width: 0;
       }
-      .cell {
+      /* .cell {
         animation: appear 8s ease-in-out 0;
       }
       @keyframes appear {
@@ -30,7 +30,7 @@
         to {
           transform: scale(1);
         }
-      }
+      } */
     </style>
   </head>
   <body>
@@ -105,7 +105,6 @@
         }
 
         isBottom() {
-          console.log(this.nowTallestColumn.height, playground.scrollTop)
           return this.nowTallestColumn.height < playground.scrollTop + window.innerHeight
         }
 
@@ -123,14 +122,8 @@
 
         reflow() {
           this.columns = this.initColumns
-          this.addItems(this.data)
-        }
-
-        addItems(items) {
-          if(!this.data) this.data = []
-          this.data.push(...items)
-          const { columnWidth, columnCount } = this.layoutStrategy
-          items.forEach((item) => {
+          const { columnWidth } = this.layoutStrategy
+          this.data.forEach((item) => {
             let width = columnWidth
             let height = item.height * (width / item.width)
 
@@ -152,7 +145,10 @@
             column.height += height
           })
         }
-
+        addItems(items) {
+          if(!this.data) this.data = []
+          this.data.push(...items)
+        }
         /**
          *
          * @property {Array<Cell>} cells - The cells of waterfall
