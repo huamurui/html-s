@@ -44,7 +44,7 @@
         }
 
         get layoutStrategy() {
-          let count = this.options.width() / options.columnGap
+          let count = this.options.width() / this.options.columnGap
           let slotWidth
 
           let maxContentWidth = this.options.maxColumnGap * ~~count
@@ -68,6 +68,10 @@
           if (count === 1) {
             slotWidth = Math.min(this.options.width(), Infinity)
             slotWidth = Math.max(slotWidth, this.options.minColumnGap)
+          }
+          if (count <= 0) {
+            count = 1
+            slotWidth = this.options.width()
           }
           return {
             columnWidth: slotWidth,
@@ -136,7 +140,7 @@
         }
 
         addItems(items) {
-          if(!this.data) this.data = []
+          if (!this.data) this.data = []
           this.data.push(...items)
         }
         /**
@@ -213,16 +217,10 @@
           toBeMountedCells.forEach((cell) => {
             const dom = this.doms[cell.index]
             this.root.appendChild(dom)
-            dom.animate(
-              [
-                { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(0.5)` },
-                { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(1)` },
-              ],
-              {
-                duration: 300,
-                easing: "ease",
-              }
-            )
+            dom.animate([{ transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(0.5)` }, { transform: `translate(${cell.rect.left}px, ${cell.rect.top}px) scale(1)` }], {
+              duration: 300,
+              easing: "ease",
+            })
             cell.rect.isLoaded = true
           })
         }
@@ -294,6 +292,47 @@
        * Test
        * 就是说... 搞一组图片放上去看看，有两个需要注意的，一个是宽高的获取，这个可以只请求部分数据就能拿到，另一个是图片的懒加载，在视口检测需要加载时，再去加载完整的图片资源。
        */
+      class VirtualWaterfall {
+        constructor(data, root, options) {
+          this.data = data
+          this.root = root
+          this.options = {
+            width: options?.width ? options.width : () => root.clientWidth,
+            scrollHeight: options?.scrollHeight ? options.scrollHeight : () => root.scrollHeight + window.innerHeight,
+            columnGap: options?.columnGap || 250,
+            minColumnGap: options?.minColumnGap || 150,
+            maxColumnGap: options?.maxColumnGap || 600,
+            singleMaxWidth: options?.singleMaxWidth || 600,
+            appendData: options?.appendData,
+          }
+          this.waterfall = new Waterfall(data, this.options)
+          this.virtualList = new VirtualList(root, this.waterfall.cells)
+          this.init()
+        }
+        init() {
+          window.addEventListener(
+            "resize",
+            throttle(() => {
+              this.waterfall.reflow()
+              this.virtualList.reflow(this.waterfall.cells)
+            })
+          )
+          this.root.addEventListener(
+            "scroll",
+            throttle(() => {
+              if (this.waterfall.isBottom()) {
+                this.append(this.options.appendData())
+              }
+            })
+          )
+          this.virtualList.update()
+        }
+        append(data) {
+          this.waterfall.addItems(data)
+          this.virtualList.reflow(this.waterfall.cells)
+        }
+      }
+
       class ImageSize {
         constructor() {
           this.IMAGE_HEAD_SIGS = {
@@ -383,7 +422,7 @@
 
         function requestForSize(url) {
           return new Promise((resolve, reject) => {
-            fetch(url,{headers:{"Range":"bytes=0-512"}}).then((res) => {
+            fetch(url, { headers: { Range: "bytes=0-512" } }).then((res) => {
               res.blob().then((blob) => {
                 const reader = new FileReader()
                 reader.readAsArrayBuffer(blob)
@@ -425,30 +464,9 @@
         }
       }
 
-      const options = {
-        width: () => window.innerWidth,
-        scrollHeight: () => playground.scrollHeight + window.innerHeight,
-        columnGap: 250,
-        minColumnGap: 150,
-        maxColumnGap: 600,
-        singleMaxWidth: 600,
-      }
-
-      function renderWaterfall(data, options) {
-        const waterfall = new Waterfall(data, options)
-        const playground = document.getElementById("playground")
-        const cells = waterfall.cells
-        window.addEventListener("resize", () => {
-          waterfall.reflow()
-          virtualList.reflow(waterfall.cells)
-        })
-        playground.addEventListener("scroll", throttle(() => {
-          if (waterfall.isBottom()) {
-            waterfall.addItems(fake(data))
-            waterfall.reflow()
-            virtualList.reflow(waterfall.cells)
-          }
-        }, 200))
+      UrlToCellsdata().then((data) => {
+        const virtualWaterfall = new VirtualWaterfall(data, document.getElementById("playground"), { appendData: fake(data) })
+        virtualWaterfall.init()
 
         function fake(data) {
           let lastIndex = data[data.length - 1].index
@@ -460,18 +478,12 @@
                 url: data[i].url,
                 width: data[i].width,
                 height: data[i].height,
-                color: data[i].color,
+                color: "#" + Math.floor(Math.random() * 0xffffff).toString(16),
               })
             }
             return fakeData
           }
         }
-
-        const virtualList = new VirtualList(playground, cells)
-        virtualList.update()
-      }
-      UrlToCellsdata().then((data) => {
-        renderWaterfall(data, options)
       })
     </script>
   </body>
