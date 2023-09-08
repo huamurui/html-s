@@ -184,32 +184,23 @@
       function onStart(e) {
         e.preventDefault()
         e.stopPropagation()
-        if (e.type === "mousedown") {
-          if (state === "default" || state === "active") {
-            startX = e.clientX
-            startY = e.clientY
-
-            shiftX = e.clientX - main.getBoundingClientRect().left
-            shiftY = e.clientY - main.getBoundingClientRect().top
-
-            document.addEventListener("mousemove", onMove)
-            document.addEventListener("mouseup", onEnd)
-          } else if (state === "sticky") {
-            toggleState("default")
-          }
+        if(e.type === "mousedown") {
+          startX = e.clientX
+          startY = e.clientY
+          document.addEventListener("mousemove", onMove)
+          document.addEventListener("mouseup", onEnd)
         } else if (e.type === "touchstart") {
-          if (state === "default" || state === "active") {
-            startX = e.touches[0].clientX
-            startY = e.touches[0].clientY
+          startX = e.touches[0].clientX
+          startY = e.touches[0].clientY
+          document.addEventListener("touchmove", onMove)
+          document.addEventListener("touchend", onEnd)
+        }
 
-            shiftX = e.touches[0].clientX - main.getBoundingClientRect().left
-            shiftY = e.touches[0].clientY - main.getBoundingClientRect().top
-
-            document.addEventListener("touchmove", onMove)
-            document.addEventListener("touchend", onEnd)
-          } else if (state === "sticky") {
-            toggleState("default")
-          }
+        if(state === "default" || state === "active") {
+          shiftX = startX - main.getBoundingClientRect().left
+          shiftY = startY - main.getBoundingClientRect().top
+        } else if (state === "sticky") {
+          toggleState("default")
         }
       }
       function onMove(e) {
