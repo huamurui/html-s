@@ -437,6 +437,9 @@
       toys.appendChild(toy)
       toyList.push(toy)
     }
+    let scrollMemo = 0
+    const header = document.querySelector('header')
+    header.style.transition = '0.3s all linear'
     window.addEventListener('scroll', () => {
       let scrollTop = document.documentElement.scrollTop || document.body.scrollTop
       // let clientHeight = document.documentElement.clientHeight || document.body.clientHeight
@@ -447,6 +450,22 @@
       toyList.forEach((toy, index) => {
         toy.style.transform = `translateY(${scrollTop * ratio[index % ratio.length]}px)`
       })
+
+      /* 
+        show the navbar while scroll up, hide it while scroll down.
+        the scrollMemo is used to record the last scroll position.
+        and there is a threshold to avoid the scroll event triggered too frequently.
+      */
+      if(scrollTop - scrollMemo > 50){
+        header.style.transition = '0.3s all linear'
+        header.style.transform = 'translateY(-100%)'
+        scrollMemo = scrollTop
+      }else if(scrollMemo - scrollTop > 50){
+        header.style.transition = 'none'
+        header.style.transform = 'translateY(0)'
+        scrollMemo = scrollTop
+      }
+
     })
   </script>
 </body>
