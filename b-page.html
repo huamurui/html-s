@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="viewport" content="width=device-width, initial-scale=1.0">
+    <title>b page</title>
+</head>
+<body>
+    <div id="playground"></div>
+    <script>
+        // 我想整个东西，就是，根据 hover 来动态的，展开一颗树。UI 风格的话，最好，像古早 windows 的开始菜单那样
+
+        let margin = 0
+        function renderOneLayer (name='a', root=playground) {
+            const thisMargin = margin
+
+            const parentEle = root.querySelector(`[data-name="${name}"]`) || root
+            const selfData = getNode(name, article)
+
+            // render self
+            const selfEle = document.createElement('div')
+            selfEle.style.marginLeft = `${thisMargin}px`
+            
+            selfEle.setAttribute('data-name', name)
+            selfEle.innerHTML = selfData.content
+            parentEle.appendChild(selfEle)
+
+            // render children when hover
+            selfEle.addEventListener('mouseenter', function () {
+                if (selfData.children) {
+                    margin += 10
+                    selfData.children.forEach(child => {
+                        renderOneLayer(child.name, selfEle)
+                    })
+                }
+            })
+
+            // remove children when leave
+            selfEle.addEventListener('mouseleave', function () {
+                if (selfData.children) {
+                    margin -= 10
+                    selfData.children.forEach(child => {
+                        const childEle = selfEle.querySelector(`[data-name="${child.name}"]`)
+                        selfEle.removeChild(childEle)
+                    })
+                }
+            })
+        }
+
+        function getNode (name, article) {
+            // get node of article by name, return array. recursively, for it might hide in children's children
+            let node = null
+            for (let i = 0; i < article.length; i++) {
+                if (article[i].name === name) {
+                    node = article[i]
+                    break
+                } else if (article[i].children) {
+                    node = getNode(name, article[i].children)
+                    if (node) {
+                        break
+                    }
+                }
+            }
+            return node
+        }
+
+        const playground = document.getElementById('playground')
+        const article = [
+            {
+                name:'a',
+                content: '嗯...',
+                children: [
+                    {
+                        name: 'aa',
+                        content: '不知道说什么好...',
+                        children: [
+                            {
+                                name: 'aab',
+                                content: '如果已经不怎么在乎...如果路只会越走越窄...'
+                            },
+                            {
+                                name: 'aac',
+                                content: '什么十几年的努力...其实从一开始就，那么的，那么那么的，虚浮...，空中楼阁一般'
+                            }
+                        ]
+                    },
+                    {
+                        name: 'ab',
+                        content: '阿巴阿巴',
+                        children: [
+                            {
+                                name: 'aba',
+                                content: '阿巴阿巴阿巴阿巴阿巴阿巴阿巴阿巴'
+                            },
+                            {
+                                name: 'abb',
+                                content: '阿巴阿巴阿巴阿巴阿巴阿巴阿巴阿巴'
+                            }
+                        ]
+                    }
+                ]
+            }
+            
+        ]
+        renderOneLayer()
+    </script>
+</body>
+</html>
