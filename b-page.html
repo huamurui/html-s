@@ -5,10 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>b page</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
         #playground {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            font-size: 16px;
+        }
+
+        .menu__column {
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+            box-shadow: 
+                5px 5px 0px 2px #1d1d1d,
+                10px 10px 2px 2px #8a750a;
+        }
+        .menu__item {
             width: 100%;
-            height: 100%;
-            font-size: 20px;
+            border: 1px solid #000;
+            margin-bottom: 10px;
+        }
+        .menu__icon {
+            width: 16px;
+            height: 16px;
+            background-color: #000;
         }
     </style>
 </head>
@@ -16,8 +41,17 @@
     <div id="playground"></div>
     <script>
         // 我想整个东西，就是，根据 hover 来动态的，展开一颗树。UI 风格的话，最好，像古早 windows 的开始菜单那样
+        // 如果那样搞，定位是个问题... 绝对定位 or translate 那一套就好。获取窗口宽高，与最后一个元素的定位
+        // 还有一件事... 这玩意要在移动端看... 以及冻结状态... 移动端是随时冻结。PC 听一下双击事件，或者是长按事件 bulabula
+        // 
 
         let margin = 0
+
+        let position = {
+            x: 0,
+            y: 0
+        }
+        const { innerWidth, innerHeight } = window
         function renderOneLayer (name='a', root=playground) {
             const thisMargin = margin
 
@@ -27,10 +61,14 @@
             // render self
             const selfEle = document.createElement('div')
             selfEle.style.marginLeft = `${thisMargin}px`
+            selfEle.classList.add('menu__column')
             
             selfEle.setAttribute('data-name', name)
             selfEle.innerHTML = selfData.content
             parentEle.appendChild(selfEle)
+
+            // 嗯...现在还有问题，那便是，如果是进入新渲染的元素，或者说子元素的子元素，那是不是也可能触发 mouseleave ? 并不会因为直接节点放在了父节点上，而不会触发 mouseleave
+            // 那这个操作和 translate，绝对定位有影响吗? 我突然感觉到... "子绝父相"在这里简直太合理了...
 
             // render children when hover
             selfEle.addEventListener('mouseenter', function () {
@@ -93,15 +131,21 @@
                     },
                     {
                         name: 'ab',
-                        content: '阿巴阿巴',
+                        content: '阿巴',
                         children: [
                             {
                                 name: 'aba',
-                                content: '阿巴阿巴阿巴阿巴阿巴阿巴阿巴阿巴'
+                                content: '阿巴阿',
+                                children: [
+                                    {
+                                        name: 'abaa',
+                                        content: '阿巴阿巴'
+                                    }
+                                ]
                             },
                             {
                                 name: 'abb',
-                                content: '阿巴阿巴阿巴阿巴阿巴阿巴阿巴阿巴'
+                                content: '阿巴巴'
                             }
                         ]
                     }
