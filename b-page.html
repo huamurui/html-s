@@ -29,6 +29,14 @@
         .menu__item {
             width: 100%;
         }
+        .menu__item--on-path {
+            background-color: #666;
+            color: #000;
+        }
+        .menu__item:hover {
+            background-color:#000;
+            color: #fff;
+        }
         .menu__icon {
             width: 16px;
             height: 16px;
@@ -71,6 +79,31 @@
             if (y + height > innerHeight) { direction.y = 'top'}
             return direction
         }
+
+        function getLeaveDirection(e, el) {
+            // four possable direction: left, right, top, bottom
+            const { clientX, clientY } = e
+            const { x, y, width, height } = el.getBoundingClientRect()
+            let direction = ''
+            switch (true) {
+                case clientX < x:
+                    direction = 'left'
+                    break
+                case clientX > x + width-5:
+                    direction = 'right'
+                    break
+                case clientY < y:
+                    direction = 'top'
+                    break
+                case clientY > y + height:
+                    direction = 'bottom'
+                    break
+                default:
+                    break
+            }
+            console.log('dir',direction)
+            return direction
+        }
         const { innerWidth, innerHeight } = window
         function renderOneLayer (name='a', root=playground) {
             const thisPosition = position
@@ -100,6 +133,7 @@
                     position.y += 21 // 先固定加上一个高度...
 
                     let accumulateHeight = 0
+                    selfEle.querySelector('.menu__item').classList.add('menu__item--on-path')
                     selfData.children.forEach(child => {
                         renderOneLayer(child.name, selfEle)
                         let thisHeight = selfEle.querySelector(`[data-name="${child.name}"]`).getBoundingClientRect().height
@@ -109,10 +143,16 @@
                     position.y -= accumulateHeight
                 })
 
+
+
                 // remove children when leave
-                selfEle.addEventListener('mouseleave', function () {
+                selfEle.addEventListener('mouseleave', function (event) {
                     position.x -= 190
                     position.y -= 21
+                    let dir = getLeaveDirection(event, selfEle)
+                    if(dir !== 'right') {
+                        selfEle.querySelector('.menu__item').classList.remove('menu__item--on-path')
+                    } 
                     selfData.children.forEach(child => {
                         // position.y -= selfEle.querySelector(`[data-name="${child.name}"]`).getBoundingClientRect().height
                         const childEle = selfEle.querySelector(`[data-name="${child.name}"]`)
