@@ -163,8 +163,8 @@
                 const name = item.getAttribute('data-name')
                 const data = getNode(name, article)
                 if(!data.children)  return
-                // render children when mouseenter
-                item.addEventListener('mouseenter', function () {
+                // render children when mouseover
+                item.addEventListener('mouseover', function () {
                     if (plannedParenthood) {
                         item.classList.remove('menu__item--on-path')
                         root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
@@ -181,8 +181,6 @@
                 // remove children when mouseleave
                 item.addEventListener('mouseleave', function () {
                     let dir = getLeaveDirection(event, selfEle)
-                    // bug... 从右边离开时，不去掉子元素，而...这时如果又触发了同级 mouseenter ... 那就全都乱了...再加一个变量 let plannedParenthood = false
-                    // 现在的问题是，在离开父级前，就进入了之后渲染出的子表...直接跨级的交互...
                     if(dir === 'right') {
                         plannedParenthood = item.getAttribute('data-name')
                         return
