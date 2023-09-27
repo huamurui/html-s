@@ -99,17 +99,17 @@
             const { x, y, width, height } = el.getBoundingClientRect()
             let direction = ''
             switch (true) {
-                case clientX < x:
-                    direction = 'left'
-                    break
-                case clientX > x + width-5:
-                    direction = 'right'
-                    break
                 case clientY < y:
                     direction = 'top'
                     break
                 case clientY > y + height:
                     direction = 'bottom'
+                    break
+                case clientX < x:
+                    direction = 'left'
+                    break
+                case clientX > x + width-5:
+                    direction = 'right'
                     break
                 default:
                     break
@@ -118,76 +118,79 @@
         }
 
         // 如果是，还是给一个 name，但渲染的不是本元素，而是子元素？
-
         function renderOneLayer (name='0', root=playground) {
             const thisPosition = position
             const selfData = getNode(name, article)
 
             if (!selfData) return
-            if (selfData.children) {
-                // render self
-                const selfEle = document.createElement('div')
-                selfEle.setAttribute('data-name', name)
-                selfEle.style = `left: ${thisPosition.x}px;top: ${thisPosition.y}px;`
-                selfEle.classList.add('menu__column')
-                selfEle.innerHTML = selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">+</div>' : '')}</div>`).join('')
-                
-                root.appendChild(selfEle)
-                const items = selfEle.querySelectorAll('.menu__item')
-                
-                // get position
-                let adjustXY = {x: 0, y: 0}
-                switch (getAppendDirection(thisPosition, selfEle.getBoundingClientRect())) {
-                    case 'right-bottom':
-                        adjustXY.x = 190
-                        adjustXY.y = 21
-                        break
-                    case 'left-bottom':
-                        adjustXY.x = -190
-                        adjustXY.y = 21
-                        break
-                    case 'right-top':
-                        adjustXY.x = 190
-                        adjustXY.y = -21
-                        break
-                    case 'left-top':
-                        adjustXY.x = -190
-                        adjustXY.y = -21
-                        break
-                    default:
-                        break
-                }
-
-                // recursively
-                items.forEach((item, index) => {
-                    const name = item.getAttribute('data-name')
-                    const data = getNode(name, article)
-                    if(data.children) {
-                        // render children when mouseenter
-                        item.addEventListener('mouseenter', function () {
-                            if(!root.querySelector(`[data-name="${name}"].menu__column`)) {
-                                position.x += adjustXY.x
-                                position.y += adjustXY.y
-                                item.classList.add('menu__item--on-path')
-                                renderOneLayer(name, root)
-                            }
-                        })
-                        // remove children when mouseleave
-                        item.addEventListener('mouseleave', function () {
-                            let dir = getLeaveDirection(event, item)
-                            if(dir !== 'right') {
-                                position.x -= adjustXY.x
-                                position.y -= adjustXY.y
-                                item.classList.remove('menu__item--on-path')
-                                const children = root.querySelector(`[data-name="${name}"].menu__column`)
-                                if (children) {
-                                    root.removeChild(children)
-                                }
-                            } 
-                        })
-                    }
-                })
+            if (!selfData.children) return
+            // render self
+            const selfEle = document.createElement('div')
+            selfEle.setAttribute('data-name', name)
+            selfEle.style = `left: ${thisPosition.x}px;top: ${thisPosition.y}px;`
+            selfEle.classList.add('menu__column')
+            selfEle.innerHTML = selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">+</div>' : '')}</div>`).join('')
+            
+            root.appendChild(selfEle)
+            const items = selfEle.querySelectorAll('.menu__item')
+            
+            // get position
+            let adjustXY = {x: 0, y: 0}
+            switch (getAppendDirection(thisPosition, selfEle.getBoundingClientRect())) {
+                case 'right-bottom':
+                    adjustXY.x = 190
+                    adjustXY.y = 21
+                    break
+                case 'left-bottom':
+                    adjustXY.x = -190
+                    adjustXY.y = 21
+                    break
+                case 'right-top':
+                    adjustXY.x = 190
+                    adjustXY.y = -21
+                    break
+                case 'left-top':
+                    adjustXY.x = -190
+                    adjustXY.y = -21
+                    break
+                default:
+                    break
             }
+            // 这一层里面只能有一条
+            let plannedParenthood = false
+            // recursively
+            items.forEach((item, index) => {
+                const name = item.getAttribute('data-name')
+                const data = getNode(name, article)
+                if(!data.children)  return
+                // render children when mouseenter
+                item.addEventListener('mouseenter', function () {
+                    if (plannedParenthood) {
+                        item.classList.remove('menu__item--on-path')
+                        root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
+                        plannedParenthood = false
+                        // debugger
+                    }
+                    position.x += adjustXY.x
+                    position.y += adjustXY.y
+                    item.classList.add('menu__item--on-path')
+                    renderOneLayer(name, root)
+                    plannedParenthood = name
+
+                })
+                // remove children when mouseleave
+                item.addEventListener('mouseleave', function () {
+                    let dir = getLeaveDirection(event, selfEle)
+                    // bug... 从右边离开时，不去掉子元素，而...这时如果又触发了同级 mouseenter ... 那就全都乱了...再加一个变量 let plannedParenthood = false
+                    // 现在的问题是，在离开父级前，就进入了之后渲染出的子表...直接跨级的交互...
+                    if(dir === 'right') {
+                        plannedParenthood = item.getAttribute('data-name')
+                        return
+                    }
+                    if(!plannedParenthood) return
+                    root.querySelector(`[data-name="${name}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${name}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y) && (plannedParenthood = false)
+                })
+            })
         }
 
         function getNode (name, article) {
@@ -212,51 +215,50 @@
                 name:'0',
                 content:'0',
                 children:[
-                {
-                    name:'a',
-                    content: '嗯...',
-                    children: [
-                        {
-                            name: 'aa',
-                            content: '不知道说什么好...',
-                            children: [
-                                {
-                                    name: 'aab',
-                                    content: '如果已经不怎么在乎...如果路只会越走越窄...'
-                                },
-                                {
-                                    name: 'aac',
-                                    content: '什么十几年的努力...其实从一开始就，那么的，那么那么的，虚浮...，空中楼阁一般'
-                                }
-                            ]
-                        },
-                        {
-                            name: 'ab',
-                            content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试',
-                            children: [
-                                {
-                                    name: 'aba',
-                                    content: '阿巴阿',
-                                    children: [
-                                        {
-                                            name: 'abaa',
-                                            content: '阿巴阿巴'
-                                        }
-                                    ]
-                                },
-                                {
-                                    name: 'abb',
-                                    content: '阿巴巴'
-                                }
-                            ]
-                        },
-                        {
-                            name: 'ac',
-                            content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试'
-                        }
-                    ]
-                }
-
+                    {
+                        name:'a',
+                        content: '嗯...',
+                        children: [
+                            {
+                                name: 'aa',
+                                content: '不知道说什么好...',
+                                children: [
+                                    {
+                                        name: 'aab',
+                                        content: '如果已经不怎么在乎...如果路只会越走越窄...'
+                                    },
+                                    {
+                                        name: 'aac',
+                                        content: '什么十几年的努力...其实从一开始就，那么的，那么那么的，虚浮...，空中楼阁一般'
+                                    }
+                                ]
+                            },
+                            {
+                                name: 'ab',
+                                content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试',
+                                children: [
+                                    {
+                                        name: 'aba',
+                                        content: '阿巴阿',
+                                        children: [
+                                            {
+                                                name: 'abaa',
+                                                content: '阿巴阿巴'
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        name: 'abb',
+                                        content: '阿巴巴'
+                                    }
+                                ]
+                            },
+                            {
+                                name: 'ac',
+                                content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试'
+                            }
+                        ]
+                    }
                 ]
             }
         ]
