@@ -69,19 +69,19 @@
             x: 0,
             y: 0
         }
-
-        function getDirection(position=position, size={ width: 200, height: 0}, window=window) {
+        // 新添加的栏，要在哪个方向上新增
+        function getAppendDirection(position=position, size={ width: 200, height: 0}) {
             const { x, y } = position
             const { innerWidth, innerHeight } = window
             const { width, height } = size
             const direction = {x: 'right', y: 'bottom'}
             if (x + width > innerWidth) { direction.x = 'left' }
             if (y + height > innerHeight) { direction.y = 'top'}
-            return direction
+            const directionstr = `${direction.x}-${direction.y}`
+            return directionstr
         }
-
+        // 鼠标移出一个栏时，是从哪个方向移出的
         function getLeaveDirection(e, el) {
-            // four possable direction: left, right, top, bottom
             const { clientX, clientY } = e
             const { x, y, width, height } = el.getBoundingClientRect()
             let direction = ''
@@ -101,13 +101,10 @@
                 default:
                     break
             }
-            console.log('dir',direction)
             return direction
         }
-        const { innerWidth, innerHeight } = window
         function renderOneLayer (name='a', root=playground) {
             const thisPosition = position
-
             const parentEle = root.querySelector(`[data-name="${name}"]`) || root
             const selfData = getNode(name, article)
 
@@ -121,16 +118,36 @@
             selfEle.classList.add('menu__column')
             
             selfEle.setAttribute('data-name', name)
-            // menu__item 意味着这是个叶子节点...但这里其实又不一定... 所以...可能没什么意义。
             selfEle.innerHTML = `<div class="menu__item"><span class="menu__icon">~</span>${selfData.content}</div>`
             parentEle.appendChild(selfEle)
-            console.log(name,thisPosition)
 
+            let appendDirection = getAppendDirection(thisPosition, selfEle.getBoundingClientRect())
+            let adjustXY = {x: 0, y: 0}
+            switch (appendDirection) {
+                case 'right-bottom':
+                    adjustXY.x = 190
+                    adjustXY.y = 21
+                    break
+                case 'left-bottom':
+                    adjustXY.x = -190
+                    adjustXY.y = 21
+                    break
+                case 'right-top':
+                    adjustXY.x = 190
+                    adjustXY.y = -21
+                    break
+                case 'left-top':
+                    adjustXY.x = -190
+                    adjustXY.y = -21
+                    break
+                default:
+                    break
+            }
             if (selfData.children) {
                 // render children when hover
                 selfEle.addEventListener('mouseenter', function () {  
-                    position.x += 190
-                    position.y += 21 // 先固定加上一个高度...
+                    position.x += adjustXY.x
+                    position.y += adjustXY.y // 先固定加上一个高度...
 
                     let accumulateHeight = 0
                     selfEle.querySelector('.menu__item').classList.add('menu__item--on-path')
@@ -143,12 +160,10 @@
                     position.y -= accumulateHeight
                 })
 
-
-
                 // remove children when leave
                 selfEle.addEventListener('mouseleave', function (event) {
-                    position.x -= 190
-                    position.y -= 21
+                    position.x -= adjustXY.x
+                    position.y -= adjustXY.y
                     let dir = getLeaveDirection(event, selfEle)
                     if(dir !== 'right') {
                         selfEle.querySelector('.menu__item').classList.remove('menu__item--on-path')
@@ -163,7 +178,6 @@
         }
 
         function getNode (name, article) {
-            // get node of article by name, return array. recursively, for it might hide in children's children
             let node = null
             for (let i = 0; i < article.length; i++) {
                 if (article[i].name === name) {
