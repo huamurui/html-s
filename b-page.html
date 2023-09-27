@@ -28,6 +28,8 @@
         }
         .menu__item {
             width: 100%;
+            display: flex;
+            justify-content: space-between;
         }
         .menu__item--on-path {
             background-color: #666;
@@ -118,7 +120,7 @@
             selfEle.classList.add('menu__column')
             
             selfEle.setAttribute('data-name', name)
-            selfEle.innerHTML = `<div class="menu__item"><span class="menu__icon">~</span>${selfData.content}</div>`
+            selfEle.innerHTML = `<div class="menu__item">${selfData.content + (selfData.children ? '<div class="menu__icon">+</div>' : '')}</div>`
             parentEle.appendChild(selfEle)
 
             let appendDirection = getAppendDirection(thisPosition, selfEle.getBoundingClientRect())
