@@ -81,15 +81,19 @@
             x: 'right',
             y: 'bottom'
         }
+        let adjustXY = {
+            x: 0, 
+            y: 0
+        }
         // 新添加的栏，要在哪个方向上新增
         function getAppendDirection(position=position, size={ width: 200, height: 0}) {
             const { x, y } = position
             const { innerWidth, innerHeight } = window
             const { width, height } = size
-            if (x + width + 190 > innerWidth) { direction.x = 'left' } //...因为 position 目前是定位在左上角的，所以这里要加上一个宽高
-            if (y + height + 21 > innerHeight) { direction.y = 'top'}
-            if (x - 190 < 0) { direction.x = 'right'}
-            if (y - 21 < 0) { direction.y = 'bottom'}
+            if (x + width > innerWidth) { direction.x = 'left' }
+            if (y + height > innerHeight) { direction.y = 'top'}
+            if (x - width < 0) { direction.x = 'right'}
+            if (y - height < 0) { direction.y = 'bottom'}
             const directionstr = `${direction.x}-${direction.y}`
             return directionstr
         }
@@ -120,6 +124,7 @@
         // 如果是，还是给一个 name，但渲染的不是本元素，而是子元素？
         function renderOneLayer (name='0', root=playground) {
             const thisPosition = position
+            const thisDirection = direction
             const selfData = getNode(name, article)
 
             if (!selfData) return
@@ -135,8 +140,7 @@
             const items = selfEle.querySelectorAll('.menu__item')
             
             // get position
-            let adjustXY = {x: 0, y: 0}
-            switch (getAppendDirection(thisPosition, selfEle.getBoundingClientRect())) {
+            switch (getAppendDirection(thisPosition, { width: 200, height: 0 })) {
                 case 'right-bottom':
                     adjustXY.x = 190
                     adjustXY.y = 21
@@ -171,17 +175,19 @@
                         plannedParenthood = false
                         // debugger
                     }
+                    console.log('pre-position',adjustXY,position)
                     position.x += adjustXY.x
                     position.y += adjustXY.y
+                    console.log('position',adjustXY,position)
                     item.classList.add('menu__item--on-path')
                     renderOneLayer(name, root)
                     plannedParenthood = name
 
                 })
                 // remove children when mouseleave
-                item.addEventListener('mouseleave', function () {
+                item.addEventListener('mouseleave', function (event) {
                     let dir = getLeaveDirection(event, selfEle)
-                    if(dir === 'right') {
+                    if(dir === thisDirection.x) {
                         plannedParenthood = item.getAttribute('data-name')
                         return
                     }
