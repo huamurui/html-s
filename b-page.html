@@ -75,8 +75,8 @@
             const { innerWidth, innerHeight } = window
             const { width, height } = size
             const direction = {x: 'right', y: 'bottom'}
-            if (x + width > innerWidth) { direction.x = 'left' }
-            if (y + height > innerHeight) { direction.y = 'top'}
+            if (x + width + 190 > innerWidth) { direction.x = 'left' } //...因为 position 目前是定位在左上角的，所以这里要加上一个宽高
+            if (y + height + 21 > innerHeight) { direction.y = 'top'}
             const directionstr = `${direction.x}-${direction.y}`
             return directionstr
         }
