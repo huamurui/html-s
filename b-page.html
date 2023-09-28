@@ -222,6 +222,22 @@
                     if(!plannedParenthood) return
                     root.querySelector(`[data-name="${name}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${name}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y) && (plannedParenthood = false)
                 })
+
+                // touch event for mobile
+                item.addEventListener('touchend', function (event) {
+                    event.preventDefault()
+                    if (plannedParenthood) {
+                        item.classList.remove('menu__item--on-path')
+                        root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
+                        plannedParenthood = false
+                    }
+                    position.x += adjustXY.x
+                    position.y += adjustXY.y
+                    item.classList.add('menu__item--on-path')
+                    renderOneLayer(name, root)
+                    plannedParenthood = name
+                })
+
             })  
         }
 
