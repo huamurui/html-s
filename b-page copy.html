@@ -210,31 +210,37 @@
         function deepClone (obj) {
             return JSON.parse(JSON.stringify(obj))
         }
+        // 重新思考一下，渲染依旧是要打平的不然叠压没法处理。
+        // 渲染出的 dom 在 html 结构上是平的，但不意味着我们不能把它在 js 层上放到结构化数据里 or 在 js 这里保存一个引用。
 
-        let laryer = -1
-        function getStep (string1, string2) {
-            return string1.length - string2.length
-        }
+        /**
+         * 在此基础上，结合上面的。
+         * 我们有三种鼠标移动的情况 -1 0 1
+         * renderOneLayer 这个函数也肯定是要的。
+         */
 
-        // 如果是，还是给一个 name，但渲染的不是本元素，而是子元素？
-        function renderOneLayer (name='', root=playground) {
+        let layer = -1
+        function renderOneLayer (name='0', root=playground) {
             const thisPosition = position
-            const selfData = getNode(name, article)
+            const selfData = getNode(name, article) || article[0]
+            console.log('renderOneLayer', selfData)
 
             if (!selfData) return
             if (!selfData.children) return
-            // render self
             const selfEle = document.createElement('div')
-            selfEle.setAttribute('data-name', name)
-            selfEle.style = `left: ${thisPosition.x}px;top: ${thisPosition.y}px;`
-            selfEle.classList.add('menu__column')
-            selfEle.innerHTML = selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')
-            
+            selfEle.innerHTML = `
+                <div class="menu__column" data-name="${name}" style="left: ${thisPosition.x}px;top: ${thisPosition.y}px;">
+                    ${selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')}
+                </div>
+            `
             root.appendChild(selfEle)
+            console.log('...', selfEle,selfEle.getClientRects())
             const items = selfEle.querySelectorAll('.menu__item')
             
             // get position
             operateAdjustXY(adjustXY, getAppendDirection(thisPosition, { width: 200, height: 0 }))
+            position.x += adjustXY.x
+            position.y += adjustXY.y
 
             // 这一层里面只能有一条
             let plannedParenthood = false
@@ -245,26 +251,26 @@
                 if(!data.children)  return
                 // render children when mouseover
 
-                item.addEventListener('mouseover', function (e) {
-                    if (!plannedParenthood) {
-                        plannedParenthood = true
-                        return
+
+                // layer 这个变量什么时候更新合适？
+                item.addEventListener('mouseenter', function (e) {
+                    let thisLayer =  e.target.getAttribute('data-name').length
+                    if(layer - thisLayer === 0) {
+                        // 兄弟
+                        // 1. 清除兄弟的渲染
+                        // 2. 渲染自己
+                        renderOneLayer(e.target.getAttribute('data-name'), e.target)
                     }
-                    console.log(name, e.target.getAttribute('data-name'))
-                    const step = getStep(name, e.target.getAttribute('data-name') || '')
-                    if(step === 0) {
-                        // 这是兄弟
-                        renderOneLayer(e.target.getAttribute('data-name'), root)
+                    if(layer - thisLayer > 0) {
+                        // 父
+                        // 1. 清除子的渲染
                     }
-                    if(step > 0){
-                        // 这是回 parent 级
-                        document.querySelectorAll(`[data-name="${name}"]`).forEach(ele => ele.remove())
+                    if(layer - thisLayer < 0) {
+                        // 子。。？
+                        // 这怎么做到呢...虽然有点奇怪但是应该也可以。
+                        renderOneLayer(e.target.getAttribute('data-name'), e.target)
                     }
-                    if(step < 0) {
-                        // 这是进入子元素
-                        renderOneLayer(e.target.getAttribute('data-name'), root)
-                    }
-                    
+                    layer = thisLayer
                 })
 
             })  
@@ -294,23 +300,27 @@
                 children:[
                     {
                         name:'a',
-                        content: '嗯...',
+                        content: '内库烧为锦绣灰，',
                         children: [
                             {
                                 name: 'aa',
-                                content: '不知道说什么好...',
+                                content: '天街踏尽公卿骨。',
                                 children: [
                                     {
+                                        name: 'aaa',
+                                        content: '待到秋来九月八'
+                                    },
+                                    {
                                         name: 'aab',
-                                        content: '如果已经不怎么在乎...如果路只会越走越窄...'
+                                        content: '我花开后百花杀'
                                     },
                                     {
                                         name: 'aac',
-                                        content: '什么十几年的努力...其实从一开始就，那么的，那么那么的，虚浮...，空中楼阁一般'
+                                        content: '冲天香阵透长安',
                                     },
                                     {
                                         name: 'aad',
-                                        content: '我想...',
+                                        content: '满城尽带黄金甲',
                                         children: [
                                             {
                                                 name: 'aada',
@@ -335,16 +345,16 @@
                                                 ]
                                             }
                                         ]
-                                    },
+                                    }
                                 ]
                             },
                             {
                                 name: 'ab',
-                                content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试',
+                                content: '陈王昔时宴平乐',
                                 children: [
                                     {
                                         name: 'aba',
-                                        content: '阿巴阿',
+                                        content: '陈王奋起挥黄钺',
                                         children: [
                                             {
                                                 name: 'abaa',
@@ -375,7 +385,19 @@
                 ]
             }
         ]
-        renderOneLayer()
+        function init() {
+            const start = document.createElement('div')
+            start.innerHTML = `
+                <div class="menu__column" data-name="" style="left: 0px;top: 0px;">
+                    <div class="menu__item" data-name="0">Start~<div class="menu__icon">></div></div>
+                </div>
+            `
+            start.addEventListener('click',()=>{
+                renderOneLayer('0')
+            })
+            playground.appendChild(start)
+        }
+        init()
     </script>
 </body>
 </html>
