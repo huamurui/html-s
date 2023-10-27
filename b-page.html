@@ -80,15 +80,16 @@
             y: 0
         }
         // 新添加的栏，要在哪个方向上新增
-        function getAppendDirection(position=position, size={ width: 200, height: 0}) {
+        function getAppendDirection(position=position, size=adjustXY) {
             const { x, y } = position
             const { innerWidth, innerHeight } = window
-            const { width, height } = size
+            const { x:width, y:height } = size
             if (x + width > innerWidth) { direction.x = 'left' }
             if (y + height > innerHeight) { direction.y = 'top'}
             if (x - width < 0) { direction.x = 'right'}
             if (y - height < 0) { direction.y = 'bottom'}
-            const directionstr = `${preDirection.x}-${preDirection.y}` // 惰性更改方向...但是有个问题，我 tmd 之前拿 preDirection 在干嘛...
+            console.log(position,adjustXY,innerWidth, innerHeight, direction,x + width , innerWidth)
+            const directionstr = `${direction.x}-${direction.y}` // 惰性更改方向...但是有个问题，我 tmd 之前拿 preDirection 在干嘛...
             return directionstr
         }
         function operateAdjustXY(adjustXY, direction) {
@@ -184,11 +185,11 @@
             if (!selfData) return
             if (!selfData.children) return
             const selfEle = document.createElement('div')
-            selfEle.innerHTML = `
-                <div class="menu__column" data-name="${name}" style="left: ${thisPosition.x}px;top: ${thisPosition.y}px;">
-                    ${selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')}
-                </div>
-            `
+            selfEle.classList.add('menu__column')
+            selfEle.setAttribute('data-name', name)
+            selfEle.style.left = `${thisPosition.x}px`
+            selfEle.style.top = `${thisPosition.y}px`
+            selfEle.innerHTML = `${selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')}`
             root.appendChild(selfEle)
             selfEle.animate([
                 { 
@@ -206,7 +207,7 @@
             const items = selfEle.querySelectorAll('.menu__item')
             
             // get next position
-            operateAdjustXY(adjustXY, getAppendDirection(thisPosition, { width: 200, height: 0 }))
+            operateAdjustXY(adjustXY, getAppendDirection(thisPosition))
 
             items.forEach((item, index) => {
                 const name = item.getAttribute('data-name')
