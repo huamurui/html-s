@@ -14,6 +14,7 @@
             width: 100vw;
             height: 100vh;
             font-size: 16px;
+            font-family:'Hiragino Sans GB','STXihei';
         }
 
         .menu__column {
@@ -25,17 +26,17 @@
                 2px 1px 1px #666, 
                 -1px -1px 1px #fff;
             background-color: antiquewhite;
+            border-radius: 4px;
         }
         .menu__item {
-            width: 100%;
             display: flex;
+            margin: 2px;
+            padding: 2px;
             justify-content: space-between;
         }
-        .menu__item--on-path {
-            background-color: #666;
-            color: #000;
-        }
+        .menu__item--on-path,
         .menu__item:hover {
+            border-radius: 8px;
             background-color:#000;
             color: #fff;
         }
@@ -250,7 +251,7 @@
                 // layer 这个变量什么时候更新合适？
                 item.addEventListener('mouseenter', function (e) {
                     let thisLayer =  e.target.getAttribute('data-name').length
-                    adjustXY.y = item.getClientRects()[0].height
+                    position.x = e.target.getClientRects()[0].left + adjustXY.x
                     position.y = item.getBoundingClientRect().top + adjustXY.y
 
                     if(layer - thisLayer === 0) {
@@ -258,12 +259,12 @@
                         // 1. 清除兄弟的子的渲染，而且也是要递归式清除
                         const siblings = getSiblings(e.target.getAttribute('data-name'), article).filter(sibling => sibling.name !== e.target.getAttribute('data-name'))
                         const children = siblings.map(sibling => getChildren(sibling.name, article)).flat()
-                        children.forEach(child => {
+                        siblings.concat(children).forEach(child => {
                             // menu__column 和 data-name 
                             const columnEles = document.querySelectorAll('.menu__column')
                             // const childEle = document.querySelector(`[data-name="${child.name}"]`)
                             const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
-                            console.log('childEle', childEle)
+                            console.log('childEle', childEle, child.name, columnEles)
                             if (childEle) {
                                 // 这玩意... 还是好多坑。回退的时候，位置判断也是个问题。尤其连着退的时候，之前改过方向的话，就会出现问题。
                                 // 我是说，为什么，不能直接拿到这个元素的位置，然后直接减去它的高度，然后再减去200，就是新的位置了呢？
@@ -289,6 +290,9 @@
                                 childEle.remove()
                             }
                         })
+
+                        // 2. 渲染自己的子
+                        renderOneLayer(e.target.getAttribute('data-name'))
                     }
                     if(layer - thisLayer < 0) {
                         // 子。。？
