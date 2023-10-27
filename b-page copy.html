@@ -223,7 +223,6 @@
         function renderOneLayer (name='0', root=playground) {
             const thisPosition = position
             const selfData = getNode(name, article) || article[0]
-            console.log('renderOneLayer', selfData)
 
             if (!selfData) return
             if (!selfData.children) return
@@ -234,13 +233,11 @@
                 </div>
             `
             root.appendChild(selfEle)
-            console.log('...', selfEle,selfEle.getClientRects())
             const items = selfEle.querySelectorAll('.menu__item')
             
             // get position
             operateAdjustXY(adjustXY, getAppendDirection(thisPosition, { width: 200, height: 0 }))
             position.x += adjustXY.x
-            position.y += adjustXY.y
 
             // 这一层里面只能有一条
             let plannedParenthood = false
@@ -255,20 +252,50 @@
                 // layer 这个变量什么时候更新合适？
                 item.addEventListener('mouseenter', function (e) {
                     let thisLayer =  e.target.getAttribute('data-name').length
+                    adjustXY.y = item.getClientRects()[0].height
+                    position.y += adjustXY.y
+
                     if(layer - thisLayer === 0) {
                         // 兄弟
-                        // 1. 清除兄弟的渲染
-                        // 2. 渲染自己
-                        renderOneLayer(e.target.getAttribute('data-name'), e.target)
+                        // 1. 清除兄弟的子的渲染，而且也是要递归式清除
+                        let siblings = getSiblings(e.target.getAttribute('data-name'), article)
+                        siblings = siblings.filter(sibling => sibling.name !== e.target.getAttribute('data-name'))
+                        const children = siblings.map(sibling => getChildren(sibling.name, article)).flat()
+                        children.forEach(child => {
+                            // menu__column 和 data-name 
+                            const columnEles = document.querySelectorAll('.menu__column')
+                            // const childEle = document.querySelector(`[data-name="${child.name}"]`)
+                            const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
+                            console.log('childEle', childEle)
+                            if (childEle) {
+                                // 这玩意... 还是好多坑。回退的时候，位置判断也是个问题。尤其连着退的时候，之前改过方向的话，就会出现问题。
+                                position.y -= childEle.getClientRects()[0].height
+                                position.x -= 200
+                                childEle.remove()
+                            }
+                        })
+
+                        // 2. 渲染自己的子
+                        renderOneLayer(e.target.getAttribute('data-name'))
                     }
                     if(layer - thisLayer > 0) {
                         // 父
-                        // 1. 清除子的渲染
+                        // 1. 清除子的渲染...不，要清除的是递归式清除
+                        const children = getChildren(e.target.getAttribute('data-name'), article)
+                        // const children = data.children
+                        children.forEach(child => {
+                            const childEle = document.querySelector(`[data-name="${child.name}"]`)
+                            if (childEle) {
+                                position.y -= childEle.getClientRects()[0].height
+                                position.x -= 200
+                                childEle.remove()
+                            }
+                        })
                     }
                     if(layer - thisLayer < 0) {
                         // 子。。？
                         // 这怎么做到呢...虽然有点奇怪但是应该也可以。
-                        renderOneLayer(e.target.getAttribute('data-name'), e.target)
+                        renderOneLayer(e.target.getAttribute('data-name'))
                     }
                     layer = thisLayer
                 })
@@ -290,6 +317,33 @@
                 }
             }
             return node
+        }
+
+        function getSiblings(name,article) {
+            let parent = null
+            for (let i = 0; i < article.length; i++) {
+                if (article[i].name === name) {
+                    parent = article
+                    break
+                } else if (article[i].children) {
+                    parent = getSiblings(name, article[i].children)
+                    if (parent) {
+                        break
+                    }
+                }
+            }
+            return parent
+        }
+
+        function getChildren(name,article) {
+            let children = []
+            getNode(name, article)?.children?.forEach(child => {
+                children.push(child)
+                if (child.children) {
+                    children = children.concat(getChildren(child.name, article))
+                }
+            })
+            return children
         }
 
         const playground = document.getElementById('playground')
@@ -393,6 +447,8 @@
                 </div>
             `
             start.addEventListener('click',()=>{
+                position.x += 200
+                position.y += 21
                 renderOneLayer('0')
             })
             playground.appendChild(start)
