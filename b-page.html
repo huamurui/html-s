@@ -14,6 +14,8 @@
             width: 100vw;
             height: 100vh;
             font-size: 16px;
+            font-family:'Hiragino Sans GB','STXihei';
+            color: #372d52;
         }
 
         .menu__column {
@@ -22,27 +24,27 @@
             flex-direction: column;
             width: 200px;
             box-shadow: 
-                2px 1px 1px #666, 
+                2px 1px 1px #a7783d, 
                 -1px -1px 1px #fff;
             background-color: antiquewhite;
+            border-radius: 4px;
         }
         .menu__item {
-            width: 100%;
             display: flex;
+            margin: 2px;
+            padding: 2px 6px 2px 6px;
             justify-content: space-between;
         }
-        .menu__item--on-path {
-            background-color: #666;
-            color: #000;
-        }
+        .menu__item--on-path,
         .menu__item:hover {
-            background-color:#000;
-            color: #fff;
+            border-radius: 8px;
+            background-color:aliceblue;
+            /* color: #fff; */
         }
         .menu__icon {
             width: 16px;
             height: 16px;
-            color: #000;
+            /* color: #000; */
             font-weight: bolder;
         }
     </style>
@@ -50,60 +52,6 @@
 <body>
     <div id="playground"></div>
     <script>
-
-        /* 
-            Cascading dropdown...
-            对，这个玩意叫做级联菜单，cascade dropdown... 搓不出来就搓不出来
-            ant design 的做的就不错。只不过... 他们的源码层层叠叠整个系统共用也有很多工具... 
-            有空看看他们是怎么处理我这边踩的一堆坑的吧...
-
-            原来只需要计划生育就可以了啊...不用管什么进出方向的...
-            plannedParenthood
-            或者看看别的，是，怎么实现的，联级...嗯，那个组件库作者曾经搞得那个介绍树形结构的 ppt
-            多余的思考可以先丢掉了。反正也只是跟着学着实现功能
-        */
-
-        /**
-         * 来点...文案。
-         * 国庆结束了，去了趟天津，见了见暮暮，然后，学会了骑自行车（当然大部分时间好像都在打游戏
-         * 
-         * 我觉得很多烦恼就是因为读书读太多的问题，我要是字都认不全...不对那样玩游戏好像都可能磕磕绊绊，那，上完小学应该就可以了。
-         * 看到一些十六七就跑去生孩子的事，被调侃生病了全家挂儿科（可是生病了为什么要去医院呢，生病了就躺，躺好了就好了，好不过来就死了，多简单。)
-         * 我明白这些调侃在讲什么，我明白在现在生养孩子需要的不是生理功能，也不是具体的食物衣服...而是钱，
-         * 可我为什么要明白这些呢，我要是能生，为什么我不能十几岁就搞大自己的肚子呢，
-         * 
-         * 那些纠结，痛苦...
-         * 我记得有天刷到过一个视频，是一只羚羊角马一类的东西，内脏流了一地但还活着，呆呆的看着傍边的鬣狗吃着自己。也许它在叫，但视频没有声音。
-         * 它会疼吗？
-         * 
-         */
-        let a = `
-“黄铜面具”的教导-其一
-地点：三运河之地东北，花神神龛隐藏房间
-最初，被奴役的生活是痛苦的。你会感到屈辱，苦累，尊严就像鲜血一样逐渐从你的四肢，从你的心脏流失，这感觉让你寒冷，让你隐隐作痛。。。
-你想要抱怨，想要反抗，但血淋淋的手脚，带倒钩的皮鞭让你疲惫，让你噤声——你想要活，你恐惧死亡。。。
-于是，你变得胆怯，顺从，你仍然期待着自由，但自由通向奴隶市场的展台，通向你未曾见过的、随吆喝喧嚷闪动不已的出价板。。。
-凶恶的主人命令你在人群中显露自己的身体，展示自己的天赋。在屈辱的浪潮中，你竭力去做，只为了过得不再像是兽栏里蜂拥抢食的牲畜。。。
-
-“黄铜面具”的教导-其二
-地点：达马山东北，“五绿洲”的孑遗南，花神神龛隐藏房间
-你看到炫目的舞娘扭动腰肢；你看到雄伟的力士举起巨石；你听到诗人与学者高亢的歌与雄辩。。。
-于是你竭力去做，直到众人的品评成为你的标准，直到闪动的出价板变成了你的价值，直到嫉妒的奴隶与商人在你的耳后窃窃私语。。。
-你竭力去做，直到贵胄们为你的腰肢颔首，直到埃米尔们称赞你武艺超群，直到诗人倾倒在你灵动的歌喉与机智的言辞之间。。。从被展示的屈辱中，你产生了一丝骄傲的信息。。。
-“啊，他们需要我。。。”你想着，“我为他们带来了勇壮与强力，带来了快乐与美。如果没有我，他们会怎样空虚呀！”你从被奴役的生活中，寻到了一丝高贵的品味。。。
-于是，你视他们的目光为自己的尊严，你视出价板的闪烁为自己的价值。在看不清面目的阿谀者中间，你放手让奴隶市场为你挑选真正适合你自己的主人。。。
-
-“黄铜面具”的教导-其三
-地点：达马山东北，愚妄行宫西，传送点下花神神龛隐藏房间
-终于，你如愿以偿。你离开了恶臭的畜栏，过上了锦衣玉食的生活。你衣来伸手，饭来张口，买下你的主人，同时也是伺候你的奴隶。。。
-“幸福”，就这样，成为了精妙的欺骗。。。
-但你骗不了自己，你的内心在尖叫着，一直在尖叫着：“若你死去，主人依然是主人，但若主人死去，你将变成失去主人的奴隶！”
-直到某天，你会领悟，自己一直恐惧的死亡，实际上是“主人的死亡”。你会发现，自己从卑贱更堕落至卑贱。。。
-或许现在，你还留恋着脚踝上绣着银线的金链，留恋它们的丁零作响。但在那天，你会明白，如何从主人的手中夺回生而自由的自己。。。
-当他们带着死亡的威胁，毁坏你美丽的身体，为你留下瞽盲的眼、嘶哑的喉、不可消除的烙印与伤疤时。。。
-当你砸碎他的头颅，扼杀他的妻子，捂死他的婴孩时，当你克服对死的恐惧，重新体会到仇恨的甜美时。。。
-你终将明晓，为自己而死的价值。
-`
         let position = {
             x: 0,
             y: 0
@@ -166,103 +114,125 @@
             }
         }
 
-        // 鼠标移出一个栏时，是从哪个方向移出的
-        function getLeaveDirection(e, el) {
-            const { clientX, clientY } = e
-            const { x, y, width, height } = el.getBoundingClientRect()
-            let direction = ''
-            switch (true) {
-                case clientY <= y:
-                    direction = 'top'
-                    break
-                case clientY >= y + height:
-                    direction = 'bottom'
-                    break
-                case clientX <= x + 5:
-                    direction = 'left'
-                    break
-                case clientX >= x + width-5:
-                    direction = 'right'
-                    break
-                default:
-                    break
-            }
-            return direction
-        }
+        /**
+         * 嗯...不对，应该首先考虑，有两种东西。一个是，一个栏，一个是，一个栏里面的条目
+         * 可监听的事件就是移入移出。并且我们有这些文本的类似 parent-child 的关系
+         * 我们的 hover 事件，肯定是要精准到条目的
+         * 进而，继续理
+         * 
+         * 当 hover 到一个条目时，如果有子元素，就渲染子元素，没有的话...就不渲染这不废话...
+         * 当 hover 离开一个条目时...
+         * 
+         * 细分。先看 a，状态以及可能的转移
+         * a.1 
+         * 当前没有 hover 到任何条目上位于空白，将要 hover 到某个条目
+         * a.2
+         * 当前 hover 到了某一个条目，将要离开这个条目
+         * a.2.1
+         * 当前 hover 到了某一个条目，将要离开这个条目，进入了其子元素
+         * a.2.2
+         * 当前 hover 到了某一个条目，将要离开这个条目，进入了其父元素
+         * a.2.3
+         * 当前 hover 到了某一个条目，将要离开这个条目，进入了空白
+         * a.2.4
+         * 当前 hover 到了某一个条目，将要离开这个条目，进入了兄弟元素
+         * 
+         * 然后是处理办法
+         * b.1
+         * hover 到某个条目，高亮，若数据结构里有子元素，渲染其子元素
+         * b.2.1
+         * hover 离开某个条目，高亮消失，进入其子元素，高亮，重复 a.2
+         * b.2.2
+         * hover 离开某个条目，高亮消失，进入其父一级的栏，取消本层的渲染，重复 a.2
+         * b.2.3
+         * hover 离开某个条目，进入空白，高亮消失，不做处理
+         * b.2.4
+         * hover 离开某个条目，进入兄弟元素，高亮消失，若此时本条目子元素已渲染，取消渲染，重复 a.2
+         * 
+         * 如何更合理的处理这个问题？
+         * 
+         * 如何判断是进入了子元素，还是父元素，还是兄弟元素，还是空白？
+         * 每当进入某一层的时候，记录层数，这是一个全局变量，维护表示的是当前层数。
+         * 而每一个栏，都有固定的一个数字。
+         * 对于空白，给-1.
+         * 
+         * 每一次"进入"，都会改变这个层数，同时也可以计算出一个差值，这个差值，有可能是0，1，-1.甚至更大一些的数字。
+         * 但是无所谓，我觉得有正负和零就够了。原来...这就是进入
+         * 那"离开"是什么？
+         * 也许根本就不需要有离开这个概念，只需要有进入这个概念就够了。
+         * 
+         * wow...这个思路真棒
+         * 而且数据命名如果规范的话，一切都可以很方便
+         * const getStep = (string1,string2) => string1.length - string2.length
+         * 
+         * 然后也许需要看看树的遍历，一个是看现在渲染了多少是什么状态，又进行了什么操作，以及下一步要做什么
+         * 整个过程...也许可以更依赖数据结构一点
+         * 
+         */
 
-        function deepClone (obj) {
-            return JSON.parse(JSON.stringify(obj))
-        }
 
-        // 如果是，还是给一个 name，但渲染的不是本元素，而是子元素？
+        // 重新思考一下，渲染依旧是要打平的不然叠压没法处理。
+        // 渲染出的 dom 在 html 结构上是平的，但不意味着我们不能把它在 js 层上放到结构化数据里 or 在 js 这里保存一个引用。
+
+        /**
+         * 在此基础上，结合上面的。
+         * 我们有三种鼠标移动的情况 -1 0 1
+         * renderOneLayer 这个函数也肯定是要的。
+         */
+
+        let layer = -1
         function renderOneLayer (name='0', root=playground) {
             const thisPosition = position
-            const selfData = getNode(name, article)
+            const selfData = getNode(name, article) || article[0]
 
             if (!selfData) return
             if (!selfData.children) return
-            // render self
             const selfEle = document.createElement('div')
-            selfEle.setAttribute('data-name', name)
-            selfEle.style = `left: ${thisPosition.x}px;top: ${thisPosition.y}px;`
-            selfEle.classList.add('menu__column')
-            selfEle.innerHTML = selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')
-            
+            selfEle.innerHTML = `
+                <div class="menu__column" data-name="${name}" style="left: ${thisPosition.x}px;top: ${thisPosition.y}px;">
+                    ${selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')}
+                </div>
+            `
             root.appendChild(selfEle)
             const items = selfEle.querySelectorAll('.menu__item')
             
-            // get position
+            // get next position
             operateAdjustXY(adjustXY, getAppendDirection(thisPosition, { width: 200, height: 0 }))
 
-            // 这一层里面只能有一条
-            let plannedParenthood = false
-            // recursively
             items.forEach((item, index) => {
                 const name = item.getAttribute('data-name')
                 const data = getNode(name, article)
-                if(!data.children)  return
-                // render children when mouseover
+                
 
-                item.addEventListener('mouseover', function () {
-                    if (plannedParenthood) {
-                        item.classList.remove('menu__item--on-path')
-                        root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
-                        plannedParenthood = false
-                    }
-                    position.x += adjustXY.x
-                    position.y += adjustXY.y
-                    item.classList.add('menu__item--on-path')
-                    renderOneLayer(name, root)
-                    plannedParenthood = name
-                })
-                // remove children when mouseleave
-                item.addEventListener('mouseleave', function (event) {
-                    let leaveDirection = getLeaveDirection(event, selfEle)
-                    if(leaveDirection === preDirection.x) {
-                        plannedParenthood = item.getAttribute('data-name')
-                        operateAdjustXY(adjustXY, getAppendDirection({
-                            x: thisPosition.x + adjustXY.x,
-                            y: thisPosition.y + adjustXY.y
-                        }, { width: 200, height: 0 }))
-                        return
-                    }
-                    if(!plannedParenthood) return
-                    root.querySelector(`[data-name="${name}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${name}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y) && (plannedParenthood = false)
-                })
+                // layer 这个变量什么时候更新合适？
+                item.addEventListener('mouseenter', function (e) {
+                    let thisLayer =  e.target.getAttribute('data-name').length
+                    position.x = item.getBoundingClientRect().left + adjustXY.x
+                    position.y = item.getBoundingClientRect().top + adjustXY.y
 
-                // touch event for mobile
-                item.addEventListener('touchend', function (event) {
-                    event.preventDefault()
-                    if (plannedParenthood) {
-                        item.classList.remove('menu__item--on-path')
-                        root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
-                        plannedParenthood = false
+                    if(layer - thisLayer === 0) {
+                        const siblings = getSiblings(e.target.getAttribute('data-name'), article).filter(sibling => sibling.name !== e.target.getAttribute('data-name'))
+                        const children = siblings.map(sibling => getChildren(sibling.name, article)).flat()
+                        siblings.concat(children).forEach(child => {
+                            const columnEles = document.querySelectorAll('.menu__column')
+                            const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
+                            if (childEle) childEle.remove()
+                        })
                     }
-                    position.x += adjustXY.x
-                    position.y += adjustXY.y
-                    item.classList.add('menu__item--on-path')
-                    renderOneLayer(name, root)
-                    plannedParenthood = name
+                    if(layer - thisLayer > 0) {
+                        const children = getChildren(e.target.getAttribute('data-name'), article)
+                        children.forEach(child => {
+                            const columnEles = document.querySelectorAll('.menu__column')
+                            const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
+                            if (childEle) childEle.remove()
+                        })
+                    }
+                    if(layer - thisLayer < 0) {
+                    }
+                    if(data.children) renderOneLayer(e.target.getAttribute('data-name'))
+                    console.log('layer',layer,thisLayer)
+
+                    layer = thisLayer
                 })
 
             })  
@@ -283,32 +253,63 @@
             }
             return node
         }
+        function getSiblings(name,article) {
+            let siblings = null
+            for (let i = 0; i < article.length; i++) {
+                if (article[i].name === name) {
+                    siblings = article // this is the only difference between getSiblings and getNode...?
+                    break
+                } else if (article[i].children) {
+                    siblings = getSiblings(name, article[i].children)
+                    if (siblings) {
+                        break
+                    }
+                }
+            }
+            return siblings
+        }
+
+        function getChildren(name,article) {
+            let children = []
+            getNode(name, article)?.children?.forEach(child => {
+                children.push(child)
+                if (child.children) {
+                    children = children.concat(getChildren(child.name, article))
+                }
+            })
+            return children
+        }
 
         const playground = document.getElementById('playground')
+        const background = document.getElementById('background')
         const article = [
             {
-                name:'0',
+                name:'',
                 content:'0',
                 children:[
                     {
                         name:'a',
-                        content: '嗯...',
+                        content: '内库烧为锦绣灰，',
                         children: [
                             {
                                 name: 'aa',
-                                content: '不知道说什么好...',
+                                content: '天街踏尽公卿骨。',
                                 children: [
                                     {
+                                        name: 'aaa',
+                                        content: '待到秋来九月八'
+                                    },
+                                    {
                                         name: 'aab',
-                                        content: '如果已经不怎么在乎...如果路只会越走越窄...'
+                                        content: '我花开后百花杀'
                                     },
                                     {
                                         name: 'aac',
-                                        content: '什么十几年的努力...其实从一开始就，那么的，那么那么的，虚浮...，空中楼阁一般'
+                                        content: '冲天香阵透长安',
                                     },
                                     {
                                         name: 'aad',
-                                        content: '我想...',
+                                        content: '满城尽带黄金甲',
                                         children: [
                                             {
                                                 name: 'aada',
@@ -333,16 +334,16 @@
                                                 ]
                                             }
                                         ]
-                                    },
+                                    }
                                 ]
                             },
                             {
                                 name: 'ab',
-                                content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试',
+                                content: '陈王昔时宴平乐',
                                 children: [
                                     {
                                         name: 'aba',
-                                        content: '阿巴阿',
+                                        content: '陈王奋起挥黄钺',
                                         children: [
                                             {
                                                 name: 'abaa',
@@ -373,7 +374,63 @@
                 ]
             }
         ]
-        renderOneLayer()
+        function init() {
+            const start = document.createElement('div')
+            start.innerHTML = `
+                <div class="menu__column" data-name="start00000000" style="left: 0px;top: 0px;">
+                    <div class="menu__item" data-name="0">Start~<div class="menu__icon">></div></div>
+                </div>
+            `
+            start.addEventListener('click',(e)=>{
+                position.x = 200
+                position.y = 21
+                renderOneLayer('0')
+            })
+            playground.appendChild(start)
+            document.addEventListener('click', (e) => {
+                if(e.target === playground){
+                    document.querySelectorAll('.menu__column').forEach(ele => {
+                        if(ele.getAttribute('data-name') !== 'start00000000') {
+                            ele.remove()
+                        }
+                    })
+                }
+            })
+        
+        }
+        init()
+
+                /**
+         * 也许...我不应该这么丧...
+         * 也许...我现在确实无聊又窘迫..
+         * 我应该做什么？
+         * 
+         * 去学习痛苦吗...
+         * 学校，父母...也只是那样...一开始是哄骗试探，慢慢威胁恐吓，最后是解离一般将自己看作个干脏活的...
+         * 那些东西都太...
+         * 如何原谅别人？去变强就好了，人不会向着一个被踩死的蚂蚁去寻求原谅，蚂蚁也没资格去原谅别人，这么干的有一个算一个都是神经病，但是如果踩的是老虎尾巴那就有寻求原谅的必要了。所以，去变强，纯粹的变强，这样就可以原谅了。“告诉我，我拿什么原谅你？我有什么资格原谅你？我有什么手段能把你也弄得半死不活？”
+         * 
+         * 学习痛苦与耻辱...
+         * 像新生的婴儿那样...
+         * 像...小时候那样...
+         * 
+         * 我一遍遍问的，究竟什么才算是值得的，我到底应该干什么？
+         * 中学说是好好考试就好，即使不论把精力全投进那种考试中然后今天到这样算不算值得，
+         * 中学里根本就不纯粹，初中喜欢捞便宜占搞补课班的班主任，高中因为我留头发一直吵，
+         * 里面夹杂了太多乱七八糟的事，父母的懦弱、大惊小怪，学校以及所谓的“社会”的恐吓，
+         * 就算我想当机器也当不好。
+         * 所以，告诉我，这一切都是为了什么？
+         * 
+         * 到现在学历没再那么万能，就行它本来就屁用没有一样，
+         * 想要的东西，尊重也好力量也好，哪怕是知识，学历都换不来，背书、等待也换不来...
+         * 也许...我不应该这么丧...痛苦会在...仇恨会在...
+         * 它们是生出你的东西，只是不要...把它们当作，全部。
+         * 
+         * 我是小狗吗？
+         * 我是笨蛋吗
+         * 我应该，去做点什么，
+         * 就算，我只是，来旅游的。
+         */
     </script>
 </body>
 </html>

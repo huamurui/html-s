@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>b page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        #playground {
+            width: 100vw;
+            height: 100vh;
+            font-size: 16px;
+        }
+
+        .menu__column {
+            position: fixed;
+            display: flex;
+            flex-direction: column;
+            width: 200px;
+            box-shadow: 
+                2px 1px 1px #666, 
+                -1px -1px 1px #fff;
+            background-color: antiquewhite;
+        }
+        .menu__item {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+        }
+        .menu__item--on-path {
+            background-color: #666;
+            color: #000;
+        }
+        .menu__item:hover {
+            background-color:#000;
+            color: #fff;
+        }
+        .menu__icon {
+            width: 16px;
+            height: 16px;
+            color: #000;
+            font-weight: bolder;
+        }
+    </style>
+</head>
+<body>
+    <div id="playground"></div>
+    <script>
+
+        /* 
+            Cascading dropdown...
+            对，这个玩意叫做级联菜单，cascade dropdown... 搓不出来就搓不出来
+            ant design 的做的就不错。只不过... 他们的源码层层叠叠整个系统共用也有很多工具... 
+            有空看看他们是怎么处理我这边踩的一堆坑的吧...
+
+            原来只需要计划生育就可以了啊...不用管什么进出方向的...
+            plannedParenthood
+            或者看看别的，是，怎么实现的，联级...嗯，那个组件库作者曾经搞得那个介绍树形结构的 ppt
+            多余的思考可以先丢掉了。反正也只是跟着学着实现功能
+        */
+
+        /**
+         * 来点...文案。
+         * 国庆结束了，去了趟天津，见了见暮暮，然后，学会了骑自行车（当然大部分时间好像都在打游戏
+         * 
+         * 我觉得很多烦恼就是因为读书读太多的问题，我要是字都认不全...不对那样玩游戏好像都可能磕磕绊绊，那，上完小学应该就可以了。
+         * 看到一些十六七就跑去生孩子的事，被调侃生病了全家挂儿科（可是生病了为什么要去医院呢，生病了就躺，躺好了就好了，好不过来就死了，多简单。)
+         * 我明白这些调侃在讲什么，我明白在现在生养孩子需要的不是生理功能，也不是具体的食物衣服...而是钱，
+         * 可我为什么要明白这些呢，我要是能生，为什么我不能十几岁就搞大自己的肚子呢，
+         * 
+         * 那些纠结，痛苦...
+         * 我记得有天刷到过一个视频，是一只羚羊角马一类的东西，内脏流了一地但还活着，呆呆的看着傍边的鬣狗吃着自己。也许它在叫，但视频没有声音。
+         * 它会疼吗？
+         * 
+         */
+        let a = `
+“黄铜面具”的教导-其一
+地点：三运河之地东北，花神神龛隐藏房间
+最初，被奴役的生活是痛苦的。你会感到屈辱，苦累，尊严就像鲜血一样逐渐从你的四肢，从你的心脏流失，这感觉让你寒冷，让你隐隐作痛。。。
+你想要抱怨，想要反抗，但血淋淋的手脚，带倒钩的皮鞭让你疲惫，让你噤声——你想要活，你恐惧死亡。。。
+于是，你变得胆怯，顺从，你仍然期待着自由，但自由通向奴隶市场的展台，通向你未曾见过的、随吆喝喧嚷闪动不已的出价板。。。
+凶恶的主人命令你在人群中显露自己的身体，展示自己的天赋。在屈辱的浪潮中，你竭力去做，只为了过得不再像是兽栏里蜂拥抢食的牲畜。。。
+
+“黄铜面具”的教导-其二
+地点：达马山东北，“五绿洲”的孑遗南，花神神龛隐藏房间
+你看到炫目的舞娘扭动腰肢；你看到雄伟的力士举起巨石；你听到诗人与学者高亢的歌与雄辩。。。
+于是你竭力去做，直到众人的品评成为你的标准，直到闪动的出价板变成了你的价值，直到嫉妒的奴隶与商人在你的耳后窃窃私语。。。
+你竭力去做，直到贵胄们为你的腰肢颔首，直到埃米尔们称赞你武艺超群，直到诗人倾倒在你灵动的歌喉与机智的言辞之间。。。从被展示的屈辱中，你产生了一丝骄傲的信息。。。
+“啊，他们需要我。。。”你想着，“我为他们带来了勇壮与强力，带来了快乐与美。如果没有我，他们会怎样空虚呀！”你从被奴役的生活中，寻到了一丝高贵的品味。。。
+于是，你视他们的目光为自己的尊严，你视出价板的闪烁为自己的价值。在看不清面目的阿谀者中间，你放手让奴隶市场为你挑选真正适合你自己的主人。。。
+
+“黄铜面具”的教导-其三
+地点：达马山东北，愚妄行宫西，传送点下花神神龛隐藏房间
+终于，你如愿以偿。你离开了恶臭的畜栏，过上了锦衣玉食的生活。你衣来伸手，饭来张口，买下你的主人，同时也是伺候你的奴隶。。。
+“幸福”，就这样，成为了精妙的欺骗。。。
+但你骗不了自己，你的内心在尖叫着，一直在尖叫着：“若你死去，主人依然是主人，但若主人死去，你将变成失去主人的奴隶！”
+直到某天，你会领悟，自己一直恐惧的死亡，实际上是“主人的死亡”。你会发现，自己从卑贱更堕落至卑贱。。。
+或许现在，你还留恋着脚踝上绣着银线的金链，留恋它们的丁零作响。但在那天，你会明白，如何从主人的手中夺回生而自由的自己。。。
+当他们带着死亡的威胁，毁坏你美丽的身体，为你留下瞽盲的眼、嘶哑的喉、不可消除的烙印与伤疤时。。。
+当你砸碎他的头颅，扼杀他的妻子，捂死他的婴孩时，当你克服对死的恐惧，重新体会到仇恨的甜美时。。。
+你终将明晓，为自己而死的价值。
+`
+        let position = {
+            x: 0,
+            y: 0
+        }
+        let preDirection = {
+            x: 'right',
+            y: 'bottom'
+        }
+        let direction = new Proxy(
+            {
+                x: 'right',
+                y: 'bottom'
+            }, 
+            {
+                set (target, key, value) {
+                    // 新旧不同时，旧值给到 preDirection
+                    if (target[key] !== value) {
+                        preDirection[key] = target[key]
+                        target[key] = value
+                    }
+                }
+            }
+        )
+        let adjustXY = {
+            x: 0, 
+            y: 0
+        }
+        // 新添加的栏，要在哪个方向上新增
+        function getAppendDirection(position=position, size={ width: 200, height: 0}) {
+            const { x, y } = position
+            const { innerWidth, innerHeight } = window
+            const { width, height } = size
+            if (x + width > innerWidth) { direction.x = 'left' }
+            if (y + height > innerHeight) { direction.y = 'top'}
+            if (x - width < 0) { direction.x = 'right'}
+            if (y - height < 0) { direction.y = 'bottom'}
+            const directionstr = `${direction.x}-${direction.y}`
+            return directionstr
+        }
+        function operateAdjustXY(adjustXY, direction) {
+            switch (direction) {
+                case 'right-bottom':
+                    adjustXY.x = 190
+                    adjustXY.y = 21
+                    break
+                case 'left-bottom':
+                    adjustXY.x = -190
+                    adjustXY.y = 21
+                    break
+                case 'right-top':
+                    adjustXY.x = 190
+                    adjustXY.y = -21
+                    break
+                case 'left-top':
+                    adjustXY.x = -190
+                    adjustXY.y = -21
+                    break
+                default:
+                    break
+            }
+        }
+
+        // 鼠标移出一个栏时，是从哪个方向移出的
+        function getLeaveDirection(e, el) {
+            const { clientX, clientY } = e
+            const { x, y, width, height } = el.getBoundingClientRect()
+            let direction = ''
+            switch (true) {
+                case clientY <= y:
+                    direction = 'top'
+                    break
+                case clientY >= y + height:
+                    direction = 'bottom'
+                    break
+                case clientX <= x + 5:
+                    direction = 'left'
+                    break
+                case clientX >= x + width-5:
+                    direction = 'right'
+                    break
+                default:
+                    break
+            }
+            return direction
+        }
+
+        function deepClone (obj) {
+            return JSON.parse(JSON.stringify(obj))
+        }
+
+        // 如果是，还是给一个 name，但渲染的不是本元素，而是子元素？
+        function renderOneLayer (name='0', root=playground) {
+            const thisPosition = position
+            const selfData = getNode(name, article)
+
+            if (!selfData) return
+            if (!selfData.children) return
+            // render self
+            const selfEle = document.createElement('div')
+            selfEle.setAttribute('data-name', name)
+            selfEle.style = `left: ${thisPosition.x}px;top: ${thisPosition.y}px;`
+            selfEle.classList.add('menu__column')
+            selfEle.innerHTML = selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')
+            
+            root.appendChild(selfEle)
+            const items = selfEle.querySelectorAll('.menu__item')
+            
+            // get position
+            operateAdjustXY(adjustXY, getAppendDirection(thisPosition, { width: 200, height: 0 }))
+
+            // 这一层里面只能有一条
+            let plannedParenthood = false
+            // recursively
+            items.forEach((item, index) => {
+                const name = item.getAttribute('data-name')
+                const data = getNode(name, article)
+                if(!data.children)  return
+                // render children when mouseover
+
+                item.addEventListener('mouseover', function () {
+                    if (plannedParenthood) {
+                        item.classList.remove('menu__item--on-path')
+                        root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
+                        plannedParenthood = false
+                    }
+                    position.x += adjustXY.x
+                    position.y += adjustXY.y
+                    item.classList.add('menu__item--on-path')
+                    renderOneLayer(name, root)
+                    plannedParenthood = name
+                })
+                // remove children when mouseleave
+                item.addEventListener('mouseleave', function (event) {
+                    let leaveDirection = getLeaveDirection(event, selfEle)
+                    if(leaveDirection === preDirection.x) {
+                        plannedParenthood = item.getAttribute('data-name')
+                        operateAdjustXY(adjustXY, getAppendDirection({
+                            x: thisPosition.x + adjustXY.x,
+                            y: thisPosition.y + adjustXY.y
+                        }, { width: 200, height: 0 }))
+                        return
+                    }
+                    if(!plannedParenthood) return
+                    root.querySelector(`[data-name="${name}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${name}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y) && (plannedParenthood = false)
+                })
+
+                // touch event for mobile
+                item.addEventListener('touchend', function (event) {
+                    event.preventDefault()
+                    if (plannedParenthood) {
+                        item.classList.remove('menu__item--on-path')
+                        root.querySelector(`[data-name="${plannedParenthood}"].menu__column`) && root.removeChild(root.querySelector(`[data-name="${plannedParenthood}"].menu__column`)) && (position.x -= adjustXY.x, position.y -= adjustXY.y)
+                        plannedParenthood = false
+                    }
+                    position.x += adjustXY.x
+                    position.y += adjustXY.y
+                    item.classList.add('menu__item--on-path')
+                    renderOneLayer(name, root)
+                    plannedParenthood = name
+                })
+
+            })  
+        }
+
+        function getNode (name, article) {
+            let node = null
+            for (let i = 0; i < article.length; i++) {
+                if (article[i].name === name) {
+                    node = article[i]
+                    break
+                } else if (article[i].children) {
+                    node = getNode(name, article[i].children)
+                    if (node) {
+                        break
+                    }
+                }
+            }
+            return node
+        }
+
+        const playground = document.getElementById('playground')
+        const article = [
+            {
+                name:'0',
+                content:'0',
+                children:[
+                    {
+                        name:'a',
+                        content: '嗯...',
+                        children: [
+                            {
+                                name: 'aa',
+                                content: '不知道说什么好...',
+                                children: [
+                                    {
+                                        name: 'aab',
+                                        content: '如果已经不怎么在乎...如果路只会越走越窄...'
+                                    },
+                                    {
+                                        name: 'aac',
+                                        content: '什么十几年的努力...其实从一开始就，那么的，那么那么的，虚浮...，空中楼阁一般'
+                                    },
+                                    {
+                                        name: 'aad',
+                                        content: '我想...',
+                                        children: [
+                                            {
+                                                name: 'aada',
+                                                content: '红旗卷起农奴戟',
+                                                children: [
+                                                    {
+                                                        name: 'aadaa',
+                                                        content: '黑手高悬霸主鞭',
+                                                        children: [
+                                                            {
+                                                                name: 'aadaaa',
+                                                                content: '为有牺牲多壮志',
+                                                                children: [
+                                                                    {
+                                                                        name: 'aadaaaa',
+                                                                        content: '敢教日月换新天'
+                                                                    }
+                                                                ]
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                ]
+                            },
+                            {
+                                name: 'ab',
+                                content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试',
+                                children: [
+                                    {
+                                        name: 'aba',
+                                        content: '阿巴阿',
+                                        children: [
+                                            {
+                                                name: 'abaa',
+                                                content: '阿巴阿巴'
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        name: 'abb',
+                                        content: '阿巴巴'
+                                    }
+                                ]
+                            },
+                            {
+                                name: 'ac',
+                                content: '测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试测试'
+                            },
+                            {
+                                name: 'ad',
+                                content: '测试测试测'
+                            },
+                            {
+                                name: 'ae',
+                                content: '测试测试测'
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+        renderOneLayer()
+    </script>
+</body>
+</html>
