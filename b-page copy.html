@@ -246,20 +246,17 @@
                 const name = item.getAttribute('data-name')
                 const data = getNode(name, article)
                 if(!data.children)  return
-                // render children when mouseover
-
 
                 // layer 这个变量什么时候更新合适？
                 item.addEventListener('mouseenter', function (e) {
                     let thisLayer =  e.target.getAttribute('data-name').length
                     adjustXY.y = item.getClientRects()[0].height
-                    position.y += adjustXY.y
+                    position.y = item.getBoundingClientRect().top + adjustXY.y
 
                     if(layer - thisLayer === 0) {
                         // 兄弟
                         // 1. 清除兄弟的子的渲染，而且也是要递归式清除
-                        let siblings = getSiblings(e.target.getAttribute('data-name'), article)
-                        siblings = siblings.filter(sibling => sibling.name !== e.target.getAttribute('data-name'))
+                        const siblings = getSiblings(e.target.getAttribute('data-name'), article).filter(sibling => sibling.name !== e.target.getAttribute('data-name'))
                         const children = siblings.map(sibling => getChildren(sibling.name, article)).flat()
                         children.forEach(child => {
                             // menu__column 和 data-name 
@@ -269,6 +266,7 @@
                             console.log('childEle', childEle)
                             if (childEle) {
                                 // 这玩意... 还是好多坑。回退的时候，位置判断也是个问题。尤其连着退的时候，之前改过方向的话，就会出现问题。
+                                // 我是说，为什么，不能直接拿到这个元素的位置，然后直接减去它的高度，然后再减去200，就是新的位置了呢？
                                 position.y -= childEle.getClientRects()[0].height
                                 position.x -= 200
                                 childEle.remove()
@@ -347,6 +345,7 @@
         }
 
         const playground = document.getElementById('playground')
+        const background = document.getElementById('background')
         const article = [
             {
                 name:'',
@@ -442,16 +441,27 @@
         function init() {
             const start = document.createElement('div')
             start.innerHTML = `
-                <div class="menu__column" data-name="" style="left: 0px;top: 0px;">
+                <div class="menu__column" data-name="start00000000" style="left: 0px;top: 0px;">
                     <div class="menu__item" data-name="0">Start~<div class="menu__icon">></div></div>
                 </div>
             `
-            start.addEventListener('click',()=>{
-                position.x += 200
-                position.y += 21
+            start.addEventListener('click',(e)=>{
+                position.x = 200
+                position.y = 21
                 renderOneLayer('0')
             })
             playground.appendChild(start)
+            document.addEventListener('click', (e) => {
+                if(e.target === playground){
+                    console.log('playground')
+                    document.querySelectorAll('.menu__column').forEach(ele => {
+                        if(ele.getAttribute('data-name') !== 'start00000000') {
+                            ele.remove()
+                        }
+                    })
+                }
+            })
+        
         }
         init()
     </script>
