@@ -88,7 +88,7 @@
             if (y + height > innerHeight) { direction.y = 'top'}
             if (x - width < 0) { direction.x = 'right'}
             if (y - height < 0) { direction.y = 'bottom'}
-            const directionstr = `${direction.x}-${direction.y}`
+            const directionstr = `${preDirection.x}-${preDirection.y}` // 惰性更改方向...但是有个问题，我 tmd 之前拿 preDirection 在干嘛...
             return directionstr
         }
         function operateAdjustXY(adjustXY, direction) {
@@ -167,17 +167,13 @@
          * 
          * 然后也许需要看看树的遍历，一个是看现在渲染了多少是什么状态，又进行了什么操作，以及下一步要做什么
          * 整个过程...也许可以更依赖数据结构一点
-         * 
          */
 
-
-        // 重新思考一下，渲染依旧是要打平的不然叠压没法处理。
-        // 渲染出的 dom 在 html 结构上是平的，但不意味着我们不能把它在 js 层上放到结构化数据里 or 在 js 这里保存一个引用。
-
         /**
-         * 在此基础上，结合上面的。
-         * 我们有三种鼠标移动的情况 -1 0 1
-         * renderOneLayer 这个函数也肯定是要的。
+         * 嗯，上面的初步实现了，也重新改了 ui，bug还有但是不想管了
+         * 后续优化可能会有，如何把路径高亮加回去，还有新增 item 方向...还有代码写的一坨一坨
+         * 
+         * 
          */
 
         let layer = -1
@@ -202,7 +198,6 @@
             items.forEach((item, index) => {
                 const name = item.getAttribute('data-name')
                 const data = getNode(name, article)
-                
 
                 // layer 这个变量什么时候更新合适？
                 item.addEventListener('mouseenter', function (e) {
@@ -230,11 +225,8 @@
                     if(layer - thisLayer < 0) {
                     }
                     if(data.children) renderOneLayer(e.target.getAttribute('data-name'))
-                    console.log('layer',layer,thisLayer)
-
                     layer = thisLayer
                 })
-
             })  
         }
 
@@ -400,7 +392,7 @@
         }
         init()
 
-                /**
+        /**
          * 也许...我不应该这么丧...
          * 也许...我现在确实无聊又窘迫..
          * 我应该做什么？

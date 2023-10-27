@@ -17,6 +17,7 @@ i want to make some simple demo just through single html file.
 - [snake](./snake.html)
 - [mario](./mario.html)
 - [virtual-waterfall](./virtual-waterfall.html)
+- [b-page](./b-page.html)
 
 other interesting toys:  
 
