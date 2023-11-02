@@ -56,26 +56,11 @@
             x: 0,
             y: 0
         }
-        let preDirection = {
+        let direction = {
             x: 'right',
             y: 'bottom'
         }
-        let direction = new Proxy(
-            {
-                x: 'right',
-                y: 'bottom'
-            }, 
-            {
-                set (target, key, value) {
-                    // 新旧不同时，旧值给到 preDirection
-                    if (target[key] !== value) {
-                        preDirection.key = target[key]
-                        target[key] = value
-                    }
-                    console.log('set????',key, target[key], preDirection[key],value)
-                }
-            }
-        )
+
         let adjustXY = {
             x: 0, 
             y: 0
@@ -89,8 +74,7 @@
             if (y + height > innerHeight) { direction.y = 'top'}
             if (x - (width + 200) < 0) { direction.x = 'right'}
             if (y - height < 0) { direction.y = 'bottom'}
-            console.log(position,adjustXY,innerWidth, innerHeight, direction,preDirection,x + width , innerWidth)
-            const directionstr = `${preDirection.x}-${preDirection.y}` // 惰性更改方向...但是有个问题，我 tmd 之前拿 preDirection 在干嘛...
+            const directionstr = `${direction.x}-${direction.y}` 
             return directionstr
         }
         function operateAdjustXY(adjustXY, direction) {
@@ -158,26 +142,24 @@
                     position.x = item.getBoundingClientRect().left + adjustXY.x
                     position.y = item.getBoundingClientRect().top + adjustXY.y
 
+                    let tobeRemoved = []
+
                     if(layer - thisLayer === 0) {
                         const siblings = getSiblings(e.target.getAttribute('data-name'), article)
                         const children = siblings.map(sibling => getChildren(sibling.name, article)).flat()
-                        siblings.concat(children).forEach(child => {
-                            const columnEles = document.querySelectorAll('.menu__column')
-                            const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
-                            if (childEle) childEle.remove()
-                        })
+                        tobeRemoved = [...siblings, ...children]
                     }
                     if(layer - thisLayer > 0) {
-                        const children = getChildren(e.target.getAttribute('data-name'), article)
-                        console.log(children)
-                        children.forEach(child => {
-                            const columnEles = document.querySelectorAll('.menu__column')
-                            const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
-                            if (childEle) childEle.remove()
-                        })
+                        tobeRemoved = getChildren(e.target.getAttribute('data-name'), article)
                     }
                     if(layer - thisLayer < 0) {
                     }
+
+                    tobeRemoved.forEach(child => {
+                        const columnEles = document.querySelectorAll('.menu__column')
+                        const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
+                        if (childEle) childEle.remove()
+                    })
                     if(data.children) renderOneLayer(e.target.getAttribute('data-name'))
                     layer = thisLayer
                 })
