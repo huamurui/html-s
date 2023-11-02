@@ -47,6 +47,11 @@
         function onStart(e){
             if(e.type === 'touchstart'){
                 e = e.touches[0]
+                document.addEventListener('touchmove',onMove,{passive:false})
+                document.addEventListener('touchend',onUp)
+            }else{
+                document.addEventListener('mousemove',onMove,{passive:false})
+                document.addEventListener('mouseup',onUp)
             }
             x = e.clientX
             y = e.clientY
@@ -56,14 +61,6 @@
             date = Date.now()
             disX = e.clientX - ball.offsetLeft
             disY = e.clientY - ball.offsetTop
-            if(e.type === 'touchstart'){
-                document.addEventListener('touchmove',onMove)
-                document.addEventListener('touchend',onUp)
-            }else{
-                document.addEventListener('mousemove',onMove)
-                document.addEventListener('mouseup',onUp)
-            }
-
         }
         function onMove (e){
 
@@ -82,7 +79,7 @@
             speedY = (e.clientY - preY) / (Date.now() - date) * 10
             // 惯性的模拟...是个问题。尤其，拖拽这一行为并不符合惯性，它几乎是瞬时的...这两者结合更是问题。
             // 只记录最后一次的速度，然后让它自己运动...就是讲...你真是闲的搞这些。
-
+            // 移动端，卡顿十分严重。...也需要换个思路，你需要的并非搞一整个“合理”的理法，而是，动画，打表！
 
             // 好，方向只取最后一次的，那“力度”如何计算？？
             // 我在想的是...能不能，就基于现在的这个，计算目前这玩意的模长。采用大小而舍方向。
