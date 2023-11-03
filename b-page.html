@@ -138,6 +138,8 @@
 
                 // layer 这个变量什么时候更新合适？
                 item.addEventListener('mouseenter', function (e) {
+                    // 这里的这个函数也许可以抽出来，里面的 item 等同与 e.target，加防抖节流也方便。但...总觉得那样并不好。
+                    // 总而言之这现在是个递归，再搞得到处都是，看代码跳来跳去...得不偿失。
                     let thisLayer =  e.target.getAttribute('data-name').length
                     position.x = item.getBoundingClientRect().left + adjustXY.x
                     position.y = item.getBoundingClientRect().top + adjustXY.y
@@ -225,7 +227,13 @@
                                 children: [
                                     {
                                         name: 'aaa',
-                                        content: '待到秋来九月八'
+                                        content: '待到秋来九月八',
+                                        children: [
+                                            {
+                                                name: 'aaaa',
+                                                content: '待到山花烂漫时...'
+                                            }
+                                        ]
                                     },
                                     {
                                         name: 'aab',
