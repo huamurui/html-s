@@ -199,8 +199,6 @@
         if(state === "default" || state === "active") {
           shiftX = startX - main.getBoundingClientRect().left
           shiftY = startY - main.getBoundingClientRect().top
-        } else if (state === "sticky") {
-          toggleState("default")
         }
       }
       function onMove(e) {
