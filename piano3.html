@@ -171,7 +171,6 @@
         black: { name: null, keyCode: null },
       }
     ]
-
     const piano = document.getElementById("piano")
     function createKey(key) {
       const keyWrapper  = document.createElement("div")
@@ -195,6 +194,11 @@
       const keyEl = createKey(key)
       piano.appendChild(keyEl)
     })
+
+    // 想法是... 每个那啥，都，出现一个，泡泡，然后，就，消失，然后，就，结束。
+    // 从右边出现，向左边飘，然后消失。
+    // 需不需要...一点...？状态？完整但透明=>完整=>消散。
+
     const bubblesContainer = document.querySelector(".bubbles-container")
     const bubbles = []
     for (let i = 0; i < 10; i++) {
@@ -203,16 +207,12 @@
       bubbles.push(bubble)
       bubblesContainer.appendChild(bubble)
     }
-
     bubbles.forEach(bubble => {
-      bubble.style.setProperty('--rotate', `${Math.random() * 360}deg`);
-      bubble.style.setProperty('--dis', `${Math.random() * 100}px`);
-      bubble.style.setProperty('--width', `${30 + Math.random() * 25}px`);
-      bubble.style.animation = `move ${Math.random() * 3 + 2}s ease-in-out infinite`;
-   });
-
-
-
+      bubble.style.setProperty('--rotate', `${Math.random() * 360}deg`)
+      bubble.style.setProperty('--dis', `${Math.random() * 100}px`)
+      bubble.style.setProperty('--width', `${30 + Math.random() * 25}px`)
+      bubble.style.animation = `move ${Math.random() * 3 + 2}s ease-in-out infinite`
+   })
   </script>
 </body>
 </html>
