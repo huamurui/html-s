@@ -10,8 +10,12 @@
         height: 100%;
         position: relative;
       }
+      #venues {
+        width: 100%;
+        height: 100px;
+      }
       #piano {
-        width: 500px;
+        width: 600px;
         height: 100px;
         position: relative;
         display: flex;
@@ -26,8 +30,17 @@
 
       .key {
         border-radius: 999px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .key.pressed {
+        box-shadow: 0 0 10px 2px rgba(0, 0, 0, 0.5);
       }
       .key--white {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
         width: 60px;
         height: 60px;
         background-color: white;
@@ -36,22 +49,28 @@
       .key--black {
         position: absolute;
         top: 0;
-        right: -15px;
+        right: -15.5px;
         width: 30px;
         height: 30px;
+        color: white;
         background-color: black;
         border: 1px solid rgb(128, 128, 128);
       }
-      .bubbles-container {
+      /* 我希望它会飘，从左到右  */
+      .tone {
         position: absolute;
+        width: 100px;
+        height: 100px;
+      }
+
+      /* .bubbles-container {
         width: 30px;
         height: 30px;
         border-radius: 50px;
-        top: 100px;
-        left: 235px;
         background: var(--headColor);
-        /* filter: blur(1) contrast(5); */
-      }
+        filter: blur(1) contrast(5);
+      } */
+
       .bubble {
         position: absolute;
         border-radius: 50%;
@@ -70,12 +89,23 @@
           opacity: .4;
         }
       }
+      @keyframes swing {
+        0% {
+          transform: rotate(0deg) translateX(500px);
+        }
+        50% {
+          transform: rotate(10deg);
+        }
+        100% {
+          transform: rotate(-10deg) translateX(0px);
+        }
+      }
   </style>
 </head>
 <body>
   <div id="playground">
     <div id="venues">
-      <ul class="bubbles-container">
+      <!-- <ul class="bubbles-container"> -->
       </ul>
     </div>
     <div id="piano"></div>
@@ -199,20 +229,62 @@
     // 从右边出现，向左边飘，然后消失。
     // 需不需要...一点...？状态？完整但透明=>完整=>消散。
 
-    const bubblesContainer = document.querySelector(".bubbles-container")
-    const bubbles = []
-    for (let i = 0; i < 10; i++) {
-      const bubble = document.createElement("li")
-      bubble.classList.add("bubble")
-      bubbles.push(bubble)
-      bubblesContainer.appendChild(bubble)
-    }
-    bubbles.forEach(bubble => {
-      bubble.style.setProperty('--rotate', `${Math.random() * 360}deg`)
-      bubble.style.setProperty('--dis', `${Math.random() * 100}px`)
-      bubble.style.setProperty('--width', `${30 + Math.random() * 25}px`)
-      bubble.style.animation = `move ${Math.random() * 3 + 2}s ease-in-out infinite`
-   })
+   const keyEls = document.querySelectorAll(".key")
+   const venues = document.getElementById("venues")
+   keyEls.forEach(keyEl => {
+      keyEl.addEventListener("mousedown", () => {
+        keyEl.classList.add("pressed")
+        // 此处，
+        // 1. 播放音乐
+        // 2. 播放泡泡
+
+        // const 
+        const toneEle = document.createElement("div")
+        toneEle.classList.add("tone")
+        const bubbles = []
+        for (let i = 0; i < 10; i++) {
+          const bubble = document.createElement("li")
+          bubble.classList.add("bubble")
+          bubbles.push(bubble)
+          toneEle.appendChild(bubble)
+        }
+        bubbles.forEach(bubble => {
+          bubble.style.setProperty('--rotate', `${Math.random() * 360}deg`)
+          bubble.style.setProperty('--dis', `${Math.random() * 100}px`)
+          // 服了...它竟然是用的 li 自带的 ::maker 来画的圆点点...  得改...
+          bubble.style.animation = `move 2s ease-in-out`
+        })
+        toneEle.style.left = `${keyEl.offsetLeft}px`
+        toneEle.style.animation = `swing 2s ease-in-out`
+        venues.appendChild(toneEle)
+        toneEle.addEventListener("animationend", () => {
+          bubbles.forEach(bubble => {
+            bubble.style.opacity = 0
+            bubble.animate([
+              { 
+                opacity: 1,
+              },
+              { 
+                opacity: 0,
+              },
+            ], {
+              duration: 600,
+              // fill: "forwards"
+            })
+            bubble.addEventListener("animationend", () => {
+              debugger
+              bubble.remove()
+            })
+          })
+          setTimeout(() => {
+            toneEle.remove()
+          }, 900)
+        })
+      })
+      keyEl.addEventListener("mouseup", () => {
+        keyEl.classList.remove("pressed")
+      })
+    })
   </script>
 </body>
 </html>
