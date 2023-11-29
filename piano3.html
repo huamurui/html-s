@@ -297,11 +297,12 @@
   ]
    const audios = {}
    // 预加载C4-B4， //C#4-A#4
-   NotesMap.slice(14, 21).forEach(note => {
-     const audio = new Audio(`${base}${note.file}`)
-     audio.load()
-     audios[note.name] = audio
-   })
+    NotesMap.forEach(note => {
+      const audio = new Audio(`${base}${note.file}`)
+      audio.load()
+      audios[note.name] = audio
+    })
+
 
    const keyEls = document.querySelectorAll(".key")
    const venues = document.getElementById("venues")
@@ -310,7 +311,8 @@
         keyEl.classList.add("pressed")
         // 此处，
         // 1. 播放音乐
-        const audio = audios[`${keyEl.innerText}4`]
+        const audio = audios[`${keyEl.innerText}4`] // 4 代表第四个八度
+        audio.currentTime = 0
         audio.play()
 
         // 2. 播放泡泡
