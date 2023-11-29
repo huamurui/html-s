@@ -10,7 +10,7 @@
         height: 100%;
         position: relative;
       }
-      #venues {
+      #operahouse {
         width: 100%;
         height: 100px;
       }
@@ -114,73 +114,10 @@
 </head>
 <body>
   <div id="playground">
-    <div id="venues">
-      <!-- <ul class="bubbles-container"> -->
-      </ul>
-    </div>
+    <div id="operahouse"></div>
     <div id="piano"></div>
   </div>
   <script>
-
-    // .item__1 {
-    //   position: absolute;
-    //   width: 50px;
-    //   height: 50px;
-    //   left: 50px;
-    //   top: 0;
-    //   background-color: black;
-    //   border-top: 1px solid rgb(0, 0, 0);
-    //   border-right: 1px solid rgb(0, 0, 0);
-    //   /* border-top-right-radius: 4px; */
-    //   /* border-radius: 4px; */
-    // }
-    // .item__2 {
-    //   position: absolute;
-    //   width: 50px;
-    //   height: 50px;
-    //   left: 0;
-    //   top: 0;
-    //   border-top: 1px solid rgb(0, 0, 0);
-    //   border-left: 1px solid rgb(0, 0, 0);
-    //   /* border-right: 1px solid rgb(0, 0, 0); */
-    //   /* border-top-left-radius: 4px; */
-    //   /* border-radius: 4px 4px 0 0; */
-    // }
-    // .item__3 {
-    //   position: absolute;
-    //   width: 50px;
-    //   height: 50px;
-    //   left: 0px;
-    //   top: 50px;
-    //   border-left: 1px solid rgb(0, 0, 0);
-    //   border-bottom: 1px solid rgb(0, 0, 0);
-    //   /* border-bottom-left-radius: 4px; */
-    // }
-    // .item__4 {
-    //   position: absolute;
-    //   width: 50px;
-    //   height: 50px;
-    //   left: 50px;
-    //   top: 50px;
-    //   border-right: 1px solid rgb(0, 0, 0);
-    //   border-bottom: 1px solid rgb(0, 0, 0);
-    //   /* border-bottom-right-radius: 4px; */
-    //   /* border-radius: 0 4px 4px 0; */
-    // }
-    
-
-    // 好了确认 css 搞不成你想要的那种...或者说太tm麻烦了，现在卡到的一个地方是，凹角的边框，怎么搞圆？用傍边补形的一角的圆角来补这个角？真tm神经病...
-    // 试试 canvas ?
-    // 试个p，canvas 之后点击的事件绑定感觉根本没法搞，至少我搞不定...
-
-    // 或者换个合理点的图形设计...
-    // 不要圆角的话可行吗？可行，但依旧麻烦。
-    // 那如果要圆角，就不能做成那样异形的，只能做成一块块的。这样合理吗? 圆角？为什么我不能搞成纯圆形的，然后分大小？黑色的搞小点塞进空隙里？
-    // 还有一个，为什么一定要黑键，你要做的真的要那么模仿钢琴吗？为什么要黑白的？主要目的如果是演奏，那把主要的声音给出来不就好了？
-
-    // 对，我觉得圆形就很好，三角形也可以，甚至六边形。再甚至它们的组合...不对，对于 css 这些还是太超前了。
-    // 感觉，不如原神。
-
     const keys =[
       {
         white: { name: "C", keyCode: null },
@@ -235,99 +172,89 @@
       piano.appendChild(keyEl)
     })
 
-    // 想法是... 每个那啥，都，出现一个，泡泡，然后，就，消失，然后，就，结束。
-    // 从右边出现，向左边飘，然后消失。
-    // 需不需要...一点...？状态？完整但透明=>完整=>消散。
 
-    // https://huamurui.github.io/data_and_so_on/audios/samples/piano/a48.mp3
-   const base = "https://huamurui.github.io/data_and_so_on/audios/samples/piano/"
-   const NotesMap = [
-    { name: 'C2', file: 'a49.mp3' },
-    { name: 'D2', file: 'a50.mp3' },
-    { name: 'E2', file: 'a51.mp3' },
-    { name: 'F2', file: 'a52.mp3' },
-    { name: 'G2', file: 'a53.mp3' },
-    { name: 'A2', file: 'a54.mp3' },
-    { name: 'B2', file: 'a55.mp3' },
-    { name: 'C3', file: 'a56.mp3' },
-    { name: 'D3', file: 'a57.mp3' },
-    { name: 'E3', file: 'a48.mp3' },
-    { name: 'F3', file: 'a81.mp3' },
-    { name: 'G3', file: 'a87.mp3' },
-    { name: 'A3', file: 'a69.mp3' },
-    { name: 'B3', file: 'a82.mp3' },
-    { name: 'C4', file: 'a84.mp3' },
-    { name: 'D4', file: 'a89.mp3' },
-    { name: 'E4', file: 'a85.mp3' },
-    { name: 'F4', file: 'a73.mp3' },
-    { name: 'G4', file: 'a79.mp3' },
-    { name: 'A4', file: 'a80.mp3' },
-    { name: 'B4', file: 'a65.mp3' },
-    { name: 'C5', file: 'a83.mp3' },
-    { name: 'D5', file: 'a68.mp3' },
-    { name: 'E5', file: 'a70.mp3' },
-    { name: 'F5', file: 'a71.mp3' },
-    { name: 'G5', file: 'a72.mp3' },
-    { name: 'A5', file: 'a74.mp3' },
-    { name: 'B5', file: 'a75.mp3' },
-    { name: 'C6', file: 'a76.mp3' },
-    { name: 'D6', file: 'a90.mp3' },
-    { name: 'E6', file: 'a88.mp3' },
-    { name: 'F6', file: 'a67.mp3' },
-    { name: 'G6', file: 'a86.mp3' },
-    { name: 'A6', file: 'a66.mp3' },
-    { name: 'B6', file: 'a78.mp3' },
-    { name: 'C7', file: 'a77.mp3' },
+    const base = "https://huamurui.github.io/data_and_so_on/audios/samples/piano/"
+    const NotesMap = [
+      { name: 'C2', file: 'a49.mp3' },
+      { name: 'D2', file: 'a50.mp3' },
+      { name: 'E2', file: 'a51.mp3' },
+      { name: 'F2', file: 'a52.mp3' },
+      { name: 'G2', file: 'a53.mp3' },
+      { name: 'A2', file: 'a54.mp3' },
+      { name: 'B2', file: 'a55.mp3' },
+      { name: 'C3', file: 'a56.mp3' },
+      { name: 'D3', file: 'a57.mp3' },
+      { name: 'E3', file: 'a48.mp3' },
+      { name: 'F3', file: 'a81.mp3' },
+      { name: 'G3', file: 'a87.mp3' },
+      { name: 'A3', file: 'a69.mp3' },
+      { name: 'B3', file: 'a82.mp3' },
+      { name: 'C4', file: 'a84.mp3' },
+      { name: 'D4', file: 'a89.mp3' },
+      { name: 'E4', file: 'a85.mp3' },
+      { name: 'F4', file: 'a73.mp3' },
+      { name: 'G4', file: 'a79.mp3' },
+      { name: 'A4', file: 'a80.mp3' },
+      { name: 'B4', file: 'a65.mp3' },
+      { name: 'C5', file: 'a83.mp3' },
+      { name: 'D5', file: 'a68.mp3' },
+      { name: 'E5', file: 'a70.mp3' },
+      { name: 'F5', file: 'a71.mp3' },
+      { name: 'G5', file: 'a72.mp3' },
+      { name: 'A5', file: 'a74.mp3' },
+      { name: 'B5', file: 'a75.mp3' },
+      { name: 'C6', file: 'a76.mp3' },
+      { name: 'D6', file: 'a90.mp3' },
+      { name: 'E6', file: 'a88.mp3' },
+      { name: 'F6', file: 'a67.mp3' },
+      { name: 'G6', file: 'a86.mp3' },
+      { name: 'A6', file: 'a66.mp3' },
+      { name: 'B6', file: 'a78.mp3' },
+      { name: 'C7', file: 'a77.mp3' },
 
-    { name: 'C#2', file: 'b49.mp3' },
-    { name: 'D#2', file: 'b50.mp3' },
-    { name: 'F#2', file: 'b52.mp3' },
-    { name: 'G#2', file: 'b53.mp3' },
-    { name: 'A#2', file: 'b54.mp3' },
-    { name: 'C#3', file: 'b56.mp3' },
-    { name: 'D#3', file: 'b57.mp3' },
-    { name: 'F#3', file: 'b81.mp3' },
-    { name: 'G#3', file: 'b87.mp3' },
-    { name: 'A#3', file: 'b69.mp3' },
-    { name: 'C#4', file: 'b84.mp3' },
-    { name: 'D#4', file: 'b89.mp3' },
-    { name: 'F#4', file: 'b73.mp3' },
-    { name: 'G#4', file: 'b79.mp3' },
-    { name: 'A#4', file: 'b80.mp3' },
-    { name: 'C#5', file: 'b83.mp3' },
-    { name: 'D#5', file: 'b68.mp3' },
-    { name: 'F#5', file: 'b71.mp3' },
-    { name: 'G#5', file: 'b72.mp3' },
-    { name: 'A#5', file: 'b74.mp3' },
-    { name: 'C#6', file: 'b76.mp3' },
-    { name: 'D#6', file: 'b90.mp3' },
-    { name: 'F#6', file: 'b67.mp3' },
-    { name: 'G#6', file: 'b86.mp3' },
-    { name: 'A#6', file: 'b66.mp3' }
-  ]
-   const audios = {}
-   // 预加载C4-B4， //C#4-A#4
+      { name: 'C#2', file: 'b49.mp3' },
+      { name: 'D#2', file: 'b50.mp3' },
+      { name: 'F#2', file: 'b52.mp3' },
+      { name: 'G#2', file: 'b53.mp3' },
+      { name: 'A#2', file: 'b54.mp3' },
+      { name: 'C#3', file: 'b56.mp3' },
+      { name: 'D#3', file: 'b57.mp3' },
+      { name: 'F#3', file: 'b81.mp3' },
+      { name: 'G#3', file: 'b87.mp3' },
+      { name: 'A#3', file: 'b69.mp3' },
+      { name: 'C#4', file: 'b84.mp3' },
+      { name: 'D#4', file: 'b89.mp3' },
+      { name: 'F#4', file: 'b73.mp3' },
+      { name: 'G#4', file: 'b79.mp3' },
+      { name: 'A#4', file: 'b80.mp3' },
+      { name: 'C#5', file: 'b83.mp3' },
+      { name: 'D#5', file: 'b68.mp3' },
+      { name: 'F#5', file: 'b71.mp3' },
+      { name: 'G#5', file: 'b72.mp3' },
+      { name: 'A#5', file: 'b74.mp3' },
+      { name: 'C#6', file: 'b76.mp3' },
+      { name: 'D#6', file: 'b90.mp3' },
+      { name: 'F#6', file: 'b67.mp3' },
+      { name: 'G#6', file: 'b86.mp3' },
+      { name: 'A#6', file: 'b66.mp3' }
+    ]
+    const audios = {}
     NotesMap.forEach(note => {
       const audio = new Audio(`${base}${note.file}`)
       audio.load()
       audios[note.name] = audio
     })
-
-
-   const keyEls = document.querySelectorAll(".key")
-   const venues = document.getElementById("venues")
-   keyEls.forEach(keyEl => {
+    const keyEls = document.querySelectorAll(".key")
+    const operahouse = document.getElementById("operahouse")
+    keyEls.forEach(keyEl => {
       keyEl.addEventListener("mousedown", () => {
         keyEl.classList.add("pressed")
-        // 此处，
         // 1. 播放音乐
         const audio = audios[`${keyEl.innerText}4`] // 4 代表第四个八度
         audio.currentTime = 0
         audio.play()
 
         // 2. 播放泡泡
-
-        // const 
         const toneEle = document.createElement("div")
         toneEle.classList.add("tone")
         const bubbles = []
@@ -343,12 +270,11 @@
         bubbles.forEach(bubble => {
           bubble.style.setProperty('--rotate', `${Math.random() * 360}deg`)
           bubble.style.setProperty('--dis', `${Math.random() * 100}px`)
-          // 服了...它竟然是用的 li 自带的 ::maker 来画的圆点点...  得改...
           bubble.style.animation = `move 2s ease-in-out`
         })
         toneEle.style.left = `${keyEl.offsetLeft}px`
         toneEle.style.animation = `swing 2s ease-in-out`
-        venues.appendChild(toneEle)
+        operahouse.appendChild(toneEle)
         toneEle.addEventListener("animationend", () => {
           bubbles.forEach(bubble => {
             bubble.children[0].animate([
@@ -364,7 +290,6 @@
               },
             ], {
               duration: 600,
-              // fill: "forwards"
             })
             bubble.addEventListener("animationend", () => {
               bubble.remove()
@@ -379,14 +304,6 @@
         keyEl.classList.remove("pressed")
       })
     })
-
-    // 感觉...该考虑一些另外的事情了
-    // 比如，乐谱的数据结构。以及...现在似乎有直接用AI分析，演奏的，所以，功能上这里大概是比不上的。
-    // 不考虑直接处理音频的了，可以考虑设计一种，像简谱一样的数据结构记录基本的音符节奏，然后加一个根据这玩意演奏的功能。
-    
-
-
-
   </script>
 </body>
 </html>
