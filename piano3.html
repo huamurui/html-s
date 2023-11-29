@@ -72,9 +72,19 @@
       } */
 
       .bubble {
-        position: absolute;
+        /* position: absolute; */
+        position: relative;
         border-radius: 50%;
         background-color: inherit;
+      }
+      .bubble__dot {
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: black;
+        border-radius: 50%;
+        width: 5px;
+        height: 5px;
       }
       
       @keyframes move {
@@ -322,8 +332,11 @@
         toneEle.classList.add("tone")
         const bubbles = []
         for (let i = 0; i < 10; i++) {
-          const bubble = document.createElement("li")
+          const bubble = document.createElement("div")
           bubble.classList.add("bubble")
+          const dot = document.createElement("div")
+          dot.classList.add("bubble__dot")
+          bubble.appendChild(dot) 
           bubbles.push(bubble)
           toneEle.appendChild(bubble)
         }
@@ -338,13 +351,16 @@
         venues.appendChild(toneEle)
         toneEle.addEventListener("animationend", () => {
           bubbles.forEach(bubble => {
-            bubble.style.opacity = 0
-            bubble.animate([
+            bubble.children[0].animate([
               { 
                 opacity: 1,
+                width: "5px",
+                height: "5px",
               },
               { 
                 opacity: 0,
+                width: 0,
+                height: 0,
               },
             ], {
               duration: 600,
