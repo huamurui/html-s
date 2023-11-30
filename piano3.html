@@ -317,6 +317,52 @@
     1,1,5,5,6,6,
     5,5,4,4(1),
     `
+    // 你挖的坑会不会有点大了...解析演奏是一回事，这玩意如果想让用户自己输入...是不是还得配合个带高亮的编辑器什么的
+    // 只为个这引入一大坨库肯定不值得...但是写一堆东西也啊啊啊...
+    function parseDoc(doc) {
+      const lines = doc.split("\n").map(line => line.trim()).filter(line => line)
+      const info = {}
+      const notes = []
+      let isInfo = true
+      lines.forEach(line => {
+        if (line === "---") {
+          isInfo = false
+          return
+        }
+        if (isInfo) {
+          const [key, value] = line.split(":")
+          info[key] = value
+        } else {
+          // 去掉空格和换行
+          const note = line.replace(/\s/g, "").split(",")
+          notes.push(...note)
+        }
+      })
+      console.log(notes)
+      return {
+        info,
+        notes,
+      }
+    }
+    function renderDoc(info,notes) {
+      const coleredDoc = document.createElement("div")
+      coleredDoc.style.width = "200px"
+
+      const infoEl = document.createElement("div")
+      const infoStr = Object.keys(info).map(key => `<span style="color:cornflowerblue">${key}</span>: ${info[key]}`).join("<br>")
+      infoEl.innerHTML = infoStr
+      coleredDoc.appendChild(infoEl)
+      coleredDoc.appendChild(document.createElement("hr"))
+      const notesEl = document.createElement("div")
+      notes.forEach(note => {
+        const noteEl = document.createElement("span")
+        noteEl.innerHTML = `${note},`
+        notesEl.appendChild(noteEl)
+      })
+      coleredDoc.appendChild(notesEl)
+      return coleredDoc
+    }
+    playground.appendChild(renderDoc(parseDoc(exampleDoc).info, parseDoc(exampleDoc).notes))
   </script>
 </body>
 </html>
