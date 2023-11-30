@@ -1,428 +1,437 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+  <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>b page</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+      }
 
-        #playground {
-            width: 100vw;
-            height: 100vh;
-            font-size: 16px;
-            font-family:'Hiragino Sans GB','STXihei';
-            color: #372d52;
-        }
+      #playground {
+        width: 100vw;
+        height: 100vh;
+        font-size: 16px;
+        font-family: "Hiragino Sans GB", "STXihei";
+        color: #372d52;
+      }
 
-        .menu__column {
-            position: fixed;
-            display: flex;
-            flex-direction: column;
-            width: 200px;
-            box-shadow: 
-                2px 1px 1px #a7783d, 
-                -1px -1px 1px #fff;
-            background-color: antiquewhite;
-            border-radius: 4px;
-        }
-        .menu__item {
-            display: flex;
-            margin: 2px;
-            padding: 2px 6px 2px 6px;
-            justify-content: space-between;
-        }
-        .menu__item--on-path,
-        .menu__item:hover {
-            border-radius: 8px;
-            background-color:aliceblue;
-            /* color: #fff; */
-        }
-        .menu__icon {
-            width: 16px;
-            height: 16px;
-            /* color: #000; */
-            font-weight: bolder;
-        }
+      .menu__column {
+        position: fixed;
+        display: flex;
+        flex-direction: column;
+        width: 200px;
+        box-shadow: 2px 1px 1px #a7783d, -1px -1px 1px #fff;
+        background-color: antiquewhite;
+        border-radius: 4px;
+      }
+      .menu__item {
+        display: flex;
+        margin: 2px;
+        padding: 2px 6px 2px 6px;
+        justify-content: space-between;
+      }
+      .menu__item--on-path,
+      .menu__item:hover {
+        border-radius: 8px;
+        background-color: aliceblue;
+        /* color: #fff; */
+      }
+      .menu__icon {
+        width: 16px;
+        height: 16px;
+        /* color: #000; */
+        font-weight: bolder;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="playground"></div>
     <script>
-        let position = {
-            x: 0,
-            y: 0
+      let position = {
+        x: 0,
+        y: 0,
+      }
+      let direction = {
+        x: "right",
+        y: "bottom",
+      }
+
+      let adjustXY = {
+        x: 0,
+        y: 0,
+      }
+      // 新添加的栏，要在哪个方向上新增
+      function getAppendDirection(position = position, size = adjustXY) {
+        const { x, y } = position
+        const { innerWidth, innerHeight } = window
+        const { x: width, y: height } = size
+        if (x + (width + 200) > innerWidth) {
+          direction.x = "left"
         }
-        let direction = {
-            x: 'right',
-            y: 'bottom'
+        if (y + height > innerHeight) {
+          direction.y = "top"
         }
-
-        let adjustXY = {
-            x: 0, 
-            y: 0
+        if (x - (width + 200) < 0) {
+          direction.x = "right"
         }
-        // 新添加的栏，要在哪个方向上新增
-        function getAppendDirection(position=position, size=adjustXY) {
-            const { x, y } = position
-            const { innerWidth, innerHeight } = window
-            const { x:width, y:height } = size
-            if (x + (width + 200) > innerWidth) { direction.x = 'left' }
-            if (y + height > innerHeight) { direction.y = 'top'}
-            if (x - (width + 200) < 0) { direction.x = 'right'}
-            if (y - height < 0) { direction.y = 'bottom'}
-            const directionstr = `${direction.x}-${direction.y}` 
-            return directionstr
+        if (y - height < 0) {
+          direction.y = "bottom"
         }
-        function operateAdjustXY(adjustXY, direction) {
-            switch (direction) {
-                case 'right-bottom':
-                    adjustXY.x = 190
-                    adjustXY.y = 21
-                    break
-                case 'left-bottom':
-                    adjustXY.x = -190
-                    adjustXY.y = 21
-                    break
-                case 'right-top':
-                    adjustXY.x = 190
-                    adjustXY.y = -21
-                    break
-                case 'left-top':
-                    adjustXY.x = -190
-                    adjustXY.y = -21
-                    break
-                default:
-                    break
-            }
+        const directionstr = `${direction.x}-${direction.y}`
+        return directionstr
+      }
+      function operateAdjustXY(adjustXY, direction) {
+        switch (direction) {
+          case "right-bottom":
+            adjustXY.x = 190
+            adjustXY.y = 21
+            break
+          case "left-bottom":
+            adjustXY.x = -190
+            adjustXY.y = 21
+            break
+          case "right-top":
+            adjustXY.x = 190
+            adjustXY.y = -21
+            break
+          case "left-top":
+            adjustXY.x = -190
+            adjustXY.y = -21
+            break
+          default:
+            break
         }
+      }
 
-        let layer = -1
-        function renderOneLayer (name='0', root=playground) {
-            const thisPosition = position
-            const selfData = getNode(name, article) || article[0]
+      let layer = -1
+      function renderOneLayer(name = "0", root = playground) {
+        const thisPosition = position
+        const selfData = getNode(name, article) || article[0]
 
-            if (!selfData) return
-            if (!selfData.children) return
-            const selfEle = document.createElement('div')
-            selfEle.classList.add('menu__column')
-            selfEle.setAttribute('data-name', name)
-            selfEle.style.left = `${thisPosition.x}px`
-            selfEle.style.top = `${thisPosition.y}px`
-            selfEle.innerHTML = `${selfData.children.map(child => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : '')}</div>`).join('')}`
-            root.appendChild(selfEle)
-            selfEle.animate([
-                { 
-                    opacity: 0,
-                    transform: 'translateY(-20px)'
-                },
-                { 
-                    opacity: 1,
-                    transform: 'translateY(0px)'
-                }
-            ], {
-                duration: 200,
-                easing: 'ease-in-out'
-            })
-            const items = selfEle.querySelectorAll('.menu__item')
-            
-            // get next position
-            operateAdjustXY(adjustXY, getAppendDirection(thisPosition))
-
-            items.forEach((item, index) => {
-                const name = item.getAttribute('data-name')
-                const data = getNode(name, article)
-
-                // layer 这个变量什么时候更新合适？
-                item.addEventListener('mouseenter', function (e) {
-                    // 这里的这个函数也许可以抽出来，里面的 item 等同与 e.target，加防抖节流也方便。但...总觉得那样并不好。
-                    // 总而言之这现在是个递归，再搞得到处都是，看代码跳来跳去...得不偿失。
-                    let thisLayer =  e.target.getAttribute('data-name').length
-                    position.x = item.getBoundingClientRect().left + adjustXY.x
-                    position.y = item.getBoundingClientRect().top + adjustXY.y
-
-                    let tobeRemoved = []
-
-                    if(layer - thisLayer === 0) {
-                        const siblings = getSiblings(e.target.getAttribute('data-name'), article)
-                        const children = siblings.map(sibling => getChildren(sibling.name, article)).flat()
-                        tobeRemoved = [...siblings, ...children]
-                    }
-                    if(layer - thisLayer > 0) {
-                        tobeRemoved = getChildren(e.target.getAttribute('data-name'), article)
-                    }
-                    if(layer - thisLayer < 0) {
-                    }
-
-                    tobeRemoved.forEach(child => {
-                        const columnEles = document.querySelectorAll('.menu__column')
-                        const childEle = [...columnEles].find(ele => ele.getAttribute('data-name') === child.name)
-                        if (childEle) childEle.remove()
-                    })
-                    if(data.children) renderOneLayer(e.target.getAttribute('data-name'))
-                    layer = thisLayer
-                })
-            })  
-        }
-
-        function getNode (name, article) {
-            let node = null
-            for (let i = 0; i < article.length; i++) {
-                if (article[i].name === name) {
-                    node = article[i]
-                    break
-                } else if (article[i].children) {
-                    node = getNode(name, article[i].children)
-                    if (node) {
-                        break
-                    }
-                }
-            }
-            return node
-        }
-        function getSiblings(name,article) {
-            let siblings = null
-            for (let i = 0; i < article.length; i++) {
-                if (article[i].name === name) {
-                    siblings = article // this is the only difference between getSiblings and getNode...?
-                    break
-                } else if (article[i].children) {
-                    siblings = getSiblings(name, article[i].children)
-                    if (siblings) {
-                        break
-                    }
-                }
-            }
-            return siblings
-        }
-
-        function getChildren(name,article) {
-            let children = []
-            getNode(name, article)?.children?.forEach(child => {
-                children.push(child)
-                if (child.children) {
-                    children = children.concat(getChildren(child.name, article))
-                }
-            })
-            return children
-        }
-
-        const playground = document.getElementById('playground')
-        const background = document.getElementById('background')
-        const article = [
+        if (!selfData) return
+        if (!selfData.children) return
+        const selfEle = document.createElement("div")
+        selfEle.classList.add("menu__column")
+        selfEle.setAttribute("data-name", name)
+        selfEle.style.left = `${thisPosition.x}px`
+        selfEle.style.top = `${thisPosition.y}px`
+        selfEle.innerHTML = `${selfData.children.map((child) => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : "")}</div>`).join("")}`
+        root.appendChild(selfEle)
+        selfEle.animate(
+          [
             {
-                name:'',
-                content:'0',
-                children:[
+              opacity: 0,
+              transform: "translateY(-20px)",
+            },
+            {
+              opacity: 1,
+              transform: "translateY(0px)",
+            },
+          ],
+          {
+            duration: 200,
+            easing: "ease-in-out",
+          }
+        )
+        const items = selfEle.querySelectorAll(".menu__item")
+
+        // get next position
+        operateAdjustXY(adjustXY, getAppendDirection(thisPosition))
+
+        items.forEach((item, index) => {
+          const name = item.getAttribute("data-name")
+          const data = getNode(name, article)
+
+          // layer 这个变量什么时候更新合适？
+          item.addEventListener("mouseenter", function (e) {
+            // 这里的这个函数也许可以抽出来，里面的 item 等同与 e.target，加防抖节流也方便。但...总觉得那样并不好。
+            // 总而言之这现在是个递归，再搞得到处都是，看代码跳来跳去...得不偿失。
+            let thisLayer = e.target.getAttribute("data-name").length
+            position.x = item.getBoundingClientRect().left + adjustXY.x
+            position.y = item.getBoundingClientRect().top + adjustXY.y
+
+            let tobeRemoved = []
+
+            if (layer - thisLayer === 0) {
+              const siblings = getSiblings(e.target.getAttribute("data-name"), article)
+              const children = siblings.map((sibling) => getChildren(sibling.name, article)).flat()
+              tobeRemoved = [...siblings, ...children]
+            }
+            if (layer - thisLayer > 0) {
+              tobeRemoved = getChildren(e.target.getAttribute("data-name"), article)
+            }
+            if (layer - thisLayer < 0) {
+            }
+
+            tobeRemoved.forEach((child) => {
+              const columnEles = document.querySelectorAll(".menu__column")
+              const childEle = [...columnEles].find((ele) => ele.getAttribute("data-name") === child.name)
+              if (childEle) childEle.remove()
+            })
+            if (data.children) renderOneLayer(e.target.getAttribute("data-name"))
+            layer = thisLayer
+          })
+        })
+      }
+
+      function getNode(name, article) {
+        let node = null
+        for (let i = 0; i < article.length; i++) {
+          if (article[i].name === name) {
+            node = article[i]
+            break
+          } else if (article[i].children) {
+            node = getNode(name, article[i].children)
+            if (node) {
+              break
+            }
+          }
+        }
+        return node
+      }
+      function getSiblings(name, article) {
+        let siblings = null
+        for (let i = 0; i < article.length; i++) {
+          if (article[i].name === name) {
+            siblings = article // this is the only difference between getSiblings and getNode...?
+            break
+          } else if (article[i].children) {
+            siblings = getSiblings(name, article[i].children)
+            if (siblings) {
+              break
+            }
+          }
+        }
+        return siblings
+      }
+
+      function getChildren(name, article) {
+        let children = []
+        getNode(name, article)?.children?.forEach((child) => {
+          children.push(child)
+          if (child.children) {
+            children = children.concat(getChildren(child.name, article))
+          }
+        })
+        return children
+      }
+
+      const playground = document.getElementById("playground")
+      const background = document.getElementById("background")
+      const article = [
+        {
+          name: "",
+          content: "0",
+          children: [
+            {
+              name: "a",
+              content: "内库烧为锦绣灰，",
+              children: [
+                {
+                  name: "aa",
+                  content: "天街踏尽公卿骨。",
+                  children: [
                     {
-                        name:'a',
-                        content: '内库烧为锦绣灰，',
-                        children: [
-                            {
-                                name: 'aa',
-                                content: '天街踏尽公卿骨。',
-                                children: [
-                                    {
-                                        name: 'aaa',
-                                        content: '待到秋来九月八',
-                                        children: [
-                                            {
-                                                name: 'aaaa',
-                                                content: '待到山花烂漫时...'
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        name: 'aab',
-                                        content: '我花开后百花杀'
-                                    },
-                                    {
-                                        name: 'aac',
-                                        content: '冲天香阵透长安',
-                                    },
-                                    {
-                                        name: 'aad',
-                                        content: '满城尽带黄金甲',
-                                        children: [
-                                            {
-                                                name: 'aada',
-                                                content: '红旗卷起农奴戟',
-                                                children: [
-                                                    {
-                                                        name: 'aadaa',
-                                                        content: '黑手高悬霸主鞭',
-                                                        children: [
-                                                            {
-                                                                name: 'aadaaa',
-                                                                content: '为有牺牲多壮志',
-                                                                children: [
-                                                                    {
-                                                                        name: 'aadaaaa',
-                                                                        content: '敢教日月换新天'
-                                                                    }
-                                                                ]
-                                                            }
-                                                        ]
-                                                    }
-                                                ]
-                                            }
-                                        ]
-                                    }
-                                ]
-                            },
-                            {
-                                name: 'ab',
-                                content: '陈王昔时宴平乐',
-                                children: [
-                                    {
-                                        name: 'aba',
-                                        content: '陈王奋起挥黄钺',
-                                        children: [
-                                            {
-                                                name: 'abaa',
-                                                content: '阿巴阿巴'
-                                            }
-                                        ]
-                                    },
-                                    {
-                                        name: 'abb',
-                                        content: '阿巴巴'
-                                    }
-                                ]
-                            }
-                        ]
+                      name: "aaa",
+                      content: "待到秋来九月八",
+                      children: [
+                        {
+                          name: "aaaa",
+                          content: "待到山花烂漫时...",
+                        },
+                      ],
                     },
                     {
-                        name:'b',
-                        content: '我那厌恶与愤恨从何而来...',
-                        children: [
+                      name: "aab",
+                      content: "我花开后百花杀",
+                    },
+                    {
+                      name: "aac",
+                      content: "冲天香阵透长安",
+                    },
+                    {
+                      name: "aad",
+                      content: "满城尽带黄金甲",
+                      children: [
+                        {
+                          name: "aada",
+                          content: "红旗卷起农奴戟",
+                          children: [
                             {
-                                name:'ba',
-                                content:'又要往何处去...',
-                                children: [
+                              name: "aadaa",
+                              content: "黑手高悬霸主鞭",
+                              children: [
+                                {
+                                  name: "aadaaa",
+                                  content: "为有牺牲多壮志",
+                                  children: [
                                     {
-                                        name:'baa',
-                                        content:'如果你连自保都难以做到，整日畏畏缩缩在茫然中被欺辱，请告诉我，为什么要我，做你的孩子...'
+                                      name: "aadaaaa",
+                                      content: "敢教日月换新天",
                                     },
-                                    {
-                                        name:'bab',
-                                        content:'如何原谅别人？去变强就好了，人不会向着一个被踩死的蚂蚁去寻求原谅，蚂蚁也没资格去原谅别人，这么干的有一个算一个都是神经病，但是如果踩的是老虎尾巴那就有寻求原谅的必要了。所以，去变强，纯粹的变强，这样就可以原谅了。“告诉我，我拿什么原谅你？我有什么资格原谅你？我有什么手段能把你也弄得半死不活？”'
-                                    },
-                                    {
-                                        name:'bac',
-                                        content:'俄乌冲突...在很多人眼里像大人打小孩，“我俄罗斯虽然条件差了点脾气坏了点，但还是爱你的，况且我打你也是你太不听话才打的，你现在天天想要跑西方去，但人家真管你吗，一直就吊着你骗你，还不如回来让我再打几顿，虽然我打你，但不会真害你”...某种意义上我挺支持俄罗斯这一边的，如果他真的够强的话，如果他依旧像斯大林时期的苏联一样，几下就能把乌克兰打服，想的话也能把欧美推平的话，我觉得乌克兰也会很愿意听话的。不管是真心顺从，还是迫不得已...其实我觉得迫不得已的顺从才是最真诚的，反正，够强的话，很多都不是问题，只是...他不够强了。'
-                                    },
-                                    {
-                                        name:'bad',
-                                        content:'我要...'
-                                    }
-                                ]
+                                  ],
+                                },
+                              ],
                             },
-                            {
-                                name:'bb',
-                                content:'我不想要这样...',
-                                children:[
-                                    {
-                                        name:'bba',
-                                        content:'我不想这么丧...'
-                                    },
-                                    {
-                                        name:'bbc',
-                                        content:'社会化(socialization)是个体在特定的社会文化环境中，学习和掌握知识、技能、语言、规范、价值观等社会行为方式和人格特征，适应社会并积极作用于社会、创造新文化的过程。它是人和社会相互作用的结果。通过社会化，个体学习社会中的标准、规范，价值和所期望的行为。'
-                                    },
-                                    {
-                                        name:'bbd',
-                                        content:'do i have anohter chance? to... eraser this all... to... save the past, and the future... or, just a small nap'
-                                    },
-                                    {
-                                        name:'bbe',
-                                        content:'❤'
-                                    },
-                                ]
-                            },
-                            {
-                                name: 'bc',
-                                content: '什么是值得的',
-                                children: [
-                                    {
-                                        name:'bca',
-                                        content:'没有什么是值得的。',
-                                        children:[
-                                            {
-                                                name:'bcaa',
-                                                content:'我会想，上了这么久的学，做了那么多自己不想做的事...如果花这么多只为换一份“安逸”的工作...这值得吗？'
-                                            },
-                                            {
-                                                name:'bcab',
-                                                content:'这简直就是神经病。'
-                                            },
-                                            {
-                                                name:'bcac',
-                                                content:'我经常这么想↑，丢掉的一些...再多钱，不论什么都换不来赔不了了。何况...即使都做了，那所谓的补偿也一样没多大差别，也一样跌跌涨涨，棋差一步。这是神经病，这是一堆一堆的神经病。'
-                                            },
-                                            {
-                                                name:'bcad',
-                                                content:'除非，不为所谓的补偿回报去行动...。可那又该做什么呢，宏大的叙事早已破碎...'
-                                            },
-                                            {
-                                                name:'bcae',
-                                                content:'曾有笑话农村人为了微小的利益，为了鸡毛蒜皮的小事而做出很多夸张甚至危险乃至不顾性命的事...你知道吗，占小便宜是高于生命的存在————占小便宜不是为了生活，占小便宜是为了占小便宜，更甚————生活是就是为了占小便宜。想想吧，如果没有了占小便宜，你的生活会多么的枯燥无聊，为此我们把一堆堆小土豆分出了三六九等，我们在荒漠中创造了丰饶与贫瘠...'
-                                            },
-                                        ]
-                                    },
-                                    {
-                                        name:'bcb',
-                                        content:'什么都是值得的',
-                                        children:[
-                                            {
-                                                name:'bcba',
-                                                content:'但没有人会给你"补偿"，你要自己认定，那件事，从开始到结束，不论花费多少，不论有无结果，它都是，应该去做的。'
-                                            },
-                                            {
-                                                name:'bcbb',
-                                                content:'为了家人同胞也好，为了自己取乐也好，为了去青楼当头牌也好...这是使命，这是不需要度量思考的地方，也是不容许被度量定价的地方。'
-                                            }
-                                        ]
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            }
-        ]
-        function init() {
-            const start = document.createElement('div')
-            start.innerHTML = `
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  name: "ab",
+                  content: "陈王昔时宴平乐",
+                  children: [
+                    {
+                      name: "aba",
+                      content: "陈王奋起挥黄钺",
+                      children: [
+                        {
+                          name: "abaa",
+                          content: "阿巴阿巴",
+                        },
+                      ],
+                    },
+                    {
+                      name: "abb",
+                      content: "阿巴巴",
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              name: "b",
+              content: "我那厌恶与愤恨从何而来...",
+              children: [
+                {
+                  name: "ba",
+                  content: "又要往何处去...",
+                  children: [
+                    {
+                      name: "baa",
+                      content: "如果你连自保都难以做到，整日畏畏缩缩在茫然中被欺辱，请告诉我，为什么要我，做你的孩子...",
+                    },
+                    {
+                      name: "bab",
+                      content: "如何原谅别人？去变强就好了，人不会向着一个被踩死的蚂蚁去寻求原谅，蚂蚁也没资格去原谅别人，这么干的有一个算一个都是神经病，但是如果踩的是老虎尾巴那就有寻求原谅的必要了。所以，去变强，纯粹的变强，这样就可以原谅了。“告诉我，我拿什么原谅你？我有什么资格原谅你？我有什么手段能把你也弄得半死不活？”",
+                    },
+                    {
+                      name: "bac",
+                      content: "俄乌冲突...在很多人眼里像大人打小孩，“我俄罗斯虽然条件差了点脾气坏了点，但还是爱你的，况且我打你也是你太不听话才打的，你现在天天想要跑西方去，但人家真管你吗，一直就吊着你骗你，还不如回来让我再打几顿，虽然我打你，但不会真害你”...某种意义上我挺支持俄罗斯这一边的，如果他真的够强的话，如果他依旧像斯大林时期的苏联一样，几下就能把乌克兰打服，想的话也能把欧美推平的话，我觉得乌克兰也会很愿意听话的。不管是真心顺从，还是迫不得已...其实我觉得迫不得已的顺从才是最真诚的，反正，够强的话，很多都不是问题，只是...他不够强了。",
+                    },
+                    {
+                      name: "bad",
+                      content: "我要...",
+                    },
+                  ],
+                },
+                {
+                  name: "bb",
+                  content: "我不想要这样...",
+                  children: [
+                    {
+                      name: "bba",
+                      content: "我不想这么丧...",
+                    },
+                    {
+                      name: "bbc",
+                      content: "社会化(socialization)是个体在特定的社会文化环境中，学习和掌握知识、技能、语言、规范、价值观等社会行为方式和人格特征，适应社会并积极作用于社会、创造新文化的过程。它是人和社会相互作用的结果。通过社会化，个体学习社会中的标准、规范，价值和所期望的行为。",
+                    },
+                    {
+                      name: "bbd",
+                      content: "do i have anohter chance? to... eraser this all... to... save the past, and the future... or, just a small nap",
+                    },
+                    {
+                      name: "bbe",
+                      content: "❤",
+                    },
+                  ],
+                },
+                {
+                  name: "bc",
+                  content: "什么是值得的",
+                  children: [
+                    {
+                      name: "bca",
+                      content: "没有什么是值得的。",
+                      children: [
+                        {
+                          name: "bcaa",
+                          content: "我会想，上了这么久的学，做了那么多自己不想做的事...如果花这么多只为换一份“安逸”的工作...这值得吗？",
+                        },
+                        {
+                          name: "bcab",
+                          content: "这简直就是神经病。",
+                        },
+                        {
+                          name: "bcac",
+                          content: "我经常这么想↑，丢掉的一些...再多钱，不论什么都换不来赔不了了。何况...即使都做了，那所谓的补偿也一样没多大差别，也一样跌跌涨涨，棋差一步。这是神经病，这是一堆一堆的神经病。",
+                        },
+                        {
+                          name: "bcad",
+                          content: "除非，不为所谓的补偿回报去行动...。可那又该做什么呢，宏大的叙事早已破碎...",
+                        },
+                        {
+                          name: "bcae",
+                          content: "曾有笑话农村人为了微小的利益，为了鸡毛蒜皮的小事而做出很多夸张甚至危险乃至不顾性命的事...你知道吗，占小便宜是高于生命的存在————占小便宜不是为了生活，占小便宜是为了占小便宜，更甚————生活是就是为了占小便宜。想想吧，如果没有了占小便宜，你的生活会多么的枯燥无聊，为此我们把一堆堆小土豆分出了三六九等，我们在荒漠中创造了丰饶与贫瘠...",
+                        },
+                      ],
+                    },
+                    {
+                      name: "bcb",
+                      content: "什么都是值得的",
+                      children: [
+                        {
+                          name: "bcba",
+                          content: '但没有人会给你"补偿"，你要自己认定，那件事，从开始到结束，不论花费多少，不论有无结果，它都是，应该去做的。',
+                        },
+                        {
+                          name: "bcbb",
+                          content: "为了家人同胞也好，为了自己取乐也好，为了去青楼当头牌也好...这是使命，这是不需要度量思考的地方，也是不容许被度量定价的地方。",
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ]
+      function init() {
+        const start = document.createElement("div")
+        start.innerHTML = `
                 <div class="menu__column" data-name="start00000000" style="left: 0px;top: 0px;">
                     <div class="menu__item" data-name="0">Start~<div class="menu__icon">></div></div>
                 </div>
             `
-            start.addEventListener('click',(e)=>{
-                document.querySelectorAll('.menu__column').forEach(ele => {
-                    if(ele.getAttribute('data-name') !== 'start00000000') {
-                        ele.remove()
-                    }
-                })
-                position.x = 200
-                position.y = 21
-                renderOneLayer('0')
+        start.addEventListener("click", (e) => {
+          document.querySelectorAll(".menu__column").forEach((ele) => {
+            if (ele.getAttribute("data-name") !== "start00000000") {
+              ele.remove()
+            }
+          })
+          position.x = 200
+          position.y = 21
+          renderOneLayer("0")
+        })
+        playground.appendChild(start)
+        document.addEventListener("click", (e) => {
+          if (e.target === playground) {
+            document.querySelectorAll(".menu__column").forEach((ele) => {
+              if (ele.getAttribute("data-name") !== "start00000000") {
+                ele.remove()
+              }
             })
-            playground.appendChild(start)
-            document.addEventListener('click', (e) => {
-                if(e.target === playground){
-                    document.querySelectorAll('.menu__column').forEach(ele => {
-                        if(ele.getAttribute('data-name') !== 'start00000000') {
-                            ele.remove()
-                        }
-                    })
-                }
-            })
-        }
-        init()
+          }
+        })
+      }
+      init()
     </script>
-</body>
+  </body>
 </html>

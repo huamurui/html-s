@@ -1,116 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>ball</title>
     <style>
-        *{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        #playground{
-            position: relative;
-            width: 100%;
-            height: 100vh;
-            background-color: #f1f1f1;
-            overflow: hidden;
-        }
-        .ball{
-            position: absolute;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background-color: #000;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%,-50%);
-            cursor: pointer;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      #playground {
+        position: relative;
+        width: 100%;
+        height: 100vh;
+        background-color: #f1f1f1;
+        overflow: hidden;
+      }
+      .ball {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: #000;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        cursor: pointer;
+      }
     </style>
-</head>
-<body>
+  </head>
+  <body>
     <div id="playground"></div>
     <script>
-        const playground = document.getElementById('playground')
-        const ball = document.createElement('div')
-        // a ball which is a div element, it can be dnd by mouse | touch and it can be throwed by mouse | touch
-        ball.classList.add('ball')
-        playground.appendChild(ball)
+      const playground = document.getElementById("playground")
+      const ball = document.createElement("div")
+      // a ball which is a div element, it can be dnd by mouse | touch and it can be throwed by mouse | touch
+      ball.classList.add("ball")
+      playground.appendChild(ball)
 
-        let x = 0, y = 0, preX = 0, preY = 0, speedX = 0, speedY = 0, disX = 0, disY = 0, date = 0, date0 = 0
-        let adjustSpeedX = 0, adjustSpeedY = 0, lastX = 0, lastY = 0
-        ball.addEventListener('mousedown',onStart)
-        ball.addEventListener('touchstart',onStart)
+      let x = 0,
+        y = 0,
+        preX = 0,
+        preY = 0,
+        speedX = 0,
+        speedY = 0,
+        disX = 0,
+        disY = 0,
+        date = 0,
+        date0 = 0
+      let adjustSpeedX = 0,
+        adjustSpeedY = 0,
+        lastX = 0,
+        lastY = 0
+      ball.addEventListener("mousedown", onStart)
+      ball.addEventListener("touchstart", onStart)
 
-        function onStart(e){
-            if(e.type === 'touchstart'){
-                e = e.touches[0]
-                document.addEventListener('touchmove',onMove,{passive:false})
-                document.addEventListener('touchend',onUp)
-            }else{
-                document.addEventListener('mousemove',onMove,{passive:false})
-                document.addEventListener('mouseup',onUp)
-            }
-            x = e.clientX
-            y = e.clientY
-            preX = e.clientX
-            preY = e.clientY
-            speedX = 0, speedY = 0
-            date = Date.now()
-            disX = e.clientX - ball.offsetLeft
-            disY = e.clientY - ball.offsetTop
+      function onStart(e) {
+        if (e.type === "touchstart") {
+          e = e.touches[0]
+          document.addEventListener("touchmove", onMove, { passive: false })
+          document.addEventListener("touchend", onUp)
+        } else {
+          document.addEventListener("mousemove", onMove, { passive: false })
+          document.addEventListener("mouseup", onUp)
         }
-        function onMove (e){
-
-            if(e.type === 'touchmove'){
-                e = e.touches[0]
-            }
-            ball.style.left = e.clientX - disX + 'px'
-            ball.style.top = e.clientY - disY + 'px'
-
-            if(Date.now - date > 300){
-                date = Date.now()
-                preX = e.clientX
-                preY = e.clientY
-            }
-            speedX = (e.clientX - preX) / (Date.now() - date) * 10
-            speedY = (e.clientY - preY) / (Date.now() - date) * 10
-            // 惯性的模拟...是个问题。尤其，拖拽这一行为并不符合惯性，它几乎是瞬时的...这两者结合更是问题。
-            // 只记录最后一次的速度，然后让它自己运动...就是讲...你真是闲的搞这些。
-            // 移动端，卡顿十分严重。...也需要换个思路，你需要的并非搞一整个“合理”的理法，而是，动画，打表！
-
-            // 好，方向只取最后一次的，那“力度”如何计算？？
-            // 我在想的是...能不能，就基于现在的这个，计算目前这玩意的模长。采用大小而舍方向。
-            let size = Math.sqrt(speedX * speedX + speedY * speedY)
-            adjustSpeedX = (e.clientX - lastX) * size
-            adjustSpeedY = (e.clientY - lastY) * size
-            lastX = e.clientX
-            lastY = e.clientY
+        x = e.clientX
+        y = e.clientY
+        preX = e.clientX
+        preY = e.clientY
+        ;(speedX = 0), (speedY = 0)
+        date = Date.now()
+        disX = e.clientX - ball.offsetLeft
+        disY = e.clientY - ball.offsetTop
+      }
+      function onMove(e) {
+        if (e.type === "touchmove") {
+          e = e.touches[0]
         }
+        ball.style.left = e.clientX - disX + "px"
+        ball.style.top = e.clientY - disY + "px"
 
-        function onUp(e){
-            document.removeEventListener('mousemove',onMove)
-            document.removeEventListener('mouseup',onUp)
-            throwBall(ball,adjustSpeedX,adjustSpeedY)
+        if (Date.now - date > 300) {
+          date = Date.now()
+          preX = e.clientX
+          preY = e.clientY
         }
-        function throwBall(obj,adjustSpeedX,adjustSpeedY){
-            clearInterval(obj.timer);
-            obj.timer=setInterval(function(){
-                if(obj.offsetLeft < 0 | obj.offsetLeft > window.innerWidth) adjustSpeedX = -adjustSpeedX
-                if(obj.offsetTop < 0 | obj.offsetTop > window.innerHeight) adjustSpeedY = -adjustSpeedY
-                adjustSpeedX*=0.95
-                adjustSpeedY*=0.95
-                obj.style.left=(obj.offsetLeft+(adjustSpeedX * 0.5))+'px';
-                obj.style.top=(obj.offsetTop+(adjustSpeedY * 0.5))+'px';
-                if(Math.abs(adjustSpeedX)<1) adjustSpeedX=0;
-                if(Math.abs(adjustSpeedY)<1) adjustSpeedY=0;
-                if(adjustSpeedX==0&&adjustSpeedY==0){
-                    clearInterval(obj.timer);   
-                }
-            },16);  
-        }
-        </script>
-</body>
+        speedX = ((e.clientX - preX) / (Date.now() - date)) * 10
+        speedY = ((e.clientY - preY) / (Date.now() - date)) * 10
+        // 惯性的模拟...是个问题。尤其，拖拽这一行为并不符合惯性，它几乎是瞬时的...这两者结合更是问题。
+        // 只记录最后一次的速度，然后让它自己运动...就是讲...你真是闲的搞这些。
+        // 移动端，卡顿十分严重。...也需要换个思路，你需要的并非搞一整个“合理”的理法，而是，动画，打表！
+
+        // 好，方向只取最后一次的，那“力度”如何计算？？
+        // 我在想的是...能不能，就基于现在的这个，计算目前这玩意的模长。采用大小而舍方向。
+        let size = Math.sqrt(speedX * speedX + speedY * speedY)
+        adjustSpeedX = (e.clientX - lastX) * size
+        adjustSpeedY = (e.clientY - lastY) * size
+        lastX = e.clientX
+        lastY = e.clientY
+      }
+
+      function onUp(e) {
+        document.removeEventListener("mousemove", onMove)
+        document.removeEventListener("mouseup", onUp)
+        throwBall(ball, adjustSpeedX, adjustSpeedY)
+      }
+      function throwBall(obj, adjustSpeedX, adjustSpeedY) {
+        clearInterval(obj.timer)
+        obj.timer = setInterval(function () {
+          if ((obj.offsetLeft < 0) | (obj.offsetLeft > window.innerWidth)) adjustSpeedX = -adjustSpeedX
+          if ((obj.offsetTop < 0) | (obj.offsetTop > window.innerHeight)) adjustSpeedY = -adjustSpeedY
+          adjustSpeedX *= 0.95
+          adjustSpeedY *= 0.95
+          obj.style.left = obj.offsetLeft + adjustSpeedX * 0.5 + "px"
+          obj.style.top = obj.offsetTop + adjustSpeedY * 0.5 + "px"
+          if (Math.abs(adjustSpeedX) < 1) adjustSpeedX = 0
+          if (Math.abs(adjustSpeedY) < 1) adjustSpeedY = 0
+          if (adjustSpeedX == 0 && adjustSpeedY == 0) {
+            clearInterval(obj.timer)
+          }
+        }, 16)
+      }
+    </script>
+  </body>
 </html>
