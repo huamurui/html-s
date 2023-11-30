@@ -304,6 +304,19 @@
         keyEl.classList.remove("pressed")
       })
     })
+
+
+    // 上半是基础信息，基准音，速度，默认音长度
+    // 下半是乐谱具体内容，逗号分隔音符，小括号内是音长，也许还可以加中括号，连续的逗号也可以延长
+    const exampleDoc = `
+    name:lala
+    speed: 100
+    default_step: 1
+    degree: C4
+    ---
+    1,1,5,5,6,6,
+    5,5,4,4(1),
+    `
   </script>
 </body>
 </html>
