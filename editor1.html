@@ -1,0 +1,208 @@
+<html>
+<head>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+    }
+    #editor {
+      position: relative;
+      width: 500px;
+      height: 500px;
+      font-family: Consolas, "Courier New", monospace;
+      user-select: none;
+      cursor: text;
+      margin: 20px;
+    }
+
+    .view-lines {
+      font-size: 14px;
+    }
+    
+    .view-line {
+      font-family: Consolas, "Courier New", monospace;
+      height: 19px;
+    }
+
+    /* 设置不同类型的颜色 */
+    .keyword {
+      color: blue;
+    }
+    .variable {
+      color: green;
+    }
+    .string {
+      color: red;
+    }
+    /* 设置光标的样式 */
+    .cursor {
+      position: absolute;
+      display: inline-block;
+      width: 2px;
+      height: 19px;
+      background-color: black;
+      animation: blink 1s infinite;
+    }
+    /* 设置光标的闪烁效果 */
+    @keyframes blink {
+      50% {
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+  <div class="view-line"><span style="background-color: red;">1</span></div>
+  <div class="view-line"><span style="background-color: red;">2</span></div>
+  <div class="view-line"><span style="background-color: red;">f</span></div>
+  <div class="view-line"><span style="background-color: red;">f</span></div>
+  <div class="view-line"><span style="background-color: red;">&nbsp;</span></div>
+  <script>
+    const exampleDoc = "function add(a, b) {\n return a + b \n}"
+    // 行高固定19px, 字体为monospace, 一个字符宽度为7.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
+    const editor = document.querySelector('#editor')
+    const cursor = document.createElement('span')
+    cursor.className = 'cursor'
+    editor.appendChild(cursor)
+    const content = document.createElement('div')
+    content.className = 'view-lines'
+    editor.appendChild(content)
+    // 处理特殊符号如空格, 因为空格在html中是, 所以需要转换
+    const lines = exampleDoc.split('\n')
+    for (let i = 0; i < lines.length; i++) {
+      const line = document.createElement('div')
+      line.className = 'view-line'
+      line.innerHTML = lines[i].replace(/ /g, '&nbsp;').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+      content.appendChild(line)
+    }
+    let pagation = {
+      line: 0,
+      column: 0
+    }
+
+    let position = {
+      left: 0,
+      top: 0
+    }
+
+    function updateCursor() {
+      cursor.style.left = position.left + 'px'
+      cursor.style.top = position.top + 'px'
+    }
+
+    function updatePosition() {
+      const lineElement = content.children[pagation.line]
+      const text = lineElement.textContent
+      const textBeforeCursor = text.slice(0, pagation.column)
+      const textAfterCursor = text.slice(pagation.column)
+      const textBeforeCursorWidth = textBeforeCursor.length * 7.5
+      const textAfterCursorWidth = textAfterCursor.length * 7.5
+      position.left = textBeforeCursorWidth
+      position.top = pagation.line * 19
+      console.log('left', position.left, 'top', position.top)
+      updateCursor()
+    }
+
+    function moveLeft() {
+      if (pagation.column > 0) {
+        pagation.column--
+      } else if (pagation.line > 0) {
+        pagation.line--
+        pagation.column = content.children[pagation.line].textContent.length
+      }
+      updatePosition()
+    }
+
+    function moveRight() {
+      const lineElement = content.children[pagation.line]
+      if (pagation.column < lineElement.textContent.length) {
+        pagation.column++
+      } else if (pagation.line < content.children.length - 1) {
+        pagation.line++
+        pagation.column = 0
+      }
+      updatePosition()
+    }
+
+    function moveUp() {
+      if (pagation.line > 0) {
+        pagation.line--
+      }
+      updatePosition()
+    }
+
+    function moveDown() {
+      if (pagation.line < content.children.length - 1) {
+        pagation.line++
+      }
+      updatePosition()
+    }
+
+    function insertText(text) {
+      const lineElement = content.children[pagation.line]
+      const textBeforeCursor = lineElement.textContent.slice(0, pagation.column)
+      const textAfterCursor = lineElement.textContent.slice(pagation.column)
+      lineElement.textContent = textBeforeCursor + text + textAfterCursor
+      pagation.column += text.length
+      updatePosition()
+    }
+
+    function deleteText() {
+      const lineElement = content.children[pagation.line]
+      const textBeforeCursor = lineElement.textContent.slice(0, pagation.column)
+      const textAfterCursor = lineElement.textContent.slice(pagation.column)
+      if (pagation.column > 0) {
+        lineElement.textContent = textBeforeCursor.slice(0, -1) + textAfterCursor
+        pagation.column--
+      } else if (pagation.line > 0) {
+        const lineBefore = content.children[pagation.line - 1]
+        const textBefore = lineBefore.textContent
+        lineBefore.textContent = textBefore + textAfterCursor
+        lineElement.remove()
+        pagation.line--
+        pagation.column = textBefore.length
+      }
+      updatePosition()
+    }
+
+    function handleKeydown(event) {
+      if (event.key === 'ArrowLeft') {
+        moveLeft()
+      } else if (event.key === 'ArrowRight') {
+        moveRight()
+      } else if (event.key === 'ArrowUp') {
+        moveUp()
+      } else if (event.key === 'ArrowDown') {
+        moveDown()
+      } else if (event.key === 'Backspace') {
+        deleteText()
+      } else if (event.key.length === 1) {
+        insertText(event.key)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('click', (e) => {
+      // 根据点击的位置计算光标的位置，更新光标的位置，并且更新line和column
+      const x = e.clientX - content.getBoundingClientRect().left
+      const y = e.clientY - content.getBoundingClientRect().top
+      const line = Math.floor(y / 19)
+      const lineElement = content.children[line]
+      const text = lineElement.textContent
+      const column = Math.floor(x / 7.5)
+      const textBeforeCursor = text.slice(0, column)
+      const textAfterCursor = text.slice(column)
+      const textBeforeCursorWidth = textBeforeCursor.length * 7.5
+      const textAfterCursorWidth = textAfterCursor.length * 7.5
+      position.left = textBeforeCursorWidth
+      position.top = line * 19
+      pagation.line = line
+      pagation.column = column
+      console.log('left', position.left, 'top', position.top)
+      updateCursor()
+    })
+
+  </script>
+</body>
+</html>
