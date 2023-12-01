@@ -81,7 +81,7 @@
       }
     }
     renderDoc(exampleDoc.split('\n'))
-    let pagation = {
+    let pagination = {
       line: 0,
       column: 0
     }
@@ -97,61 +97,61 @@
     }
 
     function updatePosition() {
-      const lineElement = content.children[pagation.line]
+      const lineElement = content.children[pagination.line]
       const text = lineElement.textContent
-      const textBeforeCursor = text.slice(0, pagation.column)
-      const textAfterCursor = text.slice(pagation.column)
+      const textBeforeCursor = text.slice(0, pagination.column)
+      const textAfterCursor = text.slice(pagination.column)
       const textBeforeCursorWidth = textBeforeCursor.length * 7.7
       const textAfterCursorWidth = textAfterCursor.length * 7.7
       position.left = textBeforeCursorWidth
-      position.top = pagation.line * 19
+      position.top = pagination.line * 19
       console.log('left', position.left, 'top', position.top)
       updateCursor()
     }
 
     function moveLeft() {
-      if (pagation.column > 0) {
-        pagation.column--
-      } else if (pagation.line > 0) {
-        pagation.line--
-        pagation.column = content.children[pagation.line].textContent.length
+      if (pagination.column > 0) {
+        pagination.column--
+      } else if (pagination.line > 0) {
+        pagination.line--
+        pagination.column = content.children[pagination.line].textContent.length
       }
       updatePosition()
     }
 
     function moveRight() {
-      const lineElement = content.children[pagation.line]
-      if (pagation.column < lineElement.textContent.length) {
-        pagation.column++
-      } else if (pagation.line < content.children.length - 1) {
-        pagation.line++
-        pagation.column = 0
+      const lineElement = content.children[pagination.line]
+      if (pagination.column < lineElement.textContent.length) {
+        pagination.column++
+      } else if (pagination.line < content.children.length - 1) {
+        pagination.line++
+        pagination.column = 0
       }
       updatePosition()
     }
 
     function moveUp() {
-      if (pagation.line > 0) {
-        pagation.line--
+      if (pagination.line > 0) {
+        pagination.line--
       }
       updatePosition()
     }
 
     function moveDown() {
-      if (pagation.line < content.children.length - 1) {
-        pagation.line++
+      if (pagination.line < content.children.length - 1) {
+        pagination.line++
       }
       updatePosition()
     }
 
     function insertText(text) {
       lines = exampleDoc.split('\n')
-      lines[pagation.line] = lines[pagation.line].slice(0, pagation.column) + text + lines[pagation.line].slice(pagation.column)
+      lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + text + lines[pagination.line].slice(pagination.column)
       exampleDoc = lines.join('\n')
-      pagation.column++
+      pagination.column++
       if(text === '\n') {
-        pagation.line++
-        pagation.column = 0
+        pagination.line++
+        pagination.column = 0
       }
       renderDoc(exampleDoc.split('\n'))
       updatePosition()
@@ -159,14 +159,14 @@
 
     function deleteText() {
       lines = exampleDoc.split('\n')
-      if (pagation.column > 0) {
-        lines[pagation.line] = lines[pagation.line].slice(0, pagation.column - 1) + lines[pagation.line].slice(pagation.column)
-        pagation.column--
-      } else if (pagation.line > 0) {
-        pagation.line--
-        pagation.column = content.children[pagation.line].textContent.length
-        lines[pagation.line] = lines[pagation.line].slice(0, pagation.column) + lines[pagation.line + 1]
-        lines.splice(pagation.line + 1, 1)
+      if (pagination.column > 0) {
+        lines[pagination.line] = lines[pagination.line].slice(0, pagination.column - 1) + lines[pagination.line].slice(pagination.column)
+        pagination.column--
+      } else if (pagination.line > 0) {
+        pagination.line--
+        pagination.column = content.children[pagination.line].textContent.length
+        lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + lines[pagination.line + 1]
+        lines.splice(pagination.line + 1, 1)
       }
       exampleDoc = lines.join('\n')
       renderDoc(exampleDoc.split('\n'))
@@ -206,8 +206,8 @@
       const textAfterCursorWidth = textAfterCursor.length * 7.7
       position.left = textBeforeCursorWidth
       position.top = line * 19
-      pagation.line = line
-      pagation.column = column
+      pagination.line = line
+      pagination.column = column
       console.log('left', position.left, 'top', position.top)
       updateCursor()
     })
