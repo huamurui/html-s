@@ -35,6 +35,8 @@
       display: inline-block;
       width: 2px;
       height: 19px;
+      top: 0;
+      left: 0;
       background-color: black;
       animation: blink 1s infinite;
     }
@@ -48,7 +50,9 @@
 </head>
 <body>
   <div id="editor">
-    <textarea id="input" style="display: none;"></textarea>
+    <div class="view-lines"></div>
+    <textarea style="display: none;"></textarea>
+    <span class="cursor"></span>
   </div>
   <div class="view-line"><span style="background-color: red;">9999999999</span></div>
   <div class="view-line"><span style="background-color: red;">2</span></div>
@@ -60,12 +64,8 @@
     // 行高固定19px, 字体为monospace, 字号14px时，一个字符宽度为7.7px,高度16.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
     // ...字体，在不同设备上，竟然...不一样...呃
     const editor = document.querySelector('#editor')
-    const cursor = document.createElement('span')
-    cursor.className = 'cursor'
-    editor.appendChild(cursor)
-    const content = document.createElement('div')
-    content.className = 'view-lines'
-    editor.appendChild(content)
+    const cursor = document.querySelector('.cursor')
+    const content = document.querySelector('.view-lines')
     // 处理特殊符号如空格, 因为空格在html中是, 所以需要转换
     function renderDoc(lines) {
       content.innerHTML = ''
