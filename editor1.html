@@ -12,8 +12,8 @@
       position: relative;
       width: 500px;
       height: 500px;
-      /* font-family: Consolas, "Courier New", monospace; */
-      font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace;
+      font-family: Consolas, "Courier New", monospace;
+      /* font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace; */
       background-color: #eee;
       user-select: none;
       cursor: text;
@@ -61,6 +61,17 @@
   <div class="view-line"><span style="background-color: red;">&nbsp;</span></div>
   <script>
     let exampleDoc = "function add(a, b) {\n return a + b \n}"
+    let lines = new Proxy(exampleDoc.split('\n'), {
+      get(target, prop) {
+        return target[prop]
+      },
+      set(target, prop, value) {
+        target[prop] = value
+        // renderDoc(target)
+        return true
+      }
+    })
+
     // 行高固定19px, 字体为monospace, 字号14px时，一个字符宽度为7.7px,高度16.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
     // ...字体，在不同设备上，竟然...不一样...呃
     const editor = document.querySelector('#editor')
@@ -80,7 +91,7 @@
         content.appendChild(line)
       }
     }
-    renderDoc(exampleDoc.split('\n'))
+    renderDoc(lines)
     let pagination = {
       line: 0,
       column: 0
@@ -97,15 +108,11 @@
     }
 
     function updatePosition() {
-      const lineElement = content.children[pagination.line]
-      const text = lineElement.textContent
-      const textBeforeCursor = text.slice(0, pagination.column)
-      const textAfterCursor = text.slice(pagination.column)
-      const textBeforeCursorWidth = textBeforeCursor.length * 7.7
-      const textAfterCursorWidth = textAfterCursor.length * 7.7
-      position.left = textBeforeCursorWidth
+      const text = lines[pagination.line]
+      text.length > pagination.column 
+      ? position.left = pagination.column * 7.7
+      : position.left = text.length * 7.7
       position.top = pagination.line * 19
-      console.log('left', position.left, 'top', position.top)
       updateCursor()
     }
 
@@ -114,16 +121,15 @@
         pagination.column--
       } else if (pagination.line > 0) {
         pagination.line--
-        pagination.column = content.children[pagination.line].textContent.length
+        pagination.column = lines[pagination.line].length
       }
       updatePosition()
     }
-
+    
     function moveRight() {
-      const lineElement = content.children[pagination.line]
-      if (pagination.column < lineElement.textContent.length) {
+      if (pagination.column < lines[pagination.line].length) {
         pagination.column++
-      } else if (pagination.line < content.children.length - 1) {
+      } else if (pagination.line < lines.length - 1) {
         pagination.line++
         pagination.column = 0
       }
@@ -138,33 +144,38 @@
     }
 
     function moveDown() {
-      if (pagination.line < content.children.length - 1) {
+      if (pagination.line < lines.length - 1) {
         pagination.line++
       }
       updatePosition()
     }
 
     function insertText(text) {
-      lines = exampleDoc.split('\n')
-      lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + text + lines[pagination.line].slice(pagination.column)
-      exampleDoc = lines.join('\n')
-      pagination.column++
       if(text === '\n') {
+        const line = lines[pagination.line]
+        const left = line.slice(0, pagination.column)
+        const right = line.slice(pagination.column)
+        lines[pagination.line] = left
+        lines.splice(pagination.line + 1, 0, right)
         pagination.line++
         pagination.column = 0
+        exampleDoc = lines.join('\n')
+      } else {
+        lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + text + lines[pagination.line].slice(pagination.column)
+        exampleDoc = lines.join('\n')
+        pagination.column++
       }
       renderDoc(exampleDoc.split('\n'))
       updatePosition()
     }
 
     function deleteText() {
-      lines = exampleDoc.split('\n')
       if (pagination.column > 0) {
         lines[pagination.line] = lines[pagination.line].slice(0, pagination.column - 1) + lines[pagination.line].slice(pagination.column)
         pagination.column--
       } else if (pagination.line > 0) {
         pagination.line--
-        pagination.column = content.children[pagination.line].textContent.length
+        pagination.column = lines[pagination.line].length
         lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + lines[pagination.line + 1]
         lines.splice(pagination.line + 1, 1)
       }
@@ -197,19 +208,15 @@
       const x = e.clientX - content.getBoundingClientRect().left
       const y = e.clientY - content.getBoundingClientRect().top
       const line = Math.floor(y / 19)
-      const lineElement = content.children[line]
-      const text = lineElement.textContent
-      const column = Math.floor(x / 7.7)
-      const textBeforeCursor = text.slice(0, column)
-      const textAfterCursor = text.slice(column)
-      const textBeforeCursorWidth = textBeforeCursor.length * 7.7
-      const textAfterCursorWidth = textAfterCursor.length * 7.7
-      position.left = textBeforeCursorWidth
+      if(!lines[line]) return
+      const text = lines[line]
+      const column = Math.floor(x / 7.7) > text.length ? text.length : Math.floor(x / 7.7)
+      position.left = text.slice(0, column).length * 7.7
       position.top = line * 19
       pagination.line = line
       pagination.column = column
-      console.log('left', position.left, 'top', position.top)
-      updateCursor()
+      // updateCursor()
+      updatePosition()
     })
     document.addEventListener('touchstart', (e) => {
       // 只能通过textarea...input 这些来吗 ...呃啊
