@@ -10,6 +10,7 @@
       width: 500px;
       height: 500px;
       font-family: Consolas, "Courier New", monospace;
+      background-color: #eee;
       user-select: none;
       cursor: text;
       margin: 20px;
@@ -24,16 +25,6 @@
       height: 19px;
     }
 
-    /* 设置不同类型的颜色 */
-    .keyword {
-      color: blue;
-    }
-    .variable {
-      color: green;
-    }
-    .string {
-      color: red;
-    }
     /* 设置光标的样式 */
     .cursor {
       position: absolute;
@@ -52,15 +43,17 @@
   </style>
 </head>
 <body>
-  <div id="editor"></div>
-  <div class="view-line"><span style="background-color: red;">1</span></div>
+  <div id="editor">
+    <textarea id="input" style="display: none;"></textarea>
+  </div>
+  <div class="view-line"><span style="background-color: red;">9999999999</span></div>
   <div class="view-line"><span style="background-color: red;">2</span></div>
   <div class="view-line"><span style="background-color: red;">f</span></div>
   <div class="view-line"><span style="background-color: red;">f</span></div>
   <div class="view-line"><span style="background-color: red;">&nbsp;</span></div>
   <script>
-    const exampleDoc = "function add(a, b) {\n return a + b \n}"
-    // 行高固定19px, 字体为monospace, 一个字符宽度为7.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
+    let exampleDoc = "function add(a, b) {\n return a + b \n}"
+    // 行高固定19px, 字体为monospace, 字号14px时，一个字符宽度为7.7px,高度16.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
     const editor = document.querySelector('#editor')
     const cursor = document.createElement('span')
     cursor.className = 'cursor'
@@ -69,13 +62,19 @@
     content.className = 'view-lines'
     editor.appendChild(content)
     // 处理特殊符号如空格, 因为空格在html中是, 所以需要转换
-    const lines = exampleDoc.split('\n')
-    for (let i = 0; i < lines.length; i++) {
-      const line = document.createElement('div')
-      line.className = 'view-line'
-      line.innerHTML = lines[i].replace(/ /g, '&nbsp;').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
-      content.appendChild(line)
+    function renderDoc(lines) {
+      for (let i = 0; i < lines.length; i++) {
+        const line = document.createElement('div')
+        line.className = 'view-line'
+        line.innerHTML = lines[i].replace(/ /g, '&nbsp;').replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;')
+                          .replace(/function/g, '<span style="color: blue;">function</span>')
+                          .replace(/return/g, '<span style="color: purple;">return</span>')
+                          .replace(/\(/g, '<span style="color: blue;">(</span>')
+                          .replace(/\)/g, '<span style="color: blue;">)</span>')
+        content.appendChild(line)
+      }
     }
+    renderDoc(exampleDoc.split('\n'))
     let pagation = {
       line: 0,
       column: 0
@@ -96,8 +95,8 @@
       const text = lineElement.textContent
       const textBeforeCursor = text.slice(0, pagation.column)
       const textAfterCursor = text.slice(pagation.column)
-      const textBeforeCursorWidth = textBeforeCursor.length * 7.5
-      const textAfterCursorWidth = textAfterCursor.length * 7.5
+      const textBeforeCursorWidth = textBeforeCursor.length * 7.7
+      const textAfterCursorWidth = textAfterCursor.length * 7.7
       position.left = textBeforeCursorWidth
       position.top = pagation.line * 19
       console.log('left', position.left, 'top', position.top)
@@ -140,11 +139,12 @@
     }
 
     function insertText(text) {
+      if (text === ' ') text = '&nbsp;'
       const lineElement = content.children[pagation.line]
       const textBeforeCursor = lineElement.textContent.slice(0, pagation.column)
       const textAfterCursor = lineElement.textContent.slice(pagation.column)
-      lineElement.textContent = textBeforeCursor + text + textAfterCursor
-      pagation.column += text.length
+      lineElement.innerHTML = textBeforeCursor + text + textAfterCursor
+      pagation.column++
       updatePosition()
     }
 
@@ -179,6 +179,19 @@
         deleteText()
       } else if (event.key.length === 1) {
         insertText(event.key)
+      } else if (event.key === 'Enter') {
+        const lineElement = content.children[pagation.line]
+        const textBeforeCursor = lineElement.textContent.slice(0, pagation.column)
+        const textAfterCursor = lineElement.textContent.slice(pagation.column)
+        lineElement.textContent = textBeforeCursor
+        const newLineElement = document.createElement('div')
+        newLineElement.className = 'view-line'
+        newLineElement.textContent = textAfterCursor
+        content.insertBefore(newLineElement, lineElement.nextSibling)
+        pagation.line++
+        pagation.column = 0
+        updatePosition()
+        renderDoc(lines)
       }
     }
 
@@ -190,17 +203,20 @@
       const line = Math.floor(y / 19)
       const lineElement = content.children[line]
       const text = lineElement.textContent
-      const column = Math.floor(x / 7.5)
+      const column = Math.floor(x / 7.7)
       const textBeforeCursor = text.slice(0, column)
       const textAfterCursor = text.slice(column)
-      const textBeforeCursorWidth = textBeforeCursor.length * 7.5
-      const textAfterCursorWidth = textAfterCursor.length * 7.5
+      const textBeforeCursorWidth = textBeforeCursor.length * 7.7
+      const textAfterCursorWidth = textAfterCursor.length * 7.7
       position.left = textBeforeCursorWidth
       position.top = line * 19
       pagation.line = line
       pagation.column = column
       console.log('left', position.left, 'top', position.top)
       updateCursor()
+    })
+    document.addEventListener('touchstart', (e) => {
+      // 只能通过textarea...input 这些来吗 ...呃啊
     })
 
   </script>
