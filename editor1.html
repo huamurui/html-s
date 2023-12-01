@@ -28,6 +28,14 @@
       /* font-family: Consolas, "Courier New", monospace; */
       height: 19px;
     }
+    textarea {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+    }
 
     /* 设置光标的样式 */
     .cursor {
@@ -51,14 +59,10 @@
 <body>
   <div id="editor">
     <div class="view-lines"></div>
-    <textarea style="display: none;"></textarea>
+    <textarea style="width: 1px;height: 1px;"></textarea>
     <span class="cursor"></span>
   </div>
-  <div class="view-line"><span style="background-color: red;">9999999999</span></div>
-  <div class="view-line"><span style="background-color: red;">2</span></div>
-  <div class="view-line"><span style="background-color: red;">f</span></div>
-  <div class="view-line"><span style="background-color: red;">f</span></div>
-  <div class="view-line"><span style="background-color: red;">&nbsp;</span></div>
+  <input type="text" id="input" type="password"/>
   <script>
     let exampleDoc = "function add(a, b) {\n return a + b \n}"
     let lines = new Proxy(exampleDoc.split('\n'), {
@@ -90,6 +94,7 @@
 
     const editor = document.querySelector('#editor')
     const cursor = document.querySelector('.cursor')
+    const textarea = document.querySelector('textarea')
     const content = document.querySelector('.view-lines')
     // 处理特殊符号如空格, 因为空格在html中是, 所以需要转换
     function renderDoc(lines) {
@@ -119,6 +124,8 @@
     function updateCursor() {
       cursor.style.left = position.left + 'px'
       cursor.style.top = position.top + 'px'
+      textarea.style.left = position.left + 'px'
+      textarea.style.top = position.top + 'px'
     }
 
     function updatePosition() {
@@ -232,8 +239,17 @@
       // updateCursor()
       updatePosition()
     })
-    document.addEventListener('touchstart', (e) => {
-      // 只能通过textarea...input 这些来吗 ...呃啊
+    // content.addEventListener('touchstart', (e) => {
+    //   e.preventDefault()
+    //   e.stopPropagation()
+    //   // 只能通过textarea...input 这些来吗 ...呃啊
+    //   textarea.focus()
+    // })
+    const input = document.querySelector('#input')
+    input.addEventListener('input', (e) => {
+      const text = e.target.value
+      insertText(text)
+      e.target.value = ''
     })
 
   </script>
