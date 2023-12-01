@@ -72,8 +72,22 @@
       }
     })
 
-    // 行高固定19px, 字体为monospace, 字号14px时，一个字符宽度为7.7px,高度16.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
+    // 行高固定19px, 字体为monospace, 字号14px时，一个字符宽度为charWidthpx,高度16.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
     // ...字体，在不同设备上，竟然...不一样...呃
+
+    let charWidth = 7.7
+    function getCharWidth() {
+      const span = document.createElement('span')
+      span.innerHTML = 'a'
+      span.style.fontSize = '14px'
+      span.style.fontFamily = 'Consolas, "Courier New", monospace'
+      document.body.appendChild(span)
+      charWidth = span.getBoundingClientRect().width.toFixed(1)
+      document.body.removeChild(span)
+    }
+    getCharWidth()
+    
+
     const editor = document.querySelector('#editor')
     const cursor = document.querySelector('.cursor')
     const content = document.querySelector('.view-lines')
@@ -110,8 +124,8 @@
     function updatePosition() {
       const text = lines[pagination.line]
       text.length > pagination.column 
-      ? position.left = pagination.column * 7.7
-      : position.left = text.length * 7.7
+      ? position.left = pagination.column * charWidth
+      : position.left = text.length * charWidth
       position.top = pagination.line * 19
       updateCursor()
     }
@@ -210,8 +224,8 @@
       const line = Math.floor(y / 19)
       if(!lines[line]) return
       const text = lines[line]
-      const column = Math.floor(x / 7.7) > text.length ? text.length : Math.floor(x / 7.7)
-      position.left = text.slice(0, column).length * 7.7
+      const column = Math.floor(x / charWidth) > text.length ? text.length : Math.floor(x / charWidth)
+      position.left = text.slice(0, column).length * charWidth
       position.top = line * 19
       pagination.line = line
       pagination.column = column
