@@ -62,7 +62,7 @@
   <body>
     <div id="editor">
       <div class="view-lines"></div>
-      <textarea title="for-mobile"></textarea>
+      <textarea></textarea>
       <span class="cursor"></span>
     </div>
     <script>
@@ -255,26 +255,13 @@
         pagination.column = column
         updatePosition()
       })
-      content.addEventListener("touchstart", (e) => {
-        e.preventDefault()
-        e.stopPropagation()
-        // 只能通过textarea...input 这些来吗 ...呃啊
-        const { x, y } = { x: e.touches[0].clientX - content.getBoundingClientRect().left, y: e.touches[0].clientY - content.getBoundingClientRect().top }
-        const line = Math.floor(y / lineHeight)
-        if (!lines[line]) return
-        const text = lines[line]
-        const column = Math.floor(x / charWidth) > text.length ? text.length : Math.floor(x / charWidth)
-        position.left = text.slice(0, column).length * charWidth
-        position.top = line * lineHeight
-        pagination.line = line
-        pagination.column = column
-        updatePosition()
-      })
-      textarea.addEventListener("input", (e) => {
-        const text = e.target.value
-        insertText(text)
-        e.target.value = ""
-      })
+      if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        textarea.addEventListener("input", (e) => {
+          const text = e.target.value
+          insertText(text)
+          e.target.value = ""
+        })
+      }
     </script>
   </body>
 </html>
