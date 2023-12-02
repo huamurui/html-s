@@ -3,6 +3,7 @@
     <meta charset="utf-8" />
     <title>editor</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="full-screen" content="true" />
     <style>
       :root {
         --line-height: 19px;
@@ -67,45 +68,8 @@
     </div>
     <script>
       let exampleDoc = "function add(a, b) {\n return a + b \n}"
-      let lines = new Proxy(exampleDoc.split("\n"), {
-        get(target, prop) {
-          return target[prop]
-        },
-        set(target, prop, value) {
-          target[prop] = value
-          // renderDoc(target)
-          return true
-        },
-      })
-
-      // 行高固定19px, 字体为monospace, 字号14px时，一个字符宽度为charWidthpx,高度16.5px, 一个tab宽度为4个字符.... 总之, 字符位置和像素位置之间的转换关系是固定的, 可以通过这个关系来计算光标的位置
-      // ...字体，在不同设备上，竟然...不一样...呃
-
-      let charWidth = 7.7
-      let charHeight = 16.5 // 19-16.5=2.5
-      let lineHeight = 19
-
-      function getCharWidth() {
-        const span = document.createElement("span")
-        span.innerHTML = "a"
-        span.style.fontSize = "14px"
-        span.style.fontFamily = 'Consolas, "Courier New", monospace'
-        document.body.appendChild(span)
-        charWidth = Number(span.getBoundingClientRect().width.toFixed(1))
-        charHeight = Number(span.getBoundingClientRect().height.toFixed(1))
-        lineHeight = Number(2.5 + charHeight).toFixed(1)
-        document.documentElement.style.setProperty("--line-height", lineHeight + "px")
-        document.body.removeChild(span)
-      }
-      getCharWidth()
-
-      const editor = document.querySelector("#editor")
-      const cursor = document.querySelector(".cursor")
-      const textarea = document.querySelector("textarea")
-      const content = document.querySelector(".view-lines")
-      // 处理特殊符号如空格, 因为空格在html中是, 所以需要转换
       function renderDoc(lines) {
-        content.innerHTML = ""
+        const coloredLines = document.createDocumentFragment()
         for (let i = 0; i < lines.length; i++) {
           const line = document.createElement("div")
           line.className = "view-line"
@@ -116,152 +80,181 @@
             .replace(/return/g, '<span style="color: purple;">return</span>')
             .replace(/\(/g, '<span style="color: blue;">(</span>')
             .replace(/\)/g, '<span style="color: blue;">)</span>')
-          content.appendChild(line)
+
+          coloredLines.appendChild(line)
+        }
+        return coloredLines
+      }
+
+      // 尝试将以上代码封装成一个类，对外接口主要是 doc 文本内容，以及 renderDoc 的方法
+      class Editor {
+        constructor(rootEl, doc, renderer) {
+          this.rootEl = rootEl
+          this.doc = doc
+          this.renderer = renderer
+          this.lines = this.doc.split("\n")
+          this.pagination = {
+            line: 0,
+            column: 0,
+          }
+          this.position = {
+            left: 0,
+            top: 0,
+          }
+          this.charWidth = 7.7
+          this.charHeight = 16.5 // 19-16.5=2.5
+          this.lineHeight = 19
+          this.cursor = null
+          this.content = null
+          this.textarea = null
+          this.init()
+        }
+        init() {
+          this.getCharSize()
+          this.rootEl.style.setProperty("--line-height", this.lineHeight + "px")
+          this.cursor = this.rootEl.querySelector(".cursor")
+          this.content = this.rootEl.querySelector(".view-lines")
+          this.textarea = this.rootEl.querySelector("textarea")
+          this.textarea.addEventListener("keydown", this.handleKeydown.bind(this))
+          this.rootEl.addEventListener("click", (e) => {
+            // 根据点击的位置计算光标的位置，更新光标的位置，并且更新line和column
+            const x = e.clientX - this.content.getBoundingClientRect().left
+            const y = e.clientY - this.content.getBoundingClientRect().top
+            const line = Math.floor(y / this.lineHeight)
+            if (!this.lines[line]) return
+            const text = this.lines[line]
+            const column = Math.floor(x / this.charWidth) > text.length ? text.length : Math.floor(x / this.charWidth)
+            this.position.left = text.slice(0, column).length * this.charWidth
+            this.position.top = line * this.lineHeight
+            this.pagination.line = line
+            this.pagination.column = column
+            this.updatePosition()
+          })
+          if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+            this.textarea.addEventListener("input", (e) => {
+              const text = e.target.value
+              this.insertText(text)
+              e.target.value = ""
+            })
+          }
+          this.updateLines()
+        }
+        getCharSize() {
+          const span = document.createElement("span")
+          span.innerHTML = "a"
+          span.style.fontSize = "14px"
+          span.style.fontFamily = 'Consolas, "Courier New", monospace'
+          document.body.appendChild(span)
+          this.charWidth = Number(span.getBoundingClientRect().width.toFixed(1))
+          this.charHeight = Number(span.getBoundingClientRect().height.toFixed(1))
+          this.lineHeight = Number(2.5 + this.charHeight).toFixed(1)
+          document.documentElement.style.setProperty("--line-height", this.lineHeight + "px")
+          document.body.removeChild(span)
+        }
+        updateCursor() {
+          this.cursor.style.left = this.position.left + "px"
+          this.cursor.style.top = this.position.top + "px"
+          this.textarea.style.left = this.position.left + "px"
+          this.textarea.style.top = this.position.top + "px"
+          this.textarea.focus()
+        }
+        updatePosition() {
+          const text = this.lines[this.pagination.line]
+          text.length > this.pagination.column ? (this.position.left = this.pagination.column * this.charWidth) : (this.position.left = text.length * this.charWidth)
+          this.position.top = this.pagination.line * this.lineHeight
+          this.updateCursor()
+        }
+        moveLeft() {
+          if (this.pagination.column > 0) {
+            this.pagination.column--
+          } else if (this.pagination.line > 0) {
+            this.pagination.line--
+            this.pagination.column = this.lines[this.pagination.line].length
+          }
+          this.updatePosition()
+        }
+        moveRight() {
+          if (this.pagination.column < this.lines[this.pagination.line].length) {
+            this.pagination.column++
+          } else if (this.pagination.line < this.lines.length - 1) {
+            this.pagination.line++
+            this.pagination.column = 0
+          }
+          this.updatePosition()
+        }
+        moveUp() {
+          if (this.pagination.line > 0) {
+            this.pagination.line--
+          }
+          this.updatePosition()
+        }
+        moveDown() {
+          if (this.pagination.line < this.lines.length - 1) {
+            this.pagination.line++
+          }
+          this.updatePosition()
+        }
+        updateLines() {
+          this.content.innerHTML = ""
+          this.content.appendChild(this.renderer(this.lines))
+        }
+        insertText(text) {
+          if (text === "\n") {
+            const line = this.lines[this.pagination.line]
+            const left = line.slice(0, this.pagination.column)
+            const right = line.slice(this.pagination.column)
+            this.lines[this.pagination.line] = left
+            this.lines.splice(this.pagination.line + 1, 0, right)
+            this.pagination.line++
+            this.pagination.column = 0
+          } else {
+            this.lines[this.pagination.line] = this.lines[this.pagination.line].slice(0, this.pagination.column) + text + this.lines[this.pagination.line].slice(this.pagination.column)
+            this.pagination.column += text.length
+          }
+          this.updateLines()
+          this.updatePosition()
+        }
+        deleteText() {
+          if (this.pagination.column > 0) {
+            this.lines[this.pagination.line] = this.lines[this.pagination.line].slice(0, this.pagination.column - 1) + this.lines[this.pagination.line].slice(this.pagination.column)
+            this.pagination.column--
+          } else if (this.pagination.line > 0) {
+            this.pagination.line--
+            this.pagination.column = this.lines[this.pagination.line].length
+            this.lines[this.pagination.line] = this.lines[this.pagination.line].slice(0, this.pagination.column) + this.lines[this.pagination.line + 1]
+            this.lines.splice(this.pagination.line + 1, 1)
+          }
+          this.updateLines()
+          this.updatePosition()
+        }
+        handleKeydown(event) {
+          switch (event.key) {
+            case "ArrowLeft":
+              this.moveLeft()
+              break
+            case "ArrowRight":
+              this.moveRight()
+              break
+            case "ArrowUp":
+              this.moveUp()
+              break
+            case "ArrowDown":
+              this.moveDown()
+              break
+            case "Backspace":
+              this.deleteText()
+              break
+            case "Enter":
+              this.insertText("\n")
+              break
+            default:
+              if (event.key.length === 1) {
+                this.insertText(event.key)
+              }
+          }
         }
       }
-      renderDoc(lines)
-      let pagination = {
-        line: 0,
-        column: 0,
-      }
-
-      let position = {
-        left: 0,
-        top: 0,
-      }
-
-      function updateCursor() {
-        cursor.style.left = position.left + "px"
-        cursor.style.top = position.top + "px"
-        textarea.style.left = position.left + "px"
-        textarea.style.top = position.top + "px"
-        textarea.focus()
-      }
-
-      function updatePosition() {
-        const text = lines[pagination.line]
-        text.length > pagination.column ? (position.left = pagination.column * charWidth) : (position.left = text.length * charWidth)
-        position.top = pagination.line * lineHeight
-        updateCursor()
-      }
-
-      function moveLeft() {
-        if (pagination.column > 0) {
-          pagination.column--
-        } else if (pagination.line > 0) {
-          pagination.line--
-          pagination.column = lines[pagination.line].length
-        }
-        updatePosition()
-      }
-
-      function moveRight() {
-        if (pagination.column < lines[pagination.line].length) {
-          pagination.column++
-        } else if (pagination.line < lines.length - 1) {
-          pagination.line++
-          pagination.column = 0
-        }
-        updatePosition()
-      }
-
-      function moveUp() {
-        if (pagination.line > 0) {
-          pagination.line--
-        }
-        updatePosition()
-      }
-
-      function moveDown() {
-        if (pagination.line < lines.length - 1) {
-          pagination.line++
-        }
-        updatePosition()
-      }
-
-      function insertText(text) {
-        if (text === "\n") {
-          const line = lines[pagination.line]
-          const left = line.slice(0, pagination.column)
-          const right = line.slice(pagination.column)
-          lines[pagination.line] = left
-          lines.splice(pagination.line + 1, 0, right)
-          pagination.line++
-          pagination.column = 0
-          exampleDoc = lines.join("\n")
-        } else {
-          lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + text + lines[pagination.line].slice(pagination.column)
-          exampleDoc = lines.join("\n")
-          pagination.column++
-        }
-        renderDoc(exampleDoc.split("\n"))
-        updatePosition()
-      }
-
-      function deleteText() {
-        if (pagination.column > 0) {
-          lines[pagination.line] = lines[pagination.line].slice(0, pagination.column - 1) + lines[pagination.line].slice(pagination.column)
-          pagination.column--
-        } else if (pagination.line > 0) {
-          pagination.line--
-          pagination.column = lines[pagination.line].length
-          lines[pagination.line] = lines[pagination.line].slice(0, pagination.column) + lines[pagination.line + 1]
-          lines.splice(pagination.line + 1, 1)
-        }
-        exampleDoc = lines.join("\n")
-        renderDoc(exampleDoc.split("\n"))
-        updatePosition()
-      }
-
-      function handleKeydown(event) {
-        switch (event.key) {
-          case "ArrowLeft":
-            moveLeft()
-            break
-          case "ArrowRight":
-            moveRight()
-            break
-          case "ArrowUp":
-            moveUp()
-            break
-          case "ArrowDown":
-            moveDown()
-            break
-          case "Backspace":
-            deleteText()
-            break
-          case "Enter":
-            insertText("\n")
-            break
-          default:
-            if (event.key.length === 1) {
-              insertText(event.key)
-            }
-        }
-      }
-
-      document.addEventListener("keydown", handleKeydown)
-      document.addEventListener("click", (e) => {
-        // 根据点击的位置计算光标的位置，更新光标的位置，并且更新line和column
-        const x = e.clientX - content.getBoundingClientRect().left
-        const y = e.clientY - content.getBoundingClientRect().top
-        const line = Math.floor(y / lineHeight)
-        if (!lines[line]) return
-        const text = lines[line]
-        const column = Math.floor(x / charWidth) > text.length ? text.length : Math.floor(x / charWidth)
-        position.left = text.slice(0, column).length * charWidth
-        position.top = line * lineHeight
-        pagination.line = line
-        pagination.column = column
-        updatePosition()
-      })
-      if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
-        textarea.addEventListener("input", (e) => {
-          const text = e.target.value
-          insertText(text)
-          e.target.value = ""
-        })
-      }
+      const editor = new Editor(document.querySelector("#editor"), exampleDoc, renderDoc)
     </script>
   </body>
 </html>
