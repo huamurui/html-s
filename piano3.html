@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>piano</title>
-  <style>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>piano</title>
+    <style>
       #playground {
         width: 100%;
         height: 100%;
@@ -20,7 +20,6 @@
         position: relative;
         display: flex;
         justify-content: space-between;
-
       }
       .key-wrapper {
         position: relative;
@@ -86,17 +85,17 @@
         width: 5px;
         height: 5px;
       }
-      
+
       @keyframes move {
         0% {
           transform: translate(-50%, -50%) rotate(0deg);
         }
         75% {
-          opacity: .9;
+          opacity: 0.9;
         }
         100% {
           transform: rotateZ(var(--rotate)) translate(-50%, var(--dis));
-          opacity: .4;
+          opacity: 0.4;
         }
       }
       @keyframes swing {
@@ -110,263 +109,294 @@
           transform: rotate(-10deg) translateX(0px);
         }
       }
-  </style>
-</head>
-<body>
-  <div id="playground">
-    <div id="operahouse"></div>
-    <div id="piano"></div>
-  </div>
-  <script>
-    const keys =[
-      {
-        white: { name: "C", keyCode: null },
-        black: { name: "C#", keyCode: null },
-      },
-      {
-        white: { name: "D", keyCode: null },
-        black: { name: "D#", keyCode: null },
-      },
-      {
-        white: { name: "E", keyCode: null },
-        black: { name: null, keyCode: null },
-      },
-      {
-        white: { name: "F", keyCode: null },
-        black: { name: "F#", keyCode: null },
-      },
-      {
-        white: { name: "G", keyCode: null },
-        black: { name: "G#", keyCode: null },
-      },
-      {
-        white: { name: "A", keyCode: null },
-        black: { name: "A#", keyCode: null },
-      },
-      {
-        white: { name: "B", keyCode: null },
-        black: { name: null, keyCode: null },
-      }
-    ]
-    const piano = document.getElementById("piano")
-    function createKey(key) {
-      const keyWrapper  = document.createElement("div")
-      keyWrapper.classList.add("key-wrapper")
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div id="operahouse"></div>
+      <div id="piano"></div>
+    </div>
+    <script>
+      const keys = [
+        {
+          white: { name: "C", keyCode: null },
+          black: { name: "C#", keyCode: null },
+        },
+        {
+          white: { name: "D", keyCode: null },
+          black: { name: "D#", keyCode: null },
+        },
+        {
+          white: { name: "E", keyCode: null },
+          black: { name: null, keyCode: null },
+        },
+        {
+          white: { name: "F", keyCode: null },
+          black: { name: "F#", keyCode: null },
+        },
+        {
+          white: { name: "G", keyCode: null },
+          black: { name: "G#", keyCode: null },
+        },
+        {
+          white: { name: "A", keyCode: null },
+          black: { name: "A#", keyCode: null },
+        },
+        {
+          white: { name: "B", keyCode: null },
+          black: { name: null, keyCode: null },
+        },
+      ]
+      const piano = document.getElementById("piano")
+      function createKey(key) {
+        const keyWrapper = document.createElement("div")
+        keyWrapper.classList.add("key-wrapper")
 
-      const whiteKeyEl = document.createElement("div")
-      whiteKeyEl.classList.add("key--white")
-      whiteKeyEl.classList.add("key")
-      whiteKeyEl.innerText = key.white.name
-      keyWrapper.appendChild(whiteKeyEl)
-      if (key.black.name) {
-        const blackKeyEl = document.createElement("div")
-        blackKeyEl.classList.add("key--black")
-        blackKeyEl.classList.add("key")
-        blackKeyEl.innerText = key.black.name
-        keyWrapper.appendChild(blackKeyEl)
-      }
-      return keyWrapper
-    }
-    keys.forEach(key => {
-      const keyEl = createKey(key)
-      piano.appendChild(keyEl)
-    })
-
-
-    const base = "https://huamurui.github.io/data_and_so_on/audios/samples/piano/"
-    const NotesMap = [
-      { name: 'C2', file: 'a49.mp3' },
-      { name: 'D2', file: 'a50.mp3' },
-      { name: 'E2', file: 'a51.mp3' },
-      { name: 'F2', file: 'a52.mp3' },
-      { name: 'G2', file: 'a53.mp3' },
-      { name: 'A2', file: 'a54.mp3' },
-      { name: 'B2', file: 'a55.mp3' },
-      { name: 'C3', file: 'a56.mp3' },
-      { name: 'D3', file: 'a57.mp3' },
-      { name: 'E3', file: 'a48.mp3' },
-      { name: 'F3', file: 'a81.mp3' },
-      { name: 'G3', file: 'a87.mp3' },
-      { name: 'A3', file: 'a69.mp3' },
-      { name: 'B3', file: 'a82.mp3' },
-      { name: 'C4', file: 'a84.mp3' },
-      { name: 'D4', file: 'a89.mp3' },
-      { name: 'E4', file: 'a85.mp3' },
-      { name: 'F4', file: 'a73.mp3' },
-      { name: 'G4', file: 'a79.mp3' },
-      { name: 'A4', file: 'a80.mp3' },
-      { name: 'B4', file: 'a65.mp3' },
-      { name: 'C5', file: 'a83.mp3' },
-      { name: 'D5', file: 'a68.mp3' },
-      { name: 'E5', file: 'a70.mp3' },
-      { name: 'F5', file: 'a71.mp3' },
-      { name: 'G5', file: 'a72.mp3' },
-      { name: 'A5', file: 'a74.mp3' },
-      { name: 'B5', file: 'a75.mp3' },
-      { name: 'C6', file: 'a76.mp3' },
-      { name: 'D6', file: 'a90.mp3' },
-      { name: 'E6', file: 'a88.mp3' },
-      { name: 'F6', file: 'a67.mp3' },
-      { name: 'G6', file: 'a86.mp3' },
-      { name: 'A6', file: 'a66.mp3' },
-      { name: 'B6', file: 'a78.mp3' },
-      { name: 'C7', file: 'a77.mp3' },
-
-      { name: 'C#2', file: 'b49.mp3' },
-      { name: 'D#2', file: 'b50.mp3' },
-      { name: 'F#2', file: 'b52.mp3' },
-      { name: 'G#2', file: 'b53.mp3' },
-      { name: 'A#2', file: 'b54.mp3' },
-      { name: 'C#3', file: 'b56.mp3' },
-      { name: 'D#3', file: 'b57.mp3' },
-      { name: 'F#3', file: 'b81.mp3' },
-      { name: 'G#3', file: 'b87.mp3' },
-      { name: 'A#3', file: 'b69.mp3' },
-      { name: 'C#4', file: 'b84.mp3' },
-      { name: 'D#4', file: 'b89.mp3' },
-      { name: 'F#4', file: 'b73.mp3' },
-      { name: 'G#4', file: 'b79.mp3' },
-      { name: 'A#4', file: 'b80.mp3' },
-      { name: 'C#5', file: 'b83.mp3' },
-      { name: 'D#5', file: 'b68.mp3' },
-      { name: 'F#5', file: 'b71.mp3' },
-      { name: 'G#5', file: 'b72.mp3' },
-      { name: 'A#5', file: 'b74.mp3' },
-      { name: 'C#6', file: 'b76.mp3' },
-      { name: 'D#6', file: 'b90.mp3' },
-      { name: 'F#6', file: 'b67.mp3' },
-      { name: 'G#6', file: 'b86.mp3' },
-      { name: 'A#6', file: 'b66.mp3' }
-    ]
-    const audios = {}
-    NotesMap.forEach(note => {
-      const audio = new Audio(`${base}${note.file}`)
-      audio.load()
-      audios[note.name] = audio
-    })
-    const keyEls = document.querySelectorAll(".key")
-    const operahouse = document.getElementById("operahouse")
-    keyEls.forEach(keyEl => {
-      keyEl.addEventListener("mousedown", () => {
-        keyEl.classList.add("pressed")
-        // 1. 播放音乐
-        const audio = audios[`${keyEl.innerText}4`] // 4 代表第四个八度
-        audio.currentTime = 0
-        audio.play()
-
-        // 2. 播放泡泡
-        const toneEle = document.createElement("div")
-        toneEle.classList.add("tone")
-        const bubbles = []
-        for (let i = 0; i < 10; i++) {
-          const bubble = document.createElement("div")
-          bubble.classList.add("bubble")
-          const dot = document.createElement("div")
-          dot.classList.add("bubble__dot")
-          bubble.appendChild(dot) 
-          bubbles.push(bubble)
-          toneEle.appendChild(bubble)
+        const whiteKeyEl = document.createElement("div")
+        whiteKeyEl.classList.add("key--white")
+        whiteKeyEl.classList.add("key")
+        whiteKeyEl.innerText = key.white.name
+        keyWrapper.appendChild(whiteKeyEl)
+        if (key.black.name) {
+          const blackKeyEl = document.createElement("div")
+          blackKeyEl.classList.add("key--black")
+          blackKeyEl.classList.add("key")
+          blackKeyEl.innerText = key.black.name
+          keyWrapper.appendChild(blackKeyEl)
         }
-        bubbles.forEach(bubble => {
-          bubble.style.setProperty('--rotate', `${Math.random() * 360}deg`)
-          bubble.style.setProperty('--dis', `${Math.random() * 100}px`)
-          bubble.style.animation = `move 2s ease-in-out`
-        })
-        toneEle.style.left = `${keyEl.offsetLeft}px`
-        toneEle.style.animation = `swing 2s ease-in-out`
-        operahouse.appendChild(toneEle)
-        toneEle.addEventListener("animationend", () => {
-          bubbles.forEach(bubble => {
-            bubble.children[0].animate([
-              { 
-                opacity: 1,
-                width: "5px",
-                height: "5px",
-              },
-              { 
-                opacity: 0,
-                width: 0,
-                height: 0,
-              },
-            ], {
-              duration: 600,
-            })
-            bubble.addEventListener("animationend", () => {
-              bubble.remove()
-            })
+        return keyWrapper
+      }
+      keys.forEach((key) => {
+        const keyEl = createKey(key)
+        piano.appendChild(keyEl)
+      })
+
+      const base = "https://huamurui.github.io/data_and_so_on/audios/samples/piano/"
+      const NotesMap = [
+        { name: "C2", file: "a49.mp3" },
+        { name: "D2", file: "a50.mp3" },
+        { name: "E2", file: "a51.mp3" },
+        { name: "F2", file: "a52.mp3" },
+        { name: "G2", file: "a53.mp3" },
+        { name: "A2", file: "a54.mp3" },
+        { name: "B2", file: "a55.mp3" },
+        { name: "C3", file: "a56.mp3" },
+        { name: "D3", file: "a57.mp3" },
+        { name: "E3", file: "a48.mp3" },
+        { name: "F3", file: "a81.mp3" },
+        { name: "G3", file: "a87.mp3" },
+        { name: "A3", file: "a69.mp3" },
+        { name: "B3", file: "a82.mp3" },
+        { name: "C4", file: "a84.mp3" },
+        { name: "D4", file: "a89.mp3" },
+        { name: "E4", file: "a85.mp3" },
+        { name: "F4", file: "a73.mp3" },
+        { name: "G4", file: "a79.mp3" },
+        { name: "A4", file: "a80.mp3" },
+        { name: "B4", file: "a65.mp3" },
+        { name: "C5", file: "a83.mp3" },
+        { name: "D5", file: "a68.mp3" },
+        { name: "E5", file: "a70.mp3" },
+        { name: "F5", file: "a71.mp3" },
+        { name: "G5", file: "a72.mp3" },
+        { name: "A5", file: "a74.mp3" },
+        { name: "B5", file: "a75.mp3" },
+        { name: "C6", file: "a76.mp3" },
+        { name: "D6", file: "a90.mp3" },
+        { name: "E6", file: "a88.mp3" },
+        { name: "F6", file: "a67.mp3" },
+        { name: "G6", file: "a86.mp3" },
+        { name: "A6", file: "a66.mp3" },
+        { name: "B6", file: "a78.mp3" },
+        { name: "C7", file: "a77.mp3" },
+
+        { name: "C#2", file: "b49.mp3" },
+        { name: "D#2", file: "b50.mp3" },
+        { name: "F#2", file: "b52.mp3" },
+        { name: "G#2", file: "b53.mp3" },
+        { name: "A#2", file: "b54.mp3" },
+        { name: "C#3", file: "b56.mp3" },
+        { name: "D#3", file: "b57.mp3" },
+        { name: "F#3", file: "b81.mp3" },
+        { name: "G#3", file: "b87.mp3" },
+        { name: "A#3", file: "b69.mp3" },
+        { name: "C#4", file: "b84.mp3" },
+        { name: "D#4", file: "b89.mp3" },
+        { name: "F#4", file: "b73.mp3" },
+        { name: "G#4", file: "b79.mp3" },
+        { name: "A#4", file: "b80.mp3" },
+        { name: "C#5", file: "b83.mp3" },
+        { name: "D#5", file: "b68.mp3" },
+        { name: "F#5", file: "b71.mp3" },
+        { name: "G#5", file: "b72.mp3" },
+        { name: "A#5", file: "b74.mp3" },
+        { name: "C#6", file: "b76.mp3" },
+        { name: "D#6", file: "b90.mp3" },
+        { name: "F#6", file: "b67.mp3" },
+        { name: "G#6", file: "b86.mp3" },
+        { name: "A#6", file: "b66.mp3" },
+      ]
+      const audios = {}
+      NotesMap.forEach((note) => {
+        const audio = new Audio(`${base}${note.file}`)
+        audio.load()
+        audios[note.name] = audio
+      })
+      const keyEls = document.querySelectorAll(".key")
+      const operahouse = document.getElementById("operahouse")
+      keyEls.forEach((keyEl) => {
+        keyEl.addEventListener("mousedown", () => {
+          keyEl.classList.add("pressed")
+          // 1. 播放音乐
+          const audio = audios[`${keyEl.innerText}4`] // 4 代表第四个八度
+          audio.currentTime = 0
+          audio.play()
+
+          // 2. 播放泡泡
+          const toneEle = document.createElement("div")
+          toneEle.classList.add("tone")
+          const bubbles = []
+          for (let i = 0; i < 10; i++) {
+            const bubble = document.createElement("div")
+            bubble.classList.add("bubble")
+            const dot = document.createElement("div")
+            dot.classList.add("bubble__dot")
+            bubble.appendChild(dot)
+            bubbles.push(bubble)
+            toneEle.appendChild(bubble)
+          }
+          bubbles.forEach((bubble) => {
+            bubble.style.setProperty("--rotate", `${Math.random() * 360}deg`)
+            bubble.style.setProperty("--dis", `${Math.random() * 100}px`)
+            bubble.style.animation = `move 2s ease-in-out`
           })
-          setTimeout(() => {
-            toneEle.remove()
-          }, 900)
+          toneEle.style.left = `${keyEl.offsetLeft}px`
+          toneEle.style.animation = `swing 2s ease-in-out`
+          operahouse.appendChild(toneEle)
+          toneEle.addEventListener("animationend", () => {
+            bubbles.forEach((bubble) => {
+              bubble.children[0].animate(
+                [
+                  {
+                    opacity: 1,
+                    width: "5px",
+                    height: "5px",
+                  },
+                  {
+                    opacity: 0,
+                    width: 0,
+                    height: 0,
+                  },
+                ],
+                {
+                  duration: 600,
+                }
+              )
+              bubble.addEventListener("animationend", () => {
+                bubble.remove()
+              })
+            })
+            setTimeout(() => {
+              toneEle.remove()
+            }, 900)
+          })
+        })
+        keyEl.addEventListener("mouseup", () => {
+          keyEl.classList.remove("pressed")
         })
       })
-      keyEl.addEventListener("mouseup", () => {
-        keyEl.classList.remove("pressed")
-      })
-    })
 
+      // 上半是基础信息，基准音，速度，默认音长度
 
-    // 上半是基础信息，基准音，速度，默认音长度
-    // 下半是乐谱具体内容，逗号分隔音符，小括号内是音长，也许还可以加中括号，连续的逗号也可以延长，还有“声轨”这个概念...如果...可能的话...
-    const exampleDoc = `
+      // #4(0|+1|-2)[0.5] // 这是一个音符最复杂的样子
+      // 音符和升降号灰色是，小括号音高是蓝色，中括号音长是绿色，这个颜色应该可以和基础信息统一一下。
+      function renderNote(note) {
+        const noteEl = document.createElement("span")
+        let noteStr = note
+        if (note.includes("(")) {
+          noteStr = note.replace(/\((.+)\)/, '<span style="color:cornflowerblue">($1)</span>')
+        }
+        if (note.includes("[")) {
+          noteStr = note.replace(/\[(.+)\]/, '<span style="color:lightgreen">[$1]</span>')
+        }
+        noteEl.innerHTML = noteStr
+        return noteEl
+      }
+      // 另一个问题是...音轨，也许每个音轨都应该有一个速度，基准音什么的...而一个乐谱可以有多个轨道
+      // 那可能要重新设计一下结构...嗯，就像这个，三等号分个一个音轨，然后每个音轨里面有基准音，速度，音符，三杠杠分割基础信息和旋律
+      // 或者说，其他的信息都可有可无，保存即可，真正解析，约束的，就是等号们之间的内容
+
+      // 那...对编辑器可能还有个功能要求，折叠行什么的...
+      const exampleDoc = `
+    ===
     name:lala
     speed: 100
     default_step: 1
     degree: C4
     ---
-    #track
     1,1,5,5,6,6,
     5,5,4,4(1),
-    #track
+    ===
+    ===
+    name:tata
+    speed: 100
+    default_step: 1
+    degree: C4
+    ---
     3,3,2,2,1,1,
-    `
-    // 你挖的坑会不会有点大了...解析演奏是一回事，这玩意如果想让用户自己输入...是不是还得配合个带高亮的编辑器什么的
-    // 只为个这引入一大坨库肯定不值得...但是写一堆东西也啊啊啊...
-    // 而且，编辑，和解析演奏，是两回事...
-    function parseDoc(doc) {
-      const lines = doc.split("\n").map(line => line.trim()).filter(line => line)
-      const info = {}
-      const notes = []
-      let isInfo = true
-      lines.forEach(line => {
-        if (line === "---") {
-          isInfo = false
-          return
-        }
-        if (isInfo) {
-          const [key, value] = line.split(":")
-          info[key] = value
-        } else {
-          // 去掉空格和换行
-          const note = line.replace(/\s/g, "").split(",")
-          notes.push(...note)
-        }
-      })
-      console.log(notes)
-      return {
-        info,
-        notes,
-      }
-    }
-    function renderDoc(info,notes) {
-      const coleredDoc = document.createElement("div")
-      coleredDoc.style.width = "200px"
+    ===
 
-      const infoEl = document.createElement("div")
-      const infoStr = Object.keys(info).map(key => `<span style="color:cornflowerblue">${key}</span>: ${info[key]}`).join("<br>")
-      infoEl.innerHTML = infoStr
-      coleredDoc.appendChild(infoEl)
-      coleredDoc.appendChild(document.createElement("hr"))
-      const notesEl = document.createElement("div")
-      notes.forEach(note => {
-        const noteEl = document.createElement("span")
-        noteEl.innerHTML = `${note},`
-        notesEl.appendChild(noteEl)
-      })
-      coleredDoc.appendChild(notesEl)
-      return coleredDoc
-    }
-    playground.appendChild(renderDoc(parseDoc(exampleDoc).info, parseDoc(exampleDoc).notes))
-  </script>
-</body>
+    `
+      // 你挖的坑会不会有点大了...解析演奏是一回事，这玩意如果想让用户自己输入...是不是还得配合个带高亮的编辑器什么的
+      // 只为个这引入一大坨库肯定不值得...但是写一堆东西也啊啊啊...
+      // 而且，编辑，和解析演奏，是两回事...
+      function parseDoc(doc) {
+        const lines = doc
+          .split("\n")
+          .map((line) => line.trim())
+          .filter((line) => line)
+        const info = {}
+        const notes = []
+        let isInfo = true
+        lines.forEach((line) => {
+          if (line === "---") {
+            isInfo = false
+            return
+          }
+          if (isInfo) {
+            const [key, value] = line.split(":")
+            info[key] = value
+          } else {
+            // 去掉空格和换行
+            const note = line.replace(/\s/g, "").split(",")
+            notes.push(...note)
+          }
+        })
+        console.log(notes)
+        return {
+          info,
+          notes,
+        }
+      }
+      function renderDoc(info, notes) {
+        const coleredDoc = document.createElement("div")
+        coleredDoc.style.width = "200px"
+
+        const infoEl = document.createElement("div")
+        const infoStr = Object.keys(info)
+          .map((key) => `<span style="color:cornflowerblue">${key}</span>: ${info[key]}`)
+          .join("<br>")
+        infoEl.innerHTML = infoStr
+        coleredDoc.appendChild(infoEl)
+        coleredDoc.appendChild(document.createElement("hr"))
+        const notesEl = document.createElement("div")
+        notes.forEach((note) => {
+          notesEl.appendChild(renderNote(note))
+        })
+        coleredDoc.appendChild(notesEl)
+        return coleredDoc
+      }
+      playground.appendChild(renderDoc(parseDoc(exampleDoc).info, parseDoc(exampleDoc).notes))
+    </script>
+  </body>
 </html>
