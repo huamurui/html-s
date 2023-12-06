@@ -5,10 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>piano</title>
     <style>
+      * {
+        margin: 0;
+      }
       #playground {
-        width: 100%;
-        height: 100%;
+        width: 100vw;
+        height: 100vh;
         position: relative;
+        overflow: hidden;
       }
       #operahouse {
         width: 100%;
@@ -21,6 +25,29 @@
         display: flex;
         justify-content: space-between;
       }
+      #score {
+        background-color: rgb(43, 144, 226);
+        position: relative;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: calc(100% - 100px);
+        transform: translate(0,calc(100% - 100px));
+        transition: transform 0.5s ease-in-out;
+      }
+      #score.open {
+        transform: translate(0,0);
+      }
+      #score>.handler {
+        position: absolute;
+        height: 30px;
+        width: 50px;
+        top: -30px;
+        left: 0;
+        cursor: pointer;
+        background-color: blueviolet;
+      }
+      
       .key-wrapper {
         position: relative;
         width: 100px;
@@ -115,6 +142,9 @@
     <div id="playground">
       <div id="operahouse"></div>
       <div id="piano"></div>
+      <div id="score">
+        <div class="handler"></div>
+      </div>
     </div>
     <script>
       const keys = [
@@ -399,6 +429,16 @@
         return coleredDoc
       }
       playground.appendChild(renderDoc(parseDoc(exampleDoc).info, parseDoc(exampleDoc).notes))
+
+
+      // 这一部分是，我想做一个能伸缩的乐谱，和编辑区域。可以的话...滚动字幕？算了算了。就是一个，传统的抽屉组件，然后加点东西。
+      const score = document.getElementById("score")
+      const handler = document.querySelector(".handler")
+      handler.addEventListener("click",(e)=>{
+        score.classList.toggle("open")
+      })
+
+      
     </script>
   </body>
 </html>
