@@ -144,6 +144,7 @@
       <div id="piano"></div>
       <div id="score">
         <div class="handler"></div>
+        <div id="the-score"></div>
       </div>
     </div>
     <script>
@@ -434,9 +435,12 @@
       // 这一部分是，我想做一个能伸缩的乐谱，和编辑区域。可以的话...滚动字幕？算了算了。就是一个，传统的抽屉组件，然后加点东西。
       const score = document.getElementById("score")
       const handler = document.querySelector(".handler")
+      const theScore = document.getElementById("the-score")
       handler.addEventListener("click",(e)=>{
         score.classList.toggle("open")
       })
+
+      theScore.innerHTML = `<iframe src="editor1.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>`
 
       
     </script>
