@@ -388,6 +388,8 @@
         const tracks = []
         let tracking = false
         let readingNotes = false
+        let readingInfo = true
+        let notesStr = ''
         for( let i = 0; i < lines.length; i++) {
           const line = lines[i]
           if (line.startsWith("===") && !tracking) {
@@ -399,31 +401,18 @@
           } else if (line.startsWith("===") && tracking) {
             tracking = false
             readingNotes = false
+            readingInfo = true
+            tracks[tracks.length - 1].notes = notesStr.split(",")
+            notesStr = ''
           } else if (line.startsWith("---") && tracking) {
             readingNotes = true
-          } else if (line.includes(":") && tracking) {
+          } else if (line.includes(":") && tracking && readingInfo) {
             const [key, value] = line.split(":").map(item=>item.trim())
             tracks[tracks.length - 1].info[key] = value
           } else if (readingNotes && tracking) {
-            tracks[tracks.length - 1].notes.push(...line.split(",").map(item=>item.trim()))
+            notesStr+=line.trim()
           }
         }
-        // for
-        // lines.forEach((line) => {
-        //   if (line.startsWith("===")) {
-        //     tracks.push({
-        //       info: {},
-        //       notes: [],
-        //     })
-        //   } else if (line.startsWith("---")) {
-        //     tracks[tracks.length - 1].notes = tracks[tracks.length - 1].notes.concat(
-        //       line.replace(/---/, "").split(",")
-        //     )
-        //   } else if (line.includes(":")) {
-        //     const [key, value] = line.split(":").map(item=>item.trim())
-        //     tracks[tracks.length - 1].info[key] = value
-        //   }
-        // })
         console.log(tracks)
         return tracks
       }
