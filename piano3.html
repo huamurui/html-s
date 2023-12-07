@@ -383,53 +383,70 @@
       // 你挖的坑会不会有点大了...解析演奏是一回事，这玩意如果想让用户自己输入...是不是还得配合个带高亮的编辑器什么的
       // 只为个这引入一大坨库肯定不值得...但是写一堆东西也啊啊啊...
       // 而且，编辑，和解析演奏，是两回事...
-      function parseDoc(doc) {
-        const lines = doc
-          .split("\n")
-          .map((line) => line.trim())
-          .filter((line) => line)
-        const info = {}
-        const notes = []
-        let isInfo = true
-        lines.forEach((line) => {
-          if (line === "---") {
-            isInfo = false
-            return
+      function parseDoc(lines) {
+        console.log(lines)
+        const tracks = []
+        let tracking = false
+        let readingNotes = false
+        for( let i = 0; i < lines.length; i++) {
+          const line = lines[i]
+          if (line.startsWith("===") && !tracking) {
+            tracking = true
+            tracks.push({
+              info: {},
+              notes: [],
+            })
+          } else if (line.startsWith("===") && tracking) {
+            tracking = false
+            readingNotes = false
+          } else if (line.startsWith("---") && tracking) {
+            readingNotes = true
+          } else if (line.includes(":") && tracking) {
+            const [key, value] = line.split(":").map(item=>item.trim())
+            tracks[tracks.length - 1].info[key] = value
+          } else if (readingNotes && tracking) {
+            tracks[tracks.length - 1].notes.push(...line.split(",").map(item=>item.trim()))
           }
-          if (isInfo) {
-            const [key, value] = line.split(":")
-            info[key] = value
-          } else {
-            // 去掉空格和换行
-            const note = line.replace(/\s/g, "").split(",")
-            notes.push(...note)
-          }
-        })
-        console.log(notes)
-        return {
-          info,
-          notes,
         }
+        // for
+        // lines.forEach((line) => {
+        //   if (line.startsWith("===")) {
+        //     tracks.push({
+        //       info: {},
+        //       notes: [],
+        //     })
+        //   } else if (line.startsWith("---")) {
+        //     tracks[tracks.length - 1].notes = tracks[tracks.length - 1].notes.concat(
+        //       line.replace(/---/, "").split(",")
+        //     )
+        //   } else if (line.includes(":")) {
+        //     const [key, value] = line.split(":").map(item=>item.trim())
+        //     tracks[tracks.length - 1].info[key] = value
+        //   }
+        // })
+        console.log(tracks)
+        return tracks
       }
-      function renderDoc(info, notes) {
-        const coleredDoc = document.createElement("div")
-        coleredDoc.style.width = "200px"
-
-        const infoEl = document.createElement("div")
-        const infoStr = Object.keys(info)
-          .map((key) => `<span style="color:cornflowerblue">${key}</span>: ${info[key]}`)
-          .join("<br>")
-        infoEl.innerHTML = infoStr
-        coleredDoc.appendChild(infoEl)
-        coleredDoc.appendChild(document.createElement("hr"))
-        const notesEl = document.createElement("div")
-        notes.forEach((note) => {
-          notesEl.appendChild(renderNote(note))
-        })
-        coleredDoc.appendChild(notesEl)
-        return coleredDoc
+      parseDoc(exampleDoc.split("\n").map(item=>item.trim()).filter(item=>item))
+      function renderDoc(lines) {
+        const coloredLines = document.createDocumentFragment()
+        for (let i = 0; i < lines.length; i++) {
+          const line = document.createElement("div")
+          line.className = "view-line"
+          line.innerHTML = lines[i]
+            .replace(/ /g, "&nbsp;")
+            .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
+            .replace(/===/g, '<span style="color: blue;">===</span>')
+            .replace(/---/g, '<span style="color: blue;">---</span>')
+            .replace(/([^:]+):([^:]+)/, '<span style="color: blue;">$1</span>:<span style="color: gray;">$2</span>')
+            .replace(/degree/g, '<span style="color:cornflowerblue">degree</span>')
+            .replace(/default_step/g, '<span style="color:lightgreen">default_step</span>')
+            .replace(/\((.+)\)/, '<span style="color:cornflowerblue">($1)</span>')
+            .replace(/\[(.+)\]/, '<span style="color:lightgreen">[$1]</span>')
+          coloredLines.appendChild(line)
+        }
+        return coloredLines
       }
-      playground.appendChild(renderDoc(parseDoc(exampleDoc).info, parseDoc(exampleDoc).notes))
 
 
       // 这一部分是，我想做一个能伸缩的乐谱，和编辑区域。可以的话...滚动字幕？算了算了。就是一个，传统的抽屉组件，然后加点东西。
@@ -442,7 +459,6 @@
 
       theScore.innerHTML = `<iframe src="editor1.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>`
 
-      
     </script>
   </body>
 </html>
