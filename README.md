@@ -18,6 +18,7 @@ i want to make some simple demo just through single html file.
 - [mario](./mario.html)
 - [virtual-waterfall](./virtual-waterfall.html)
 - [b-page](./b-page.html)
+- [piano](./piano.html)
 
 other interesting toys:  
 
