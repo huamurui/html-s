@@ -141,6 +141,7 @@ lgbt...艾草的本领...与活下去
 
 我从未跨过五指山半步，这里一直都是这样。
 我理解父母年轻时初到城市的迷茫无所适从、对未知的畏惧、对所谓权力的不自觉的谄媚、无时无刻的压抑与沉默...以及不可避免的把这一切也投在我身上。
+这些窘迫状况下长出的东西，即使被压抑被边缘化，却依旧有着强烈的获得认同，再次融入社会，哪怕作为祭品也在所不惜的...
 
 但现代社会也还是挺温和的，至少明面上是这样，一切也确实没到活不下去的地步。
 但我希望你能明白，这不是外部入侵的意外污渍，这是这片土地土生土长的痛苦。
@@ -148,6 +149,12 @@ lgbt...艾草的本领...与活下去
           `,
           backgroundColor: "rgb(255 212 226)",
         },
+        {
+          title: '何处',
+          desc:``,
+          backgroundColor: "rgb(222 41 16)",
+          color: "rgb(255 222 0)",
+        }
       ]
 
       const playground = document.querySelector("#playground")
@@ -169,6 +176,7 @@ lgbt...艾草的本领...与活下去
         </div>
         `
         section.style.backgroundColor = item.backgroundColor
+        if(item.color) section.style.color = item.color
         swiper.appendChild(section)
       })
       const sections = swiper.querySelectorAll("section")
