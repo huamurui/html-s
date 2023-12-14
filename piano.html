@@ -635,6 +635,10 @@
               }
           }
         }
+        value() {
+          return this.lines.join("\n")
+        }
+
       }
 
       const editorCss = `
@@ -697,6 +701,62 @@
       document.head.appendChild(styleEl)
 
       const editor = new Editor(document.querySelector("#editor"), exampleDoc, renderDoc)
+
+
+      const tracks = () => {
+        return parseDoc(editor.value().split("\n").map(item=>item.trim()).filter(item=>item))
+      }
+      function play(){
+        const tracks = parseDoc(editor.value().split("\n").map(item=>item.trim()).filter(item=>item))
+        const speed = tracks[0].info.speed
+        const default_step = tracks[0].info.default_step
+        const degree = tracks[0].info.degree
+        const notes = tracks[0].notes
+        let index = 0
+        let timer = null
+
+        // failed because the user didn't interact with the document first.
+        
+        const playBtn = document.createElement("button")
+        playBtn.innerText = "play"
+        playBtn.style.position = "absolute"
+        playBtn.style.top = "0"
+        playBtn.style.right = "0"
+        playBtn.style.zIndex = "999"
+        document.body.appendChild(playBtn)
+        playBtn.addEventListener("click",()=>{
+          // 顺次的播放音乐
+          timer = setTimeout(function play() {
+            playOne()
+            index++
+            if (index < notes.length) {
+              timer = setTimeout(play, speed * 10)
+            }
+          }, speed * 10 )
+        })
+
+        function playOne() {
+          const note = notes[index]
+          const numberNote = note.replace(/(\(|\[).+/, "")
+          const numberToNote = {
+            1: "C",
+            2: "D",
+            3: "E",
+            4: "F",
+            5: "G",
+            6: "A",
+            7: "B",
+          }
+          const noteName = numberToNote[numberNote] + degree.slice(1)
+          console.log(noteName)
+          const audio = audios[noteName]
+          audio.currentTime = 0
+          audio.play()
+        }
+      }
+
+
+      play()
     </script>
   </body>
 </html>
