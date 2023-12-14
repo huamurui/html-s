@@ -28,7 +28,7 @@
       #score {
         background-color: rgb(43, 144, 226);
         position: relative;
-        top: 0;
+        top: -20px;
         left: 0;
         width: 100%;
         height: calc(100% - 100px);
@@ -425,9 +425,10 @@
           line.innerHTML = lines[i]
             .replace(/ /g, "&nbsp;")
             .replace(/\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;")
+            .replace(/([^:]+):([^:]+)/, '<span style="color:blue;">$1</span>:<span style="color:gray;">$2</span>')
+            // 这个冒号...和其他的冲突的可能性很大，所以把它放前面
             .replace(/===/g, '<span style="color: blue;">===</span>')
-            .replace(/---/g, '<span style="color: blue;">---</span>')
-            .replace(/([^:]+):([^:]+)/, '<span style="color: blue;">$1</span>:<span style="color: gray;">$2</span>')
+            .replace(/---/g, '<span style="color:blue">---</span>')
             .replace(/degree/g, '<span style="color:cornflowerblue">degree</span>')
             .replace(/default_step/g, '<span style="color:lightgreen">default_step</span>')
             .replace(/\((.+)\)/, '<span style="color:cornflowerblue">($1)</span>')
@@ -446,8 +447,256 @@
         score.classList.toggle("open")
       })
 
-      theScore.innerHTML = `<iframe src="editor1.html" frameborder="0" style="width: 100%; height: 100%;"></iframe>`
+      theScore.innerHTML = `
+        <div id="editor">
+          <div class="view-lines"></div>
+          <textarea></textarea>
+          <span class="cursor"></span>
+        </div>
+      `
+      class Editor {
+        constructor(rootEl, doc, renderer) {
+          this.rootEl = rootEl
+          this.doc = doc
+          this.renderer = renderer
+          this.lines = this.doc.split("\n")
+          this.pagination = {
+            line: 0,
+            column: 0,
+          }
+          this.position = {
+            left: 0,
+            top: 0,
+          }
+          this.charWidth = 7.7
+          this.charHeight = 16.5 // 19-16.5=2.5
+          this.lineHeight = 19
+          this.cursor = null
+          this.content = null
+          this.textarea = null
+          this.init()
+        }
+        init() {
+          this.getCharSize()
+          this.rootEl.style.setProperty("--line-height", this.lineHeight + "px")
+          this.cursor = this.rootEl.querySelector(".cursor")
+          this.content = this.rootEl.querySelector(".view-lines")
+          this.textarea = this.rootEl.querySelector("textarea")
+          this.textarea.addEventListener("keydown", this.handleKeydown.bind(this))
+          this.rootEl.addEventListener("click", (e) => {
+            // 根据点击的位置计算光标的位置，更新光标的位置，并且更新line和column
+            const x = e.clientX - this.content.getBoundingClientRect().left
+            const y = e.clientY - this.content.getBoundingClientRect().top
+            const line = Math.floor(y / this.lineHeight)
+            if (!this.lines[line]) return
+            const text = this.lines[line]
+            const column =
+              Math.floor(x / this.charWidth) > text.length
+                ? text.length
+                : Math.floor(x / this.charWidth)
+            this.position.left = text.slice(0, column).length * this.charWidth
+            this.position.top = line * this.lineHeight
+            this.pagination.line = line
+            this.pagination.column = column
+            this.updatePosition()
+          })
+          if (/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+            this.textarea.addEventListener("input", (e) => {
+              const text = e.target.value
+              this.insertText(text)
+              e.target.value = ""
+            })
+          }
+          this.updateLines()
+        }
+        getCharSize() {
+          const span = document.createElement("span")
+          span.innerHTML = "a"
+          span.style.fontSize = "14px"
+          span.style.fontFamily = 'Consolas, "Courier New", monospace'
+          document.body.appendChild(span)
+          this.charWidth = Number(span.getBoundingClientRect().width.toFixed(1))
+          this.charHeight = Number(span.getBoundingClientRect().height.toFixed(1))
+          this.lineHeight = Number(2.5 + this.charHeight).toFixed(1)
+          document.documentElement.style.setProperty(
+            "--line-height",
+            this.lineHeight + "px"
+          )
+          document.body.removeChild(span)
+        }
+        updateCursor() {
+          this.cursor.style.left = this.position.left + "px"
+          this.cursor.style.top = this.position.top + "px"
+          this.textarea.style.left = this.position.left + "px"
+          this.textarea.style.top = this.position.top + "px"
+          this.textarea.focus()
+        }
+        updatePosition() {
+          const text = this.lines[this.pagination.line]
+          text.length > this.pagination.column
+            ? (this.position.left = this.pagination.column * this.charWidth)
+            : (this.position.left = text.length * this.charWidth)
+          this.position.top = this.pagination.line * this.lineHeight
+          this.updateCursor()
+        }
+        moveLeft() {
+          if (this.pagination.column > 0) {
+            this.pagination.column--
+          } else if (this.pagination.line > 0) {
+            this.pagination.line--
+            this.pagination.column = this.lines[this.pagination.line].length
+          }
+          this.updatePosition()
+        }
+        moveRight() {
+          if (this.pagination.column < this.lines[this.pagination.line].length) {
+            this.pagination.column++
+          } else if (this.pagination.line < this.lines.length - 1) {
+            this.pagination.line++
+            this.pagination.column = 0
+          }
+          this.updatePosition()
+        }
+        moveUp() {
+          if (this.pagination.line > 0) {
+            this.pagination.line--
+          }
+          this.updatePosition()
+        }
+        moveDown() {
+          if (this.pagination.line < this.lines.length - 1) {
+            this.pagination.line++
+          }
+          this.updatePosition()
+        }
+        updateLines() {
+          this.content.innerHTML = ""
+          this.content.appendChild(this.renderer(this.lines))
+        }
+        insertText(text) {
+          if (text === "\n") {
+            const line = this.lines[this.pagination.line]
+            const left = line.slice(0, this.pagination.column)
+            const right = line.slice(this.pagination.column)
+            this.lines[this.pagination.line] = left
+            this.lines.splice(this.pagination.line + 1, 0, right)
+            this.pagination.line++
+            this.pagination.column = 0
+          } else {
+            this.lines[this.pagination.line] =
+              this.lines[this.pagination.line].slice(0, this.pagination.column) +
+              text +
+              this.lines[this.pagination.line].slice(this.pagination.column)
+            this.pagination.column += text.length
+          }
+          this.updateLines()
+          this.updatePosition()
+        }
+        deleteText() {
+          if (this.pagination.column > 0) {
+            this.lines[this.pagination.line] =
+              this.lines[this.pagination.line].slice(0, this.pagination.column - 1) +
+              this.lines[this.pagination.line].slice(this.pagination.column)
+            this.pagination.column--
+          } else if (this.pagination.line > 0) {
+            this.pagination.line--
+            this.pagination.column = this.lines[this.pagination.line].length
+            this.lines[this.pagination.line] =
+              this.lines[this.pagination.line].slice(0, this.pagination.column) +
+              this.lines[this.pagination.line + 1]
+            this.lines.splice(this.pagination.line + 1, 1)
+          }
+          this.updateLines()
+          this.updatePosition()
+        }
+        handleKeydown(event) {
+          switch (event.key) {
+            case "ArrowLeft":
+              this.moveLeft()
+              break
+            case "ArrowRight":
+              this.moveRight()
+              break
+            case "ArrowUp":
+              this.moveUp()
+              break
+            case "ArrowDown":
+              this.moveDown()
+              break
+            case "Backspace":
+              this.deleteText()
+              break
+            case "Enter":
+              this.insertText("\n")
+              break
+            default:
+              if (event.key.length === 1) {
+                this.insertText(event.key)
+              }
+          }
+        }
+      }
 
+      const editorCss = `
+        :root {
+          --line-height: 19px;
+        }
+        * {
+          margin: 0;
+          padding: 0;
+        }
+        #editor {
+          position: relative;
+          width: calc(100%-40px);
+          height: 100%;
+          font-family: Consolas, "Courier New", monospace;
+          /* font-family: ui-monospace,SFMono-Regular,SF Mono,Menlo,Consolas,Liberation Mono,monospace; */
+          background-color: #eee;
+          user-select: none;
+          cursor: text;
+          margin: 20px;
+        }
+
+        .view-lines {
+          font-size: 14px;
+        }
+
+        .view-line {
+          /* font-family: Consolas, "Courier New", monospace; */
+          height: var(--line-height);
+        }
+        textarea {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 1px;
+          height: 1px;
+          opacity: 0;
+        }
+
+        /* 设置光标的样式 */
+        .cursor {
+          position: absolute;
+          display: inline-block;
+          width: 2px;
+          height: var(--line-height);
+          top: 0;
+          left: 0;
+          background-color: black;
+          animation: blink 1s infinite;
+        }
+        /* 设置光标的闪烁效果 */
+        @keyframes blink {
+          50% {
+            opacity: 0;
+          }
+        }
+      `
+      const styleEl = document.createElement("style")
+      styleEl.innerHTML = editorCss
+      document.head.appendChild(styleEl)
+
+      const editor = new Editor(document.querySelector("#editor"), exampleDoc, renderDoc)
     </script>
   </body>
 </html>
