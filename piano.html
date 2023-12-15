@@ -47,6 +47,25 @@
         cursor: pointer;
         background-color: blueviolet;
       }
+      #play-btn {
+        position: absolute;
+        height: 50px;
+        width: 50px;
+        border-radius: 50px;
+        bottom: 120px;
+        right: 30px;
+        cursor: pointer;
+        background-color:chocolate;
+      }
+      #play-btn::after {
+        content: '>';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%,-50%);
+        font-size: 30px;
+        color: white;
+      }
       
       .key-wrapper {
         position: relative;
@@ -143,8 +162,10 @@
       <div id="operahouse"></div>
       <div id="piano"></div>
       <div id="score">
-        <div class="handler"></div>
-        <div id="the-score"></div>
+        <div class="handler">^</div>
+        <div id="the-score">
+        </div>
+        <div id="play-btn"></div>
       </div>
     </div>
     <script>
@@ -367,16 +388,8 @@
     default_step: 1
     degree: C4
     ---
-    1,1,5,5,6,6,
-    5,5,4,4(1),
-    ===
-    ===
-    name:tata
-    speed: 100
-    default_step: 1
-    degree: C4
-    ---
-    3,3,2,2,1,1,
+    1,1,5,5,6,6,5,
+    4,4,3,3,2,2,1,
     ===
 
     `
@@ -702,7 +715,6 @@
 
       const editor = new Editor(document.querySelector("#editor"), exampleDoc, renderDoc)
 
-
       const tracks = () => {
         return parseDoc(editor.value().split("\n").map(item=>item.trim()).filter(item=>item))
       }
@@ -716,14 +728,7 @@
         let timer = null
 
         // failed because the user didn't interact with the document first.
-        
-        const playBtn = document.createElement("button")
-        playBtn.innerText = "play"
-        playBtn.style.position = "absolute"
-        playBtn.style.top = "0"
-        playBtn.style.right = "0"
-        playBtn.style.zIndex = "999"
-        document.body.appendChild(playBtn)
+        const playBtn = document.getElementById("play-btn")
         playBtn.addEventListener("click",()=>{
           // 顺次的播放音乐
           timer = setTimeout(function play() {
@@ -750,12 +755,11 @@
           const noteName = numberToNote[numberNote] + degree.slice(1)
           console.log(noteName)
           const audio = audios[noteName]
+          if(!audio) return
           audio.currentTime = 0
           audio.play()
         }
       }
-
-
       play()
     </script>
   </body>
