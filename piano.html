@@ -719,17 +719,17 @@
         return parseDoc(editor.value().split("\n").map(item=>item.trim()).filter(item=>item))
       }
       function play(){
-        const tracks = parseDoc(editor.value().split("\n").map(item=>item.trim()).filter(item=>item))
-        const speed = tracks[0].info.speed
-        const default_step = tracks[0].info.default_step
-        const degree = tracks[0].info.degree
-        const notes = tracks[0].notes
-        let index = 0
-        let timer = null
-
+        let speed, default_step, degree, notes, index, timer, tracks
         // failed because the user didn't interact with the document first.
         const playBtn = document.getElementById("play-btn")
-        playBtn.addEventListener("click",()=>{
+          playBtn.addEventListener("click",()=>{
+          tracks = parseDoc(editor.value().split("\n").map(item=>item.trim()).filter(item=>item))
+          speed = tracks[0].info.speed
+          default_step = tracks[0].info.default_step
+          degree = tracks[0].info.degree
+          notes = tracks[0].notes
+          index = 0
+          timer = null
           // 顺次的播放音乐
           timer = setTimeout(function play() {
             playOne()
