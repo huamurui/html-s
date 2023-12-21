@@ -9,12 +9,11 @@
         margin: 0;
         padding: 0;
       }
+      hr {
+        margin: 10px 0;
+      }
 
       #playground {
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-start;
         width: 100vw;
         height: 100vh;
         background-color: #f5f5f5;
@@ -22,25 +21,23 @@
 
       #tag-list {
         display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: flex-start;
+        flex-direction: row;
         flex-wrap: wrap;
-        width: 200px;
-        height: 100%;
-        background-color: #f5f5f5;
+
+        width: 100%;
       }
 
       #recommendation-list {
-        flex:1;
         display: flex;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: flex-start;
+        flex-direction: row;
+        flex-wrap: wrap;
+
+        width: 100%;
       }
 
       .tag {
         height: 20px;
+        width: fit-content;
         padding: 5px;
         margin: 2px;
         border: 1px solid #ccc;
@@ -51,6 +48,7 @@
 
       .item {
         height: 20px;
+        width: fit-content;
         padding: 5px;
         margin: 2px;
         border: 1px solid #ccc;
@@ -67,78 +65,106 @@
       <div id="recommendation-list"></div>
     </div>
     <script>
-      // i want to make a simple recommendation engine
+      /**
+       *
+       * v0.0 doc
+       *
+       * i want to make a simple recommendation engine
+       * 1. i need to create a list of items and their attributes/tags(stable)
+       * 2. i need to create one user and its preferences/tags(dynamic)
+       * 3. i need to create a list of ratings
+       * 4. i need to create a list of recommendations
+       * the example ... i want to recommend food to people based on their preferences
+       */
 
-      // 1. i need to create a list of items and their attributes/tags(stable)
-      // 2. i need to create one user and its preferences/tags(dynamic)
-      // 3. i need to create a list of ratings
-      // 4. i need to create a list of recommendations
+      /**
+       *
+       * v0.1 doc
+       *
+       * p1. but... this is just for one user, and you need to click on the tags to change the preferences
+       * p2. what if i want to recommend to multiple users? and i want to change the recommendations by clicking on the items?
+       * p3. and.. is it nessary to calculate the score for every item every time? i think a user may just want 10 items one time...how to do that?
+       *
+       *
+       * s1. i need to create a list of users and store the preferences in the user object
+       * s2. show the tags at the top of the page, and the items under the tags, and while clicking on the items, the tags and the items will be updated.
+       * s3. this is for the later, one possible way is, divide the items into groups, one time for one group, and only give the top 10 items for each group. publish time will be a good divider.
 
-      // the example ... i want to recommend food to people based on their preferences
-      const tagsWithPreferences = [
+       */
+      // user -----get----> server -----get----> user preferences ---get----> data
+      // user ----cilck/liked---> server -----adjsut----> user preferences
+
+      const subscribers = [
         {
-          name: "spicy",
-          weight: 0.5,
-        },
-        {
-          name: "sweet",
-          weight: 0.5,
-        },
-        {
-          name: "sour",
-          weight: 0.5,
-        },
-        {
-          name: "bitter",
-          weight: 0.5,
-        },
-        {
-          name: "salty",
-          weight: 0.5,
-        },
-        {
-          name: "savory",
-          weight: 0.5,
-        },
-        {
-          name: "meat",
-          weight: 0.5,
-        },
-        {
-          name: "vegetable",
-          weight: 0.5,
-        },
-        {
-          name: "fruit",
-          weight: 0.5,
-        },
-        {
-          name: "cereal",
-          weight: 0.5,
-        },
-        {
-          name: "staplefood",
-          weight: 0.5,
-        },
-        {
-          name: "dessert",
-          weight: 0.5,
-        },
-        {
-          name: "soup",
-          weight: 0.5,
-        },
-        {
-          name: "fried",
-          weight: 0.5,
-        },
-        {
-          name: "steamed",
-          weight: 0.5,
-        },
-        {
-          name: "baked",
-          weight: 0.5,
+          name: "ko no dio da",
+          performances: [
+            // array of tagsWithPreferences, maxLength = 15, but only first 5 are used
+            {
+              name: "spicy",
+              weight: 0.5,
+            },
+            {
+              name: "sweet",
+              weight: 0.5,
+            },
+            {
+              name: "sour",
+              weight: 0.5,
+            },
+            {
+              name: "bitter",
+              weight: 0.5,
+            },
+            {
+              name: "salty",
+              weight: 0.5,
+            },
+            {
+              name: "savory",
+              weight: 0.5,
+            },
+            {
+              name: "meat",
+              weight: 0.5,
+            },
+            {
+              name: "vegetable",
+              weight: 0.5,
+            },
+            {
+              name: "fruit",
+              weight: 0.5,
+            },
+            {
+              name: "cereal",
+              weight: 0.5,
+            },
+            {
+              name: "staplefood",
+              weight: 0.5,
+            },
+            {
+              name: "dessert",
+              weight: 0.5,
+            },
+            {
+              name: "soup",
+              weight: 0.5,
+            },
+            {
+              name: "fried",
+              weight: 0.5,
+            },
+            {
+              name: "steamed",
+              weight: 0.5,
+            },
+            {
+              name: "baked",
+              weight: 0.5,
+            },
+          ],
+          viwedItem: [], // ... inclueds the items key and viewed time... maybe to prevent the same item from being recommended again
         },
       ];
 
@@ -275,75 +301,102 @@
         },
       ];
 
-      let itemsWithRecommendation = [];
+      const elTagList = document.getElementById("tag-list");
+      const elRecommendationList = document.getElementById(
+        "recommendation-list"
+      );
+      elRecommendationList.addEventListener("click", (e) => {
+        if (e.target.classList.contains("item")) {
+          handleItemClick(e.target, subscribers[0]);
+        }
+      });
 
-      function renderTagList() {
-        const tagList = document.getElementById("tag-list");
-        tagList.innerHTML = "";
-        tagsWithPreferences.forEach((tag) => {
-          const tagElement = document.createElement("div");
-          tagElement.innerText = tag.name + " " + tag.weight.toFixed(1);
+      elTagList.addEventListener("click", (e) => {
+        if (e.target.classList.contains("tag")) {
+          handleTagClick(e.target, subscribers[0]);
+        }
+      });
+
+      function renderPerformancesList(dom, data) {
+        dom.innerHTML = "";
+        data.forEach((tag) => {
+          const tagElement = document.createElement("span");
+          tagElement.innerText = tag.name + "__" + tag.weight.toFixed(2);
           tagElement.classList.add("tag");
-          tagElement.addEventListener("click", () => {
-            handleTagClick(tag);
-          });
-          tagList.appendChild(tagElement);
+          dom.appendChild(tagElement);
         });
       }
 
-      function renderRecommendationList() {
-        const recommendationList = document.getElementById(
-          "recommendation-list"
-        );
-        recommendationList.innerHTML = "";
-        itemsWithRecommendation.forEach((item) => {
-          const itemElement = document.createElement("div");
-          itemElement.innerText = item.name + " " + item.score.toFixed(2);
+      function renderRecommendationList(dom, data) {
+        dom.innerHTML = "";
+        data.forEach((item) => {
+          const itemElement = document.createElement("span");
+          itemElement.innerText = item.name + "__" + item.score.toFixed(2);
           itemElement.classList.add("item");
-          recommendationList.appendChild(itemElement);
+          dom.appendChild(itemElement);
         });
       }
 
-      function handleTagClick(tag) {
-        tagsWithPreferences.forEach((tagWithPreference) => {
-          if (tagWithPreference.name === tag.name) {
-            tagWithPreference.weight += 0.1;
+      function handleItemClick(elItem, subscriber) {
+        const itemName = elItem.innerText.split("__")[0];
+        const item = items.find((item) => item.name === itemName);
+        console.log(itemName, item);
+        item.tags.forEach((tag) => {
+          if (subscriber.performances.find((t) => t.name === tag)) {
+            subscriber.performances.find((t) => t.name === tag).weight += 0.1;
           } else {
-            tagWithPreference.weight -= 0.1 / (tagsWithPreferences.length - 1);
+            subscriber.performances.push({
+              name: tag,
+              weight: 0.1,
+            });
           }
         });
 
-        getItemsWithRecommendation();
-        renderRecommendationList();
-        renderTagList();
+        const showItems = getItemsWithPreferences(items, subscriber.performances);
+        renderRecommendationList(elRecommendationList, showItems);
+        renderPerformancesList(elTagList, subscriber.performances);
       }
 
-      function getItemsWithRecommendation() {
-        itemsWithRecommendation = [];
-        items.forEach((item) => {
-          let score = 0;
-          const tagNum = item.tags.length;
-          item.tags.forEach((tag) => {
-            tagsWithPreferences.forEach((tagWithPreference) => {
-              if (tagWithPreference.name === tag) {
-                score += tagWithPreference.weight / tagNum;
+      function getItemsWithPreferences(items, preferences) {
+        const itemsWithPreferences = items
+          .map((item) => {
+            const score = preferences.reduce((acc, tag) => {
+              if (item.tags.includes(tag.name)) {
+                acc += tag.weight / item.tags.length;
               }
-            });
-          });
-          item.score = score;
-          itemsWithRecommendation.push(item);
-        });
-
-        itemsWithRecommendation.sort((a, b) => {
-          return b.score - a.score;
-        });
-        itemsWithRecommendation = itemsWithRecommendation.slice(0, 5);
-        console.log(tagsWithPreferences, itemsWithRecommendation);
+              return acc;
+            }, 0);
+            return {
+              ...item,
+              score,
+            };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 10);
+        return itemsWithPreferences;
       }
 
-      renderTagList();
-      getItemsWithRecommendation();
-      renderRecommendationList();
+      // user couldn't and no need do this gerenally...  here is just for the test
+      function handleTagClick(elTag, subscriber) {
+        const tagName = elTag.innerText.split("__")[0];
+        subscriber.performances.forEach((tag) => {
+          if (tag.name === tagName) {
+            tag.weight += 0.1;
+          } else {
+            tag.weight -= 0.02;
+          }
+        });
+
+        const showItems = getItemsWithPreferences(items, subscriber.performances);
+        renderRecommendationList(elRecommendationList, showItems);
+        renderPerformancesList(elTagList, subscriber.performances);
+      }
+
+      renderPerformancesList(elTagList, subscribers[0].performances);
+      renderRecommendationList(
+        elRecommendationList,
+        getItemsWithPreferences(items, subscribers[0].performances)
+      );
     </script>
   </body>
 </html>
