@@ -19,6 +19,7 @@ i want to make some simple demo just through single html file.
 - [virtual-waterfall](./virtual-waterfall.html)
 - [b-page](./b-page.html)
 - [piano](./piano.html)
+- [shadow](./shadow.html)
 
 other interesting toys:  
 
