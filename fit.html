@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>fit</title>
+    <style>
+      .box {
+        border: 1px solid #aaa;
+        display: flex;
+        flex-direction: column;
+        width: 200px;
+        height: 300px;
+      }
+      .top {
+        flex-grow: 1;
+        flex-shrink: 1;
+        flex-basis: 100%;
+        width: 100%;
+      }
+      .bottom {
+        flex-grow: 1;
+        flex-shrink: 0;
+        flex-basis: auto;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div class="box">
+        <div class="top" style="background-color: bisque;border-radius: 4px;"></div>
+        <div class="bottom">
+          <span>文字行数不确定....那怎么搞.jpg...好家伙，直接裁图片...</span>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
