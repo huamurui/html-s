@@ -165,13 +165,14 @@
           ],
           viwedItem: [], // ... inclueds the items key and viewed time... maybe to prevent the same item from being recommended again
         },
-      ];
+      ]
 
       const items = [
         {
           name: "chicken rice",
           score: 0,
           tags: ["meat", "staplefood", "savory", "soup", "steamed"],
+          category: "food",
         },
         {
           name: "chicken chop",
@@ -298,62 +299,60 @@
           score: 0,
           tags: ["meat", "staplefood", "savory", "fried"],
         },
-      ];
+      ]
 
-      const elTagList = document.getElementById("tag-list");
-      const elRecommendationList = document.getElementById(
-        "recommendation-list"
-      );
+      const elTagList = document.getElementById("tag-list")
+      const elRecommendationList = document.getElementById("recommendation-list")
       elRecommendationList.addEventListener("click", (e) => {
         if (e.target.classList.contains("item")) {
-          handleItemClick(e.target, subscribers[0]);
+          handleItemClick(e.target, subscribers[0])
         }
-      });
+      })
 
       elTagList.addEventListener("click", (e) => {
         if (e.target.classList.contains("tag")) {
-          handleTagClick(e.target, subscribers[0]);
+          handleTagClick(e.target, subscribers[0])
         }
-      });
+      })
 
       function renderPerformancesList(dom, data) {
-        dom.innerHTML = "";
+        dom.innerHTML = ""
         data.forEach((tag) => {
-          const tagElement = document.createElement("span");
-          tagElement.innerText = tag.name + "__" + tag.weight.toFixed(2);
-          tagElement.classList.add("tag");
-          dom.appendChild(tagElement);
-        });
+          const tagElement = document.createElement("span")
+          tagElement.innerText = tag.name + "__" + tag.weight.toFixed(2)
+          tagElement.classList.add("tag")
+          dom.appendChild(tagElement)
+        })
       }
 
       function renderRecommendationList(dom, data) {
-        dom.innerHTML = "";
+        dom.innerHTML = ""
         data.forEach((item) => {
-          const itemElement = document.createElement("span");
-          itemElement.innerText = item.name + "__" + item.score.toFixed(2);
-          itemElement.classList.add("item");
-          dom.appendChild(itemElement);
-        });
+          const itemElement = document.createElement("span")
+          itemElement.innerText = item.name + "__" + item.score.toFixed(2)
+          itemElement.classList.add("item")
+          dom.appendChild(itemElement)
+        })
       }
 
       function handleItemClick(elItem, subscriber) {
-        const itemName = elItem.innerText.split("__")[0];
-        const item = items.find((item) => item.name === itemName);
-        console.log(itemName, item);
+        const itemName = elItem.innerText.split("__")[0]
+        const item = items.find((item) => item.name === itemName)
+        console.log(itemName, item)
         item.tags.forEach((tag) => {
           if (subscriber.performances.find((t) => t.name === tag)) {
-            subscriber.performances.find((t) => t.name === tag).weight += 0.1;
+            subscriber.performances.find((t) => t.name === tag).weight += 0.1
           } else {
             subscriber.performances.push({
               name: tag,
               weight: 0.1,
-            });
+            })
           }
-        });
+        })
 
-        const showItems = getItemsWithPreferences(items, subscriber.performances);
-        renderRecommendationList(elRecommendationList, showItems);
-        renderPerformancesList(elTagList, subscriber.performances);
+        const showItems = getItemsWithPreferences(items, subscriber.performances)
+        renderRecommendationList(elRecommendationList, showItems)
+        renderPerformancesList(elTagList, subscriber.performances)
       }
 
       function getItemsWithPreferences(items, preferences) {
@@ -361,41 +360,38 @@
           .map((item) => {
             const score = preferences.reduce((acc, tag) => {
               if (item.tags.includes(tag.name)) {
-                acc += tag.weight / item.tags.length;
+                acc += tag.weight / item.tags.length
               }
-              return acc;
-            }, 0);
+              return acc
+            }, 0)
             return {
               ...item,
               score,
-            };
+            }
           })
           .sort((a, b) => b.score - a.score)
-          .slice(0, 10);
-        return itemsWithPreferences;
+          .slice(0, 10)
+        return itemsWithPreferences
       }
 
       // user couldn't and no need do this gerenally...  here is just for the test
       function handleTagClick(elTag, subscriber) {
-        const tagName = elTag.innerText.split("__")[0];
+        const tagName = elTag.innerText.split("__")[0]
         subscriber.performances.forEach((tag) => {
           if (tag.name === tagName) {
-            tag.weight += 0.1;
+            tag.weight += 0.1
           } else {
-            tag.weight -= 0.02;
+            tag.weight -= 0.02
           }
-        });
+        })
 
-        const showItems = getItemsWithPreferences(items, subscriber.performances);
-        renderRecommendationList(elRecommendationList, showItems);
-        renderPerformancesList(elTagList, subscriber.performances);
+        const showItems = getItemsWithPreferences(items, subscriber.performances)
+        renderRecommendationList(elRecommendationList, showItems)
+        renderPerformancesList(elTagList, subscriber.performances)
       }
 
-      renderPerformancesList(elTagList, subscribers[0].performances);
-      renderRecommendationList(
-        elRecommendationList,
-        getItemsWithPreferences(items, subscribers[0].performances)
-      );
+      renderPerformancesList(elTagList, subscribers[0].performances)
+      renderRecommendationList(elRecommendationList, getItemsWithPreferences(items, subscribers[0].performances))
     </script>
   </body>
 </html>
