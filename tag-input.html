@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style>
+      .tags-content {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 6px;
+        width: 400px;
+        box-sizing: border-box;
+        padding: 8px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-size: 16px;
+        line-height: 24px;
+        color: #333;
+        outline-color: #4f46e5;
+        overflow: auto;
+        cursor: text;
+      }
+      .tag {
+        display: flex;
+        align-items: center;
+        padding: 4px 0 4px 8px;
+        font-size: 16px;
+        line-height: 24px;
+        background: #f5f5f5;
+        color: rgba(0, 0, 0, 0.85);
+        cursor: default;
+      }
+      .tag-close {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        background: red;
+      }
+      .tags-input {
+        flex: auto;
+        border: 0;
+        outline: 0;
+        padding: 4px 0;
+        line-height: 24px;
+        font-size: 16px;
+      }
+      .tags-content:focus-within,
+      .tags-content:active {
+        outline: auto #4f46e5;
+      }
+      .tags-input {
+        -webkit-user-modify: read-write-plaintext-only;
+      }
+
+      .tags-input:empty::before {
+        content: attr(placeholder);
+        color: #828282;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div class="tags-content">
+        <div class="tags-input" placeholder="添加标签"></div>
+      </div>
+    </div>
+    <script>
+      const TagInput = document.querySelector(".tags-input")
+      const TagContent = document.querySelector(".tags-content")
+      TagInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault()
+          if (this.innerText) {
+            // 输入框内容通过 innerText 获取
+            const tag = document.createElement("TAG")
+            tag.innerHTML = `
+              <span class="tag">${this.innerText}<span class="tag-close">x</span></span>
+            `
+            this.before(tag)
+            this.innerText = ""
+          }
+        }
+      })
+
+      TagInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Backspace" && !this.innerText) {
+          this.previousElementSibling?.remove() // 需要判断前一个元素是否存在
+        }
+      })
+
+      // TagContent是父级容器
+      TagContent.addEventListener("click", function (ev) {
+        if (ev.target.className === "tag-close") {
+          ev.target.parentNode.remove()
+        }
+        TagInput.focus() //点击任意地方输入框都需要聚焦
+      })
+    </script>
+  </body>
+</html>
