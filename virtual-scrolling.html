@@ -26,6 +26,20 @@
         text-align: center;
         line-height: 23px;
       }
+
+      #playground2 {
+        position: relative;
+        height: 300px;
+        overflow: auto;
+      }
+      #phantom2 {
+        position: absolute;
+      }
+      #list2 {
+        position: absolute;
+        width: 100%;
+      }
+
     </style>
   </head>
   <body>
@@ -33,6 +47,10 @@
     <div id="playground">
       <div id="phantom"></div>
       <div id="list"></div>
+    </div>
+    <div id="playground2">
+      <div id="phantom2"></div>
+      <div id="list2"></div>
     </div>
     <script>
       let [playground, phantom, list] = ["playground", "phantom", "list"].map((id) => document.querySelector(`#${id}`))
@@ -59,6 +77,33 @@
 
       playground.addEventListener("scroll", render)
       render()
+
+      // 这里是用 absolute relative 的方式实现虚拟列表
+      let [playground2, phantom2, list2] = ["playground2", "phantom2", "list2"].map((id) => document.querySelector(`#${id}`))
+      let itemHeight2 = 30
+      let itemCount2 = 10000
+
+      phantom2.style.height = `${itemHeight2 * itemCount2}px`
+      phantom2.style.width = "100%"
+      const render2 = () => {
+        let scrollTop = playground2.scrollTop
+        let firstIndex = Math.floor(scrollTop / itemHeight2)
+        let lastIndex = firstIndex + Math.ceil(playground2.clientHeight / itemHeight2)
+        let html = ""
+        list2.style.top = `${firstIndex * itemHeight2}px`
+        for (let i = firstIndex; i < lastIndex; i++) {
+          let color = `#${(i * 999).toString(16).padStart(6, "0")}`
+          if (i % 2 === 0) color = `#${(i * 999).toString(16).padEnd(6, "0")}`
+          html += `<div class="item" style="color:${color};">${i}</div>`
+        }
+        list2.innerHTML = html
+      }
+
+      playground2.addEventListener("scroll", render2)
+      render2()
+
+
+
     </script>
   </body>
 </html>

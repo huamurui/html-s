@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mumu</title>
+  <style>
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    #playground {
+      width: 100%;
+      height: 100vh;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #mumu {
+      width: 50%;
+      height: 50%;
+      background-color: #fff;
+      padding: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow-y: auto;
+    }
+    #mumu p {
+      /* 为什么回车之后光标直接到了最右边 */
+      padding: 10px;
+      border: 1px solid #f0f0f0;
+      border-radius: 5px;
+      outline: none;
+      width: 100%;
+      min-height: 100px;
+      resize: none;
+      box-sizing: border-box;
+    }
+
+
+
+
+  </style>
+</head>
+<body>
+  <div id="playground">
+    <div id="mumu">
+      <p id="textarea" contenteditable="true">Lorem ipsum dolor sit amet, consectetur adipisicing elit. Quisquam, quos.</p>
+      <div>
+        <button id="tag">#</button>
+        <button id="people">@</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    const mumu = document.getElementById('mumu');
+    const textarea = mumu.querySelector('#textarea');
+    const tag = mumu.querySelector('#tag');
+    const people = mumu.querySelector('#people');
+
+    tag.onclick = function() {
+      const text = window.getSelection().toString();
+      if (text) {
+        textarea.innerHTML = textarea.innerHTML.replace(text, `<a contenteditable="false" href="${text}">#${text}</a>`);
+      }
+    }
+    people.onclick = function() {
+      const text = window.getSelection().toString();
+      if (text) {
+        textarea.innerHTML = textarea.innerHTML.replace(text, `<a contenteditable="false" href="${text}">@${text}</a>`);
+      }
+    }
+
+    textarea.addEventListener('input', function(e) {
+      if(e.inputType === 'insertParagraph' || (e.inputType === 'insertText' && (e.data === ' ' || e.data === '\n'))) {
+        // 获取输入的位置
+        const selection = window.getSelection();
+        console.log(selection);
+          if (selection.focusNode.nodeValue) {
+            const text = selection.focusNode.nodeValue;
+            const node = selection.focusNode;
+            if (text.startsWith('#')) {
+              node
+               = parseStrToDom(`<a contenteditable="false" href="${text}">#${text}</a>`);
+            }
+            if (text.startsWith('@')) {
+              node = parseStrToDom(`<a contenteditable="false" href="${text}">@${text}</a>`);
+            }
+
+
+          }
+      }
+      
+    });
+
+    function parseStrToDom(str) {
+      const div = document.createElement('div');
+      div.innerHTML = str;
+      return div;
+    }
+
+
+
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <style>
+    
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #playground {
+      width: 100vw;
+      height: 100vh;
+      background-color: #f0f0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    #colored {
+      width: 100vw;
+      height: 100px;
+      background: linear-gradient(45deg, #f06, #9f6);
+      position: absolute;
+    }
+  </style>
+  <body>
+    <div id="playground">
+      <div id="colored"></div>
+    </div>
+    <script>
+      const colored = document.getElementById('colored');
+      colored.addEventListener('mouseover', startTracking);
+      colored.addEventListener('mouseout', stopTracking);
+      startPosition = {
+        x: 0,
+      }
+      function startTracking(e) {
+        startPosition.x = e.clientX;
+        startPosition.y = e.clientY;
+        document.addEventListener('mousemove', moveColored);
+      }
+      function stopTracking() {
+        document.removeEventListener('mousemove', moveColored);
+        // 这里可以添加一些动画效果，让colored回到原来的位置
+        colored.style.left = 0;
+        colored.style.transition = 'left 0.5s';
+      }
+
+      function moveColored(e) {
+        // 获取鼠标的位置，算出偏差
+        const x = e.clientX - startPosition.x;
+        // 设置colored的位置，不是完全跟随鼠标，而是倾向，可以除个比例，然后多个贴图不同比例时，可能会有更好的视差效果
+        colored.style.left = `${x}px`;
+      }
+      </script>
+  </body>
+</html>
