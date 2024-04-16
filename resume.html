@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>resume</title>
+    <style>
+      :root {
+        --primary-color: #ffc0cb;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #ababab;
+        color: #333;
+      }
+
+      #playground {
+        width: 800px;
+        margin: 0 auto;
+      }
+
+      #resume {
+        padding: 20px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #1d1d1d;
+        color: rgb(161, 136, 136);
+        display: flex;
+        justify-content: space-between;
+      }
+      #resume h3 {
+        color: var(--primary-color);
+      }
+
+      #left_column {
+        width: 30%;
+      }
+
+      #right_column {
+        width: 65%;
+      }
+
+      #avatar {
+        width: 100px;
+        height: 100px;
+      }
+
+      .section {
+        background-color: #333;
+        border-radius: 5px;
+        padding: 10px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div id="resume">
+        <div id="left_column">
+          <div id="base_info" class="section">
+            <h3>基本信息</h3>
+            <img id="avatar" src="" alt="头像" />
+            <p id="name">姓名：</p>
+            <p id="age">年龄：</p>
+            <p>电话：</p>
+            <p>邮箱：</p>
+            <p>求职意向：
+              <span>猫猫</span>
+              <span>狗狗</span>
+              <span>小狗猫</span>
+            </p>
+          </div>
+          <div id="skills" class="section">
+            <h3>专业素养</h3>
+            <p>1. 性格内向弱势，容易顺从</p>
+            <p>2. 喜欢睡觉</p>
+            <p>3. 屁屁大大的很可爱</p>
+          </div>
+        </div>
+        <div id="right_column">
+          <div id="education" class="section">
+            <h3>教育经历</h3>
+            <p id="school">学校：</p>
+            <p id="major">专业：</p>
+            <p id="start_time">入学时间：</p>
+          </div>
+          <div id="work_experience" class="section">
+            <h3>工作经历</h3>
+            <ul id="work_experience_list"></ul>
+          </div>
+          <div id="projects" class="section">
+            <h3>项目经历</h3>
+            <ul id="projects_list"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // 简历
+      const nanniang = {
+        base_info: {
+          name: "小狗猫❥❤💖🍑",
+          age: 250,
+          avatar: "./QQ截图20240329184747.png",
+        },
+        education: {
+          school: "艾草学院",
+          major: "艾草",
+          start_time: "2020-09",
+        },
+        work_experience: [
+          {
+            company: "艾草公司",
+            job: "艾草工程师",
+            start_time: "2020-09",
+            end_time: "2020-10",
+          },
+        ],
+        projects: [
+          {
+            name: "艾草项目",
+            start_time: "2020-09",
+            end_time: "2020-10",
+            description: "艾草项目描述",
+          },
+        ],
+      }
+
+      // 渲染简历
+      // 找 icon...?
+      const renderResume = (resume) => {
+        const { base_info, education, work_experience, projects } = resume
+        const { name, age, avatar } = base_info
+        const { school, major, start_time } = education
+        const work_experience_list = work_experience
+          .map((item) => {
+            const { company, job, start_time, end_time } = item
+            return `<li>
+          <p>公司：${company}</p>
+          <p>职位：${job}</p>
+          <p>开始时间：${start_time}</p>
+          <p>结束时间：${end_time}</p>
+        </li>`
+          })
+          .join("")
+        const projects_list = projects
+          .map((item) => {
+            const { name, start_time, end_time, description } = item
+            return `<li>
+          <p>项目名称：${name}</p>
+          <p>开始时间：${start_time}</p>
+          <p>结束时间：${end_time}</p>
+          <p>项目描述：${description}</p>
+        </li>`
+          })
+          .join("")
+        document.getElementById("avatar").src = avatar
+        document.getElementById("name").textContent = `姓名：${name}`
+        document.getElementById("age").textContent = `年龄：${age}`
+        document.getElementById("school").textContent = `学校：${school}`
+        document.getElementById("major").textContent = `专业：${major}`
+        document.getElementById("start_time").textContent = `入学时间：${start_time}`
+        document.getElementById("work_experience_list").innerHTML = work_experience_list
+        document.getElementById("projects_list").innerHTML = projects_list
+      }
+
+      renderResume(nanniang)
+
+      // 打印简历，打印 resume 区域就好了
+      // 并且...强调，保持原来的颜色等等
+
+      // const printResume = () => {
+      //   const resume = document.getElementById('resume')
+      //   const printWindow = window.open('', '_blank')
+
+      //   printWindow.document.write(resume.outerHTML)
+      //   printWindow.document.head.innerHTML = document.head.innerHTML
+
+      //   printWindow.print()
+      // }
+
+      // printResume()
+
+      /* 
+        遭受鞭打而无法前进的马...
+        那，被操坏了的人...还会好起来吗...
+
+        看到过的一个，关于玉玉。
+        玉玉有三种状态，对于一件事，玉玉一开始是反感、想要逃离；而当逃离不了时陷入绝境时，便可能会爆发，开始尝试毁掉对面、或者毁掉自己，这是第二种状态；然而如果第一第二种状态的尝试都失败了，自己也还活着的话，那可能就会有第三种，就是开始接受、乃至喜欢崇拜这件事。
+        有人把玉玉叫做习得性无助————被鞭打而不愿前进的马，在没有鞭打之后，还会前进吗...
+
+        那匹马和陀思妥耶夫斯基同志都是被操坏了的，他们甚至喜欢上了挨操，因为不可避免，走投无路之时别人伸来的救命稻草里九成九都带了根jb。
+        酗酒赌博...不是为了快乐而是为了痛苦，如果无论如何都走不出，如果不管怎样都可能落回到这里，那就待在这里好了，就一直痛着好了...
+
+        被毒打之后...也许父母常说的记吃不记打倒是个很厉害的本领。一蹶不振的颓靡，又或俨然间也跟着长出黑心黑胆...都是少数，更多更多的人，都会把那些忘掉，然后一次次...
+                
+      */
+    </script>
+  </body>
+</html>
