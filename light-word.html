@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>light-word</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+
+    #app {
+      width: 100%;
+      height: 100vh;
+      background-color: #fff;
+    }
+
+
+    header {
+      width:100%;
+      height: 52px;
+      display: flex;
+      flex-direction: row;
+      justify-content: space-between;
+    }
+
+    header .user {
+      width: 150px;
+      padding:10px;
+      line-height: 52px;
+      overflow: hidden;
+    }
+
+    .user img {
+      width: 32px;
+      height: 32px;
+      border-radius: 100%;
+    }
+
+    main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+
+    .search {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .search__base {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+    }
+
+    .search__mode {
+      z-index: 1000;
+      width: 200px;
+      transform: translate(-120px,0);
+    }
+
+    .search__mode .mode__item {
+      background: #fff;
+      padding: 2px 4px;
+      cursor: pointer;
+      border: 2px solid #ccc;
+      border-radius: 0 0 10px 10px;
+      border-top: none;
+    }
+
+    .mode__item.active {
+      border-top: 2px solid #fff;
+    }
+
+    .mode__item:hover {
+      border: 2px solid #007bff;
+      border-top: 2px solid #fff;
+    }
+
+    .search__inputs {
+      width: 400px;
+      height: 36px;
+      border: 2px solid #ccc;
+      border-radius: 10px 0 0 10px;
+    }
+
+    .search__inputs:hover {
+      border: 2px solid #aaa;
+    }
+    .search__inputs:focus-within {
+      border: 2px solid #007bff;
+    }
+
+    .search__inputs input {
+      width: 100%;
+      height: 100%;
+      padding: 0 10px 0 0;
+      margin-left: 10px;
+      border: none;
+      outline: none;
+    }
+
+    .search__method.list {
+      display: none;
+    }
+
+
+    .search__method.icon {
+      position: absolute;
+      z-index: 1000;
+      right: 100px;
+      top:8px;
+      cursor: pointer;
+    }
+
+
+    .search__btn {
+      height: 39.5px;
+      line-height: 39.5px;
+      width: 80px;
+      text-align: center;
+      background-color: #007bff;
+      color: #fff;
+      border-radius: 0 10px 10px 0;
+      border: none;
+      cursor: pointer;
+    }
+    .search__btn:hover {
+      background-color: #0064ce;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <span>
+      </span>
+      <div class="user">
+        <img src="https://huamurui.github.io/logo.svg" alt="user-avatar"></img>
+        <span>username</span>
+        <span>logout</span>
+      </div>
+    </header>
+    <main>
+      <div class="logo">
+        <img src="https://huamurui.github.io/logo.svg" alt="" style="width: 400px;height: 150px;object-fit:none;">
+      </div>
+      <div class="search">
+        <div class="search__base">
+          <span class="search__inputs">
+            <input type="text" placeholder="search word" />
+            <span class="search__method">
+              <span class="search__method icon">😪</span>
+              <span class="search__method list">
+                <span class="search__method item">method 1</span>
+                <span class="search__method item">method 2</span>
+                <span class="search__method item">method 3</span>
+              </span>
+            </span>
+          </span>
+          <span class="search__btn">light it</span>
+        </div>
+        <div class="search__mode">
+          <span class="mode__item active">词典</span>
+          <span class="mode__item">语法</span>
+          <span class="mode__item">聊天</span>
+          <span class="mode__item">资源</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>mumu prize</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      #playground {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      @keyframes sparkle {
+        0% {
+          transform: scale(0);
+        }
+        50% {
+          transform: scale(1);
+        }
+        100% {
+          transform: scale(0);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground"></div>
+    <script>
+      /* 
+        for mumu's birthday
+        2024-06-16
+        i want to make a medal for her written "暮暮" "2024-06-16" "Happy Birthday" "Love you forever"
+      */
+
+      const playground = document.getElementById("playground")
+      /* 
+        奖章
+      */
+      const mumu = {
+        name: "暮暮",
+        birthday: "2024-06-16",
+        wish: "Happy Birthday",
+        love: "Love you forever",
+      }
+
+      const surroundedChars = (str, radius = 50, startAngle = 0, fontSize = 12, clock = "clockwise") => {
+        const chars = str.split("")
+        const angle = (360 / ((2 * Math.PI * radius) / fontSize)) * 0.5 * (clock === "clockwise" ? 1 : -1)
+
+        let result = ""
+        let currentAngle = startAngle
+        for (let i = 0; i < chars.length; i++) {
+          let char = chars[i]
+          let isChinese = char.charCodeAt(0) > 255
+          currentAngle += angle * (isChinese ? 2 : 1)
+          const rotateAngle = currentAngle + (clock === "clockwise" ? 90 : -90)
+          const x = radius * Math.cos((currentAngle * Math.PI) / 180) - fontSize / 2
+          const y = radius * Math.sin((currentAngle * Math.PI) / 180) - fontSize / 2
+          result += `
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(${x}px, ${y}px) rotate(${rotateAngle}deg); font-size: ${fontSize}px;
+          display: flex; justify-content: center; align-items: center; width: ${fontSize}px; height: ${fontSize}px;">
+          ${char}
+          </div>
+          `
+        }
+        return result
+      }
+
+      const medal = document.createElement("div")
+      medal.innerHTML = `
+      <div style="margin: 30px;width: 100px; height: 100px; background-color: antiquewhite; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #372d52;">
+        <div style="font-size: 12px;">🌹🍑🥰🍑🌹</div>
+        <div style="font-size: 12px; color: #372d52;">${mumu.name}</div>
+        <div style="font-size: 9px; color: #372d52;">${mumu.birthday}</div>
+        <div style="font-size: 9px; color: #372d52;">${mumu.wish}</div>
+        <div style="font-size: 12px; color: #372d52;">
+        ${surroundedChars(mumu.love + " " + "好想超超❤" + "  云云☁", 50 - 7, 200, 9, "anticlockwise")}
+        ${surroundedChars("mumu ❤ huamu", 50 - 7, -130, 9, "clockwise")}
+        </div>
+      </div>
+      `
+      playground.appendChild(medal)
+
+      /* 
+        烟花泡泡闪闪
+      */
+      class Fireworks {
+        constructor() {
+          this.num = 30
+          // this.sparkles = []
+          this.root = document.createElement("div")
+        }
+
+        createSparkle() {
+          const sparkle = document.createElement("div")
+          const x = Math.random() * 90
+          const y = Math.random() * 90
+          const size = Math.random() * 10 + 5
+          const color = Math.random() > 0.5 ? "pink" : "lightblue"
+          const animation = Math.random() * 1 + 0.5
+
+          sparkle.innerHTML = `
+          <div style="position: absolute; top: ${y}%; left: ${x}%; width: ${size}px; height: ${size}px; background-color: ${color}; border-radius: 50%; animation: sparkle ${animation}s;"></div>
+          `
+
+          this.root.appendChild(sparkle)
+
+          sparkle.addEventListener("animationend", () => {
+            this.root.removeChild(sparkle)
+            this.createSparkle()
+          })
+          return sparkle
+        }
+
+        start() {
+          this.root.innerHTML = ""
+          for (let i = 0; i < this.num; i++) {
+            this.createSparkle()
+          }
+          return this.root
+        }
+      }
+
+      const fireworks = new Fireworks()
+
+      playground.appendChild(fireworks.start())
+
+      /* 
+        然后是奖状。 
+      */
+      const mumuCertificate = {
+        title: "奖状",
+        greeting: "亲爱的暮暮：",
+        // content: "在你的生日这一天，我想对你说：",
+        // prize: "你是我见过最可爱的女孩，我爱你，永远爱你。",
+        content: "鉴于你是我见过最可爱的女孩，特此颁发此奖状:",
+        prize: "让我超超",
+        date: "2024-06-16",
+        signature: "你的云云",
+      }
+
+      const certificate = document.createElement("div")
+      certificate.innerHTML = `
+      <div style="margin: 30px; width: 300px; height: 200px; background-color: antiquewhite; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #372d52;">
+        <div style="font-size: 24px; color: #333;">${mumuCertificate.title}</div>
+        <div style="font-size: 12px; color: #372d52;
+        align-self: flex-start; margin-left: 20px; margin-top: 20px;">${mumuCertificate.greeting}</div>
+        <div style="font-size: 12px; color: #372d52;">${mumuCertificate.content}</div>
+        <div style="font-size: 18px; color: #372d52;">${mumuCertificate.prize}</div>
+        <div style="font-size: 12px; color: #372d52; align-self: flex-end; margin-right: 20px;">${mumuCertificate.date}</div>
+        <div style="font-size: 12px; color: #372d52; align-self: flex-end; margin-right: 20px;">${mumuCertificate.signature}</div>
+      </div>
+      `
+      playground.appendChild(certificate)
+    </script>
+  </body>
+</html>

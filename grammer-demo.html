@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grammer-demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      button {
+        border: 1px solid gray;
+        margin: 5px;
+        border-radius: 5px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+
+        cursor: pointer;
+      }
+
+      .word {
+        display: inline-block;
+        padding: 5px 10px;
+        border: 1px solid gray;
+        margin-right: 5px;
+        border-radius: 5px;
+      }
+
+      .word:hover {
+        background-color: #f0f0f0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground"></div>
+    <script>
+      const playground = document.getElementById("playground")
+      const data2 = [
+        {
+          text: "Is this part made so that only one sentence is analyzed at a time?",
+          grammar_analysis_result: {
+            structural_text: [
+              ["Is this part made so that only one sentence is analyzed at a time ?"],
+              ["Is", "this part", "made so that only one sentence is analyzed at a time", "?"],
+              ["Is", "this", "part", "made", "so that only one sentence is analyzed at a time", "?"],
+              ["Is", "this", "part", "made", "so", "that", "only one sentence is analyzed at a time", "?"],
+              ["Is", "this", "part", "made", "so", "that", "only one sentence", "is analyzed at a time", "?"],
+              ["Is", "this", "part", "made", "so", "that", "only one", "sentence", "is", "analyzed at a time", "?"],
+              ["Is", "this", "part", "made", "so", "that", "only", "one", "sentence", "is", "analyzed", "at a time", "?"],
+              ["Is", "this", "part", "made", "so", "that", "only", "one", "sentence", "is", "analyzed", "at", "a time", "?"],
+              ["Is", "this", "part", "made", "so", "that", "only", "one", "sentence", "is", "analyzed", "at", "a", "time", "?"],
+            ],
+            encoded_structural_text: [["0 1 2 3 4 5 6 7 8 9 10 11 12 13 14"], ["0", "1 2", "3 4 5 6 7 8 9 10 11 12 13", "14"], ["0", "1", "2", "3", "4 5 6 7 8 9 10 11 12 13", "14"], ["0", "1", "2", "3", "4", "5", "6 7 8 9 10 11 12 13", "14"], ["0", "1", "2", "3", "4", "5", "6 7 8", "9 10 11 12 13", "14"], ["0", "1", "2", "3", "4", "5", "6 7", "8", "9", "10 11 12 13", "14"], ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11 12 13", "14"], ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12 13", "14"], ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14"]],
+            grammar_tag_en: [["question"], ["v.", "n. phrase", "v. phrase", "."], ["v.", "det.", "n.", "v.-done", "clause", "."], ["v.", "det.", "n.", "v.-done", "prep.", "prep.", "sentence", "."], ["v.", "det.", "n.", "v.-done", "prep.", "prep.", "n. phrase", "v. phrase", "."], ["v.", "det.", "n.", "v.-done", "prep.", "prep.", "unknown", "n.", "v.", "v. phrase", "."], ["v.", "det.", "n.", "v.-done", "prep.", "prep.", "adv.", "num.", "n.", "v.", "v.-done", "prep. phrase", "."], ["v.", "det.", "n.", "v.-done", "prep.", "prep.", "adv.", "num.", "n.", "v.", "v.-done", "prep.", "n. phrase", "."], ["v.", "det.", "n.", "v.-done", "prep.", "prep.", "adv.", "num.", "n.", "v.", "v.-done", "prep.", "det.", "n.", "."]],
+            grammar_tag_zh: [["疑问句"], ["动词", "名词短语", "动词短语", "."], ["动词", "限定词", "名词", "动词过去分词", "从句", "."], ["动词", "限定词", "名词", "动词过去分词", "介词", "介词", "句子", "."], ["动词", "限定词", "名词", "动词过去分词", "介词", "介词", "名词短语", "动词短语", "."], ["动词", "限定词", "名词", "动词过去分词", "介词", "介词", "未知", "名词", "动词", "动词短语", "."], ["动词", "限定词", "名词", "动词过去分词", "介词", "介词", "副词", "数词", "名词", "动词", "动词过去分词", "介词短语", "."], ["动词", "限定词", "名词", "动词过去分词", "介词", "介词", "副词", "数词", "名词", "动词", "动词过去分词", "介词", "名词短语", "."], ["动词", "限定词", "名词", "动词过去分词", "介词", "介词", "副词", "数词", "名词", "动词", "动词过去分词", "介词", "限定词", "名词", "."]],
+            dev: [["SQ"], ["VBZ", "NP", "VP", "-END-"], ["VBZ", "DT", "NN", "VBN", "SBAR", "-END-"], ["VBZ", "DT", "NN", "VBN", "IN", "IN", "S", "-END-"], ["VBZ", "DT", "NN", "VBN", "IN", "IN", "NP", "VP", "-END-"], ["VBZ", "DT", "NN", "VBN", "IN", "IN", "QP", "NN", "VBZ", "VP", "-END-"], ["VBZ", "DT", "NN", "VBN", "IN", "IN", "RB", "CD", "NN", "VBZ", "VBN", "PP", "-END-"], ["VBZ", "DT", "NN", "VBN", "IN", "IN", "RB", "CD", "NN", "VBZ", "VBN", "IN", "NP", "-END-"], ["VBZ", "DT", "NN", "VBN", "IN", "IN", "RB", "CD", "NN", "VBZ", "VBN", "IN", "DT", "NN", "-END-"]],
+          },
+        },
+        {
+          text: "What should the API do if user inputs a large paragraph of English?",
+          grammar_analysis_result: {
+            structural_text: [
+              ["What should the API do if user inputs a large paragraph of English ?"],
+              ["What", "should the API do if user inputs a large paragraph of English", "?"],
+              ["What", "should", "the API", "do if user inputs a large paragraph of English", "?"],
+              ["What", "should", "the", "API", "do", "if user inputs a large paragraph of English", "?"],
+              ["What", "should", "the", "API", "do", "if", "user inputs a large paragraph of English", "?"],
+              ["What", "should", "the", "API", "do", "if", "user", "inputs a large paragraph of English", "?"],
+              ["What", "should", "the", "API", "do", "if", "user", "inputs", "a large paragraph of English", "?"],
+              ["What", "should", "the", "API", "do", "if", "user", "inputs", "a large paragraph", "of English", "?"],
+              ["What", "should", "the", "API", "do", "if", "user", "inputs", "a", "large", "paragraph", "of", "English", "?"],
+            ],
+            encoded_structural_text: [["0 1 2 3 4 5 6 7 8 9 10 11 12 13"], ["0", "1 2 3 4 5 6 7 8 9 10 11 12", "13"], ["0", "1", "2 3", "4 5 6 7 8 9 10 11 12", "13"], ["0", "1", "2", "3", "4", "5 6 7 8 9 10 11 12", "13"], ["0", "1", "2", "3", "4", "5", "6 7 8 9 10 11 12", "13"], ["0", "1", "2", "3", "4", "5", "6", "7 8 9 10 11 12", "13"], ["0", "1", "2", "3", "4", "5", "6", "7", "8 9 10 11 12", "13"], ["0", "1", "2", "3", "4", "5", "6", "7", "8 9 10", "11 12", "13"], ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13"]],
+            grammar_tag_en: [["question"], ["n. phrase", "question", "."], ["n.", "mod.", "n. phrase", "v. phrase", "."], ["n.", "mod.", "det.", "n.", "v.", "clause", "."], ["n.", "mod.", "det.", "n.", "v.", "prep.", "sentence", "."], ["n.", "mod.", "det.", "n.", "v.", "prep.", "n.", "v. phrase", "."], ["n.", "mod.", "det.", "n.", "v.", "prep.", "n.", "v.", "n. phrase", "."], ["n.", "mod.", "det.", "n.", "v.", "prep.", "n.", "v.", "n. phrase", "prep. phrase", "."], ["n.", "mod.", "det.", "n.", "v.", "prep.", "n.", "v.", "det.", "adj.", "n.", "prep.", "n.", "."]],
+            grammar_tag_zh: [["疑问句"], ["名词短语", "疑问句", "."], ["名词", "情态动词", "名词短语", "动词短语", "."], ["名词", "情态动词", "限定词", "名词", "动词", "从句", "."], ["名词", "情态动词", "限定词", "名词", "动词", "介词", "句子", "."], ["名词", "情态动词", "限定词", "名词", "动词", "介词", "名词", "动词短语", "."], ["名词", "情态动词", "限定词", "名词", "动词", "介词", "名词", "动词", "名词短语", "."], ["名词", "情态动词", "限定词", "名词", "动词", "介词", "名词", "动词", "名词短语", "介词短语", "."], ["名词", "情态动词", "限定词", "名词", "动词", "介词", "名词", "动词", "限定词", "形容词", "名词", "介词", "名词", "."]],
+            dev: [["SBARQ"], ["WHNP", "SQ", "-END-"], ["WP", "MD", "NP", "VP", "-END-"], ["WP", "MD", "DT", "NN", "VB", "SBAR", "-END-"], ["WP", "MD", "DT", "NN", "VB", "IN", "S", "-END-"], ["WP", "MD", "DT", "NN", "VB", "IN", "NP&PRP", "VP", "-END-"], ["WP", "MD", "DT", "NN", "VB", "IN", "NP&PRP", "VBZ", "NP", "-END-"], ["WP", "MD", "DT", "NN", "VB", "IN", "NP&PRP", "VBZ", "NP", "PP", "-END-"], ["WP", "MD", "DT", "NN", "VB", "IN", "NP&PRP", "VBZ", "DT", "JJ", "NN", "IN", "NP&NNP", "-END-"]],
+          },
+        },
+      ]
+
+      // 好的，一个小的单词块，有两样东西，一个是文本，一个是语法分析的结构标注。而他们的关联除了分别给的两组数组，还有一个专门表示结构的数组。
+      // 可是展开的交互要怎么做？如果点击一个块就尝试展开，那合并要怎么合并？...上下加号好像确实可以，但是感觉好难用。...嗯...虽然但是实现应该问题也不大。
+
+      // 那交互相关变量会有哪些呢
+      // 1. 展开层级 2. 是否显示中文翻译 3.句子结构标注采用中文还是英文
+      class Sentence {
+        constructor(sentence_data) {
+          this.sentence_data = sentence_data
+
+          this.expand_level = 0
+          this.show_zh = false
+          this.show_grammar_tag = "en"
+
+          this.sentence_dom = document.createElement("div")
+          // 带有分析结果的单词数组
+          this.words_with_analyzed_result = []
+
+          // 来搞点的颜色标注对应吧，根据 grammar_tag_en 来选颜色
+          this.style = {
+            "v.": "red",
+            "n.": "blue",
+            "det.": "green",
+            "prep.": "purple",
+            "adv.": "orange",
+            "num.": "yellow",
+            "adj.": "pink",
+            unknown: "gray",
+          }
+        }
+
+        update() {
+          // 这里...主要是给一堆 words 吧
+          const { text, grammar_analysis_result } = this.sentence_data
+          const { structural_text, encoded_structural_text, grammar_tag_en, grammar_tag_zh } = grammar_analysis_result
+
+          const expand_level = this.expand_level
+          /* 
+            整理成另一中结构，就是 verb:{
+              text: '',
+              tag_en: '',
+              tag_zh: ''
+            }
+
+            这样，然后组成一个数组。
+
+            然后...生成哪一级的直接依赖expand_level这个东西...
+            
+            呃啊...虽然能明白，但这数据结构好怪。
+
+          */
+          this.words_with_analyzed_result = []
+          for (let i = 0; i < structural_text[expand_level].length; i++) {
+            const word = structural_text[expand_level][i]
+            const encoded_word = encoded_structural_text[expand_level][i]
+            const tag_en = grammar_tag_en[expand_level][i]
+            const tag_zh = grammar_tag_zh[expand_level][i]
+
+            this.words_with_analyzed_result.push({
+              text: word,
+              encoded_text: encoded_word,
+              tag_en,
+              tag_zh,
+            })
+          }
+          console.log(this.words_with_analyzed_result)
+        }
+
+        render() {
+          this.update()
+          const sentence_dom = this.sentence_dom
+
+          sentence_dom.innerHTML = ""
+
+          const expend_buttons = document.createElement("span")
+          const test_test = "test_test"
+          expend_buttons.innerHTML = `
+              <button id="${test_test}_plus">+</button>
+              <button id="${test_test}_minus">-</button>
+            `
+
+          sentence_dom.appendChild(expend_buttons)
+
+          const plus_button = sentence_dom.querySelector(`#${test_test}_plus`)
+          const minus_button = sentence_dom.querySelector(`#${test_test}_minus`)
+          console.log(sentence_dom)
+          plus_button.addEventListener("click", () => {
+            this.change_expand_level(this.expand_level + 1)
+          })
+          minus_button.addEventListener("click", () => {
+            this.change_expand_level(this.expand_level - 1)
+          })
+
+          for (let i = 0; i < this.words_with_analyzed_result.length; i++) {
+            const word = this.words_with_analyzed_result[i]
+            const word_dom = document.createElement("span")
+            word_dom.innerHTML = `
+              <span style="color: ${this.style[word.tag_en]}">
+                <div class="word">
+                  ${word.text}
+                  ${(this.show_grammar_tag = "en" ? `<span style="color: gray">(${word.tag_zh})</span>` : "")}
+                </div>  
+              </span>
+
+
+            `
+            sentence_dom.appendChild(word_dom)
+          }
+          return this.sentence_dom
+        }
+
+        change_expand_level(level) {
+          this.expand_level = level
+          this.render()
+        }
+
+        change_show_zh() {
+          this.show_zh = !this.show_zh
+          this.render()
+        }
+
+        change_show_grammar_tag(tag) {
+          this.show_grammar_tag = tag
+          this.render()
+        }
+      }
+
+      const sentence = new Sentence(data2[0])
+      playground.appendChild(sentence.render())
+
+      /* 
+      const example_1 = data2[0]
+      const max_expand_level = example_1.grammar_analysis_result.structural_text.length - 1
+      const fe_data = [] // 搞一个大数组，索引当做 expand_level
+      for (let i = 0; i <= max_expand_level; i++) {
+        const words = example_1.grammar_analysis_result.structural_text[i]
+        const encoded_words = example_1.grammar_analysis_result.encoded_structural_text[i]
+        const tags_en = example_1.grammar_analysis_result.grammar_tag_en[i]
+        const tags_zh = example_1.grammar_analysis_result.grammar_tag_zh[i]
+
+        const blocks = []
+        for (let j = 0; j < words.length; j++) {
+          blocks.push({
+            text: words[j],
+            encoded_text: encoded_words[j],
+            tag_en: tags_en[j],
+            tag_zh: tags_zh[j],
+          })
+        }
+        fe_data.push(blocks)
+      }
+      */
+
+      const tree_data = {
+        result_list_1: ["Is this part made so that only one sentence is analyzed at a time?", "What should the this api do if user inputs a large paragraph of English?"],
+        result_list_2: [
+          ["SQ", ["VBZ", "Is"], ["NP", ["DT", "this"], ["NN", "part"]], ["VP", ["VBN", "made"], ["SBAR", ["IN", "so"], ["IN", "that"], ["S", ["NP", ["QP", ["RB", "only"], ["CD", "one"]], ["NN", "sentence"]], ["VP", ["VBZ", "is"], ["VP", ["VBN", "analyzed"], ["PP", ["IN", "at"], ["NP", ["DT", "a"], ["NN", "time"]]]]]]]], ["-END-", "?"]],
+          ["SBARQ", ["WHNP", ["WP", "What"]], ["SQ", ["MD", "should"], ["NP", ["DT", "the"], ["DT", "this"], ["NN", "api"]], ["VP", ["VB", "do"], ["SBAR", ["IN", "if"], ["S", ["NP", ["NN", "user"]], ["VP", ["VBZ", "inputs"], ["NP", ["NP", ["DT", "a"], ["JJ", "large"], ["NN", "paragraph"]], ["PP", ["IN", "of"], ["NP", ["NNP", "English"]]]]]]]]], ["-END-", "?"]],
+        ],
+      }
+
+      // 希望渲染这个树形的数据结构
+    </script>
+  </body>
+</html>
