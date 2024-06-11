@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>grammer-demo</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+      }
+
+      button {
+        border: 1px solid gray;
+        margin: 5px;
+        border-radius: 5px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+        display: inline-flex;
+        justify-content: center;
+        align-items: center;
+
+        cursor: pointer;
+      }
+
+      .word {
+        display: inline-block;
+        padding: 5px 10px;
+        border: 2px solid gray;
+        margin-right: 5px;
+        border-radius: 5px;
+        user-select: none;
+      }
+
+      .word:hover {
+        background-color: #f0f0f0;
+      }
+
+      .word.to_be_split {
+        cursor: pointer;
+        border: 2px dashed rgb(55, 158, 255);
+      }
+
+      .word.to_be_merge {
+        cursor: pointer;
+        border: 2px dashed rgb(255, 55, 55);
+      }
+
+      .word.dragging {
+        background-color: #37c3ff;
+      }
+
+      .word.dragging-over {
+        background-color: #37c3ff;        
+      }
+
+      .word.dragging-forbidden {
+        cursor: not-allowed;
+      }
+      
+    </style>
+  </head>
+  <body>
+    <div id="playground"></div>
+    <script>
+      const playground = document.getElementById("playground")
+      const data = {
+        origin_sentence: ["Is this part made so that only one sentence is analyzed at a time?", "What would the this api do if user inputs a large paragraph of English?"],
+        tree_struct: [
+          ["SQ", 
+            ["VBZ", "Is"], 
+            ["NP", 
+              ["DT", "this"], 
+              ["NN", "part"]
+            ], 
+            ["VP", 
+              ["VBN", "made"], 
+              ["SBAR", 
+                ["IN", "so"], 
+                ["IN", "that"], 
+                ["S", 
+                  ["NP", 
+                    ["QP", ["RB", "only"], ["CD", "one"]], 
+                    ["NN", "sentence"]
+                  ], 
+                  ["VP",    
+                    ["VBZ", "is"], 
+                    ["VP", 
+                      ["VBN", "analyzed"],
+                      ["PP", ["IN", "at"], ["NP", ["DT", "a"], ["NN", "time"]]]
+                    ]
+                  ]
+                ]
+              ]
+            ], 
+            ["-END-", "?"]
+          ],
+
+
+          ["SBARQ", ["WHNP", ["WP", "What"]], ["SQ", ["MD", "would"], ["NP", ["DT", "the"], ["DT", "this"], ["NN", "api"]], ["VP", ["VB", "do"], ["SBAR", ["IN", "if"], ["S", ["NP", ["NN", "user"]], ["VP", ["VBZ", "inputs"], ["NP", ["NP", ["DT", "a"], ["JJ", "large"], ["NN", "paragraph"]], ["PP", ["IN", "of"], ["NP", ["NNP", "English"]]]]]]]]], ["-END-", "?"]],
+        ],
+      }
+      // 希望渲染这个树形的数据结构
+
+      // 今天突然注意到一个很有意思的，edge 浏览器页签的一个功能，通过拖拽合并页签，我觉得可以参考这个。
+
+
+      /* 
+        1. 数据结构。
+        SQ 表示分隔出的一个句子，最大的那种句子
+        我现在想要知道的是怎么确定分解成最小单位了... emmm无脑做倒是不难，类型判断就好，第二位是数组就是句子，第二位是字符串就最小单位。
+        
+        2. 然后考虑一下具体交互方式
+        一开始是展示一个完整句子，hover 时底部出现 + 号表示分解，点击 + 号，会分解这一部分。
+        当一个部分不是最完整句子时，可以拖拽，移入奇怪的地方时拒绝，移入同一个 parent 的其他部分时，合并出 parent，对，不管一共有多少个部分，只要拖了一下，就直接合出 parent。
+
+        那...要如何改造数据结构和编程实现呢？
+
+        可能无论如何，最后要得到的，都要是一个，渲出来的一个数组...  
+      */
+
+
+      const tree_data = {
+        result_list_1: ["Is this part made so that only one sentence is analyzed at a time?", "What should the this api do if user inputs a large paragraph of English?"],
+        result_list_2: [
+          ["SQ", ["VBZ", "Is"], ["NP", ["DT", "this"], ["NN", "part"]], ["VP", ["VBN", "made"], ["SBAR", ["IN", "so"], ["IN", "that"], ["S", ["NP", ["QP", ["RB", "only"], ["CD", "one"]], ["NN", "sentence"]], ["VP", ["VBZ", "is"], ["VP", ["VBN", "analyzed"], ["PP", ["IN", "at"], ["NP", ["DT", "a"], ["NN", "time"]]]]]]]], ["-END-", "?"]],
+          ["SBARQ", ["WHNP", ["WP", "What"]], ["SQ", ["MD", "should"], ["NP", ["DT", "the"], ["DT", "this"], ["NN", "api"]], ["VP", ["VB", "do"], ["SBAR", ["IN", "if"], ["S", ["NP", ["NN", "user"]], ["VP", ["VBZ", "inputs"], ["NP", ["NP", ["DT", "a"], ["JJ", "large"], ["NN", "paragraph"]], ["PP", ["IN", "of"], ["NP", ["NNP", "English"]]]]]]]]], ["-END-", "?"]],
+        ],
+      }
+
+      // 希望渲染这个树形的数据结构
+
+      // 先捋一遍，改造改造数据结构... 单词怎么加 key ? 意义？...好像是可以的...？？？？？数组上可以写键值对？
+      // 好的好的，写 key 是一个，另一个就是，把所有的子节点的内容都连续的填充回父节点...
+
+      // 好了，能确定，如果是下面 hope_exmaple2 这种数据结构，很多事情就好办了。嗯....前端改后端改应该都行。 
+      const hope_exmaple2 = {
+        key: 'x-0',
+        text: "Is this part made so that only one sentence is analyzed at a time?",
+        tag: "SQ",
+        children: [
+          {
+            key: 'x-0-1',
+            text: "Is",
+            tag: "VBZ",
+          },
+          {
+            key: 'x-0-2',
+            text: "this part",
+            tag: "NP",
+            children: [
+              {
+                key: 'x-0-2-1',
+                text: "this",
+                tag: "DT",
+              },
+              {
+                key: 'x-0-2-2',
+                text: "part",
+                tag: "NN",
+              }
+            ]
+          },
+          {
+            text: "made so that only one sentence is analyzed at a time",
+            key: 'x-0-3',
+            tag: "VP",
+            children: [
+              {
+                key: 'x-0-3-1',
+                text: "made",
+                tag: "VBN",
+              },
+              {
+                key: 'x-0-3-2',
+                text: "so that only one sentence is analyzed at a time",
+                tag: "SBAR",
+                children: [
+                  {
+                    key: 'x-0-3-2-1',
+                    text: "so",
+                    tag: "IN",
+                  },
+                  {
+                    key: 'x-0-3-2-2',
+                    text: "that",
+                    tag: "IN",
+                  },
+                  {
+                    key: 'x-0-3-2-3',
+                    text: "only one sentence is analyzed at a time",
+                    tag: "S",
+                    children: [
+                      {
+                        key: 'x-0-3-2-3-1',
+                        text: "only one sentence",
+                        tag: "NP",
+                        children: [
+                          {
+                            key: 'x-0-3-2-3-1-1',
+                            text: "only",
+                            tag: "QP",
+                          },
+                          {
+                            key: 'x-0-3-2-3-1-2',
+                            text: "one",
+                            tag: "CD",
+                          },
+                          {
+                            key: 'x-0-3-2-3-1-3',
+                            text: "sentence",
+                            tag: "NN",
+                          }
+                        ]
+                      },
+                      {
+                        key: 'x-0-3-2-3-2',
+                        text: "is analyzed at a time",
+                        tag: "VP",
+                        children: [
+                          {
+                            key: 'x-0-3-2-3-2-1',
+                            text: "is",
+                            tag: "VBZ",
+                          },
+                          {
+                            key: 'x-0-3-2-3-2-2',
+                            text: "analyzed at a time",
+                            tag: "VP",
+                            children: [
+                              {
+                                key: 'x-0-3-2-3-2-2-1',
+                                text: "analyzed",
+                                tag: "VBN",
+                              },
+                              {
+                                key: 'x-0-3-2-3-2-2-2',
+                                text: "at a time",
+                                tag: "PP",
+                                children: [
+                                  {
+                                    key: 'x-0-3-2-3-2-2-2-1',
+                                    text: "at",
+                                    tag: "IN",
+                                  },
+                                  {
+                                    key: 'x-0-3-2-3-2-2-2-2',
+                                    text: "a",
+                                    tag: "DT",
+                                  },
+                                  {
+                                    key: 'x-0-3-2-3-2-2-2-3',
+                                    text: "time",
+                                    tag: "NN",
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            key: 'x-0-4',
+            text: "?",
+            tag: "-END-",
+          }
+        ]
+      }
+
+      class Sentence {
+        constructor(data, root) {
+          this.data = data
+          this.root = root
+          /* 
+            我们需要计算，渲染的结果数组。根据交互以及数据结构进行更新储存。
+            数组对象 {
+              key: 0,
+
+              text: "Is",
+              tag_en: "VBZ",
+              tag_cn: "动词",
+              element: document object model,
+            }
+          */
+          this.tokens = [] 
+        }
+
+        init(){
+          this.tokens = [this.data]
+          this.render()
+          // 点击事件，主要与拆分有关
+          this.root.addEventListener("click", (e) => {
+            if(e.target.classList.contains("word")){
+              const key = e.target.id
+              const token = this.tokens.find((item) => item.key === key)
+              if(!token.children){
+                return
+              }
+              this.split(token)
+              this.render()
+            }
+          })
+
+          this.root.addEventListener("mouseover", (e) => {
+            if(e.target.classList.contains("word")){
+              const key = e.target.id
+              const token = this.tokens.find((item) => item.key === key)
+              if(!token.children){
+                return
+              }
+              // 显示 + 号...暂时还不好 + 出来还，先加个 class
+              e.target.classList.add("to_be_split")
+            }
+          })
+
+          this.root.addEventListener("mouseout", (e) => {
+            if(e.target.classList.contains("word")){
+              const key = e.target.id
+              const token = this.tokens.find((item) => item.key === key)
+              if(!token.children){
+                return
+              }
+              // 隐藏 + 号
+              e.target.classList.remove("to_be_split")
+            }
+          })
+
+        }
+
+        merge(from_key, to_key) {
+          // compose
+          // 嗯...这得想想，只有同级的才去合并，并且一下子就合并所有同级的
+
+          const [first_key_index, length, parent] = this.getBrosPositionAndParent(from_key, to_key)
+
+          this.tokens.splice(first_key_index, length, parent)
+
+          this.render()
+        }
+
+        getBrosPositionAndParent(from_key, to_key) {
+          const from_key_arr = from_key.split("-")
+          const to_key_arr = to_key.split("-")
+          if(from_key_arr.length != to_key_arr.length){
+            return
+          }
+
+          // 为了实现替换，需要从 tokens 中找到这一级所有的节点的位置，也就是起始位置和长度
+          const parent_key_arr = from_key_arr.slice(0, from_key_arr.length - 1)
+          const first_key = [...parent_key_arr, 1].join("-")
+          const first_key_index = this.tokens.findIndex((item) => item.key === first_key)
+
+          const parent = this.findNodeByKey(parent_key_arr.join("-"), this.data)
+          return [first_key_index, parent.children.length, parent]
+        }
+
+
+        findNodeByKey(key, tree) {
+          if(tree.key === key){
+            return tree
+          }
+          if(tree.children){
+            for(let i = 0; i < tree.children.length; i++){
+              const result = this.findNodeByKey(key, tree.children[i])
+              if(result){
+                return result
+              }
+            }
+          }
+          return null
+        }
+
+        split(token) {
+          // decompose
+          if(token?.children?.length > 0){
+            // 有子节点，就分解,并且需要保证位置正确
+            const index = this.tokens.findIndex((item) => item.key === token.key)
+            this.tokens.splice(index, 1, ...token.children)         
+          }
+        }
+
+        render() {
+          const doms = this.tokens.map((item) => {
+            return `<div class="word" id="${item.key}" draggable="true">${item.text}</div>`
+          }).join("")
+
+          this.root.innerHTML = doms
+
+          const words = this.root.querySelectorAll(".word")
+          // words 回填入 tokens... 主要是为了也更新一下事件的绑定
+
+          let that = this
+          this.tokens.forEach((token) => {
+            token.element = that.root.querySelector(`#${token.key}`)
+          })
+
+          // emmm 这样欠妥，dom卸了 event其实不会消失来着
+          this.tokens.forEach((token) => {
+            token.element.addEventListener("dragstart", this.dragStart.bind(this))
+            token.element.addEventListener("dragend", this.dragEnd.bind(this))
+            token.element.addEventListener("dragover", this.dragOver.bind(this))
+            token.element.addEventListener("dragleave", this.dragLeave.bind(this))
+            token.element.addEventListener("drop", this.dragDrop.bind(this))
+            token.element.addEventListener("dragenter", this.dragEnter.bind(this))
+            token.element.addEventListener("dragexit", this.dragExit.bind(this))
+            token.element.addEventListener("drag", this.drag.bind(this))
+          })
+        }
+
+        dragStart(e) {
+          e.dataTransfer.setData("text/plain", e.target.id)
+          e.target.classList.add("dragging")
+        }
+
+        dragEnd(e) {
+          e.target.classList.remove("dragging")
+        }
+
+        dragOver(e) {
+          e.preventDefault()
+          // 提示 英文 怎么说
+
+          const from_key = e.dataTransfer.getData("text/plain")
+          const to_key = e.target.id
+          // dragenter dragover 事件不支持用dataTransfer.getData()读取，只有在drop的时候可以......那可好了... md 害我调那么久
+          // console.log(from_key, '______',to_key, e.dataTransfer)
+          const [first_key_index, length, parent] = this.getBrosPositionAndParent(to_key, to_key)
+          if(!first_key_index){
+            console.log("不允许拖拽到不同级别的节点")
+            return
+          }
+          for(let i = first_key_index; i < first_key_index + length; i++){
+            this.tokens[i].element.classList.add("to_be_merge")
+          }
+
+        }
+
+        dragLeave(e) {
+          e.target.classList.remove("dragging-over")
+        }
+
+        dragDrop(e) {
+          e.preventDefault()
+          const from_key = e.dataTransfer.getData("text/plain")
+          const to_key = e.target.id
+          this.merge(from_key, to_key)
+          this.render()
+        }
+
+        dragEnter(e) {
+          e.preventDefault()
+          e.target.classList.add("dragging-forbidden")
+        }
+
+        dragExit(e) {
+          e.target.classList.remove("dragging-forbidden")
+        }
+
+        drag(e) {
+          e.preventDefault()
+        }
+      }
+
+      const sentence = new Sentence(hope_exmaple2, playground)
+      sentence.init()
+    </script>
+  </body>
+</html>
