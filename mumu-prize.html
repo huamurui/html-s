@@ -23,10 +23,10 @@
           transform: scale(0);
         }
         50% {
-          transform: scale(1);
+          transform: scale(1.2) translate(0, -100px);
         }
         100% {
-          transform: scale(0);
+          transform: scale(0) translate(0, -200px);
         }
       }
     </style>
@@ -76,14 +76,14 @@
 
       const medal = document.createElement("div")
       medal.innerHTML = `
-      <div style="margin: 30px;width: 100px; height: 100px; background-color: antiquewhite; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #372d52;">
-        <div style="font-size: 12px;">🌹🍑🥰🍑🌹</div>
-        <div style="font-size: 12px; color: #372d52;">${mumu.name}</div>
-        <div style="font-size: 9px; color: #372d52;">${mumu.birthday}</div>
-        <div style="font-size: 9px; color: #372d52;">${mumu.wish}</div>
-        <div style="font-size: 12px; color: #372d52;">
-        ${surroundedChars(mumu.love + " " + "好想超超❤" + "  云云☁", 50 - 7, 200, 9, "anticlockwise")}
-        ${surroundedChars("mumu ❤ huamu", 50 - 7, -130, 9, "clockwise")}
+      <div style="margin: 100px;width: 200px; height: 200px; background-color: antiquewhite; border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #372d52;">
+        <div style="font-size: 20px;">🌹🍑🥰🍑🌹</div>
+        <div style="font-size: 20px; color: #372d52;">✨${mumu.name}✨</div>
+        <div style="font-size: 14px; color: #372d52;">🎉${mumu.birthday}🎉</div>
+        <div style="font-size: 14px; color: #372d52;">${mumu.wish}</div>
+        <div style="font-size: 20px; color: #372d52;">
+        ${surroundedChars(mumu.love + " " + "好想超超❤" + "  云云☁", 100 - 13, 200, 18, "anticlockwise")}
+        ${surroundedChars("mumu ❤ huamu", 100 - 13, -130, 18, "clockwise")}
         </div>
       </div>
       `
@@ -101,8 +101,8 @@
 
         createSparkle() {
           const sparkle = document.createElement("div")
-          const x = Math.random() * 90
-          const y = Math.random() * 90
+          const x = Math.random() * 95 
+          const y = Math.random() * 70
           const size = Math.random() * 10 + 5
           const color = Math.random() > 0.5 ? "pink" : "lightblue"
           const animation = Math.random() * 1 + 0.5
@@ -133,33 +133,33 @@
 
       playground.appendChild(fireworks.start())
 
-      /* 
-        然后是奖状。 
-      */
-      const mumuCertificate = {
-        title: "奖状",
-        greeting: "亲爱的暮暮：",
-        // content: "在你的生日这一天，我想对你说：",
-        // prize: "你是我见过最可爱的女孩，我爱你，永远爱你。",
-        content: "鉴于你是我见过最可爱的女孩，特此颁发此奖状:",
-        prize: "让我超超",
-        date: "2024-06-16",
-        signature: "你的云云",
-      }
+      // /* 
+      //   然后是奖状。 
+      // */
+      // const mumuCertificate = {
+      //   title: "奖状",
+      //   greeting: "亲爱的暮暮：",
+      //   // content: "在你的生日这一天，我想对你说：",
+      //   // prize: "你是我见过最可爱的女孩，我爱你，永远爱你。",
+      //   content: "鉴于你是我见过最可爱的女孩，特此颁发此奖状:",
+      //   prize: "让我超超",
+      //   date: "2024-06-16",
+      //   signature: "你的云云",
+      // }
 
-      const certificate = document.createElement("div")
-      certificate.innerHTML = `
-      <div style="margin: 30px; width: 300px; height: 200px; background-color: antiquewhite; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #372d52;">
-        <div style="font-size: 24px; color: #333;">${mumuCertificate.title}</div>
-        <div style="font-size: 12px; color: #372d52;
-        align-self: flex-start; margin-left: 20px; margin-top: 20px;">${mumuCertificate.greeting}</div>
-        <div style="font-size: 12px; color: #372d52;">${mumuCertificate.content}</div>
-        <div style="font-size: 18px; color: #372d52;">${mumuCertificate.prize}</div>
-        <div style="font-size: 12px; color: #372d52; align-self: flex-end; margin-right: 20px;">${mumuCertificate.date}</div>
-        <div style="font-size: 12px; color: #372d52; align-self: flex-end; margin-right: 20px;">${mumuCertificate.signature}</div>
-      </div>
-      `
-      playground.appendChild(certificate)
+      // const certificate = document.createElement("div")
+      // certificate.innerHTML = `
+      // <div style="margin: 30px; width: 300px; height: 200px; background-color: antiquewhite; border-radius: 10px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; border: 1px solid #372d52;">
+      //   <div style="font-size: 24px; color: #333;">${mumuCertificate.title}</div>
+      //   <div style="font-size: 12px; color: #372d52;
+      //   align-self: flex-start; margin-left: 20px; margin-top: 20px;">${mumuCertificate.greeting}</div>
+      //   <div style="font-size: 12px; color: #372d52;">${mumuCertificate.content}</div>
+      //   <div style="font-size: 18px; color: #372d52;">${mumuCertificate.prize}</div>
+      //   <div style="font-size: 12px; color: #372d52; align-self: flex-end; margin-right: 20px;">${mumuCertificate.date}</div>
+      //   <div style="font-size: 12px; color: #372d52; align-self: flex-end; margin-right: 20px;">${mumuCertificate.signature}</div>
+      // </div>
+      // `
+      // playground.appendChild(certificate)
     </script>
   </body>
 </html>
