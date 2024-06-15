@@ -101,15 +101,30 @@
 
         createSparkle() {
           const sparkle = document.createElement("div")
-          const x = Math.random() * 95 
-          const y = Math.random() * 70
+          // v0.1
+          // const x = Math.random() * 95 
+          // const y = Math.random() * 70
+
+          // v0.2 
+          // 这里的 xy 我突然希望他们并不是这样独立随机的，这样出现的总会是一个方形的区域...我希望搞出一个圆形的
+          const r = Math.random() * 5 + 10
+          const angle = Math.random() * 360
+          const x = r * Math.cos((angle * Math.PI) / 180)*2 + 50
+          const y = r * Math.sin((angle * Math.PI) / 180) + 30
+
+
           const size = Math.random() * 10 + 5
           const color = Math.random() > 0.5 ? "pink" : "lightblue"
           const animation = Math.random() * 1 + 0.5
 
           sparkle.innerHTML = `
-          <div style="position: absolute; top: ${y}%; left: ${x}%; width: ${size}px; height: ${size}px; background-color: ${color}; border-radius: 50%; animation: sparkle ${animation}s;"></div>
+          <div style="position: absolute; top: ${y}%; left: ${x}%; width: ${size}px; height: ${size}px; background-color: ${color}; border-radius: 50%;
+          animation: sparkle ${animation}s ease 1;"></div>
           `
+
+          // v0.3
+          // 其实 sparkle 这个动画... 我希望它的轨迹是也变圆形或者抛物线，这样就，怎么说，感觉更有意思更丰富一些
+          // x = at, y = 1/2bt^2 + ct.... 也许用js更方便吧...先停一下
 
           this.root.appendChild(sparkle)
 
@@ -130,7 +145,6 @@
       }
 
       const fireworks = new Fireworks()
-
       playground.appendChild(fireworks.start())
 
       // /* 
