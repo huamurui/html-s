@@ -52,16 +52,21 @@
         transform: perspective(300px) rotateX(30deg) scale(0.8);
       }
 
-      #fading-story > p {
+      #story {
         animation: scroll 60s infinite;
       }
 
       @keyframes scroll {
         0% {
-          transform: translateY(500px);
+          transform: translateY(50%);
         }
+
+        10% {
+          transform: translateY(20%);
+        }
+
         100% {
-          transform: translateY(-600px);
+          transform: translateY(-70%);
         }
       }
     </style>
@@ -69,12 +74,14 @@
   <body>
     <div id="playground">
       <div id="twilight-sparkles"></div>
-      <div id="fading-story"></div>
+      <div id="fading-story">
+        <div id="story"></div>
+      </div>
     </div>
     <script>
       const playground = document.querySelector("#playground")
       const el_twilight_sparkles = document.querySelector("#twilight-sparkles")
-      const el_fading_story = document.querySelector("#fading-story")
+      const el_story = document.querySelector("#story")
 
       class Sparkles {
         constructor() {
@@ -152,7 +159,7 @@
         return el
       })
 
-      el_fading_story.append(...el_paragraphs)
+      el_story.append(...el_paragraphs)
 
       /* 
       2024-07-01
