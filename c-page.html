@@ -1,14 +1,160 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>c page</title>
-</head>
-<body>
-  <div id="playground"></div>
-  <script>
-    /* 
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>c page</title>
+    <style>
+      body {
+        margin: 0;
+        background-color: #000000;
+      }
+
+      #playground {
+        width: 100%;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+
+      #twilight-sparkles {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background-color: #000000;
+      }
+
+      @keyframes sparkles {
+        0% {
+          opacity: 0.2;
+        }
+        50% {
+          opacity: 1;
+        }
+        100% {
+          opacity: 0.2;
+        }
+      }
+
+      #fading-story {
+        position: absolute;
+        width: calc(60%);
+        height: 80%;
+        color: #ffd54e;
+        overflow: hidden;
+        font-size: 20px;
+        font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+        /* make up area small and down area big, to simulate a fading story */
+        /* zoom: 1; */
+        /* transform-origin: 50% 100%; */
+        transform: perspective(300px) rotateX(30deg) scale(0.8);
+      }
+
+      #fading-story > p {
+        animation: scroll 60s infinite;
+      }
+
+      @keyframes scroll {
+        0% {
+          transform: translateY(500px);
+        }
+        100% {
+          transform: translateY(-600px);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="playground">
+      <div id="twilight-sparkles"></div>
+      <div id="fading-story"></div>
+    </div>
+    <script>
+      const playground = document.querySelector("#playground")
+      const el_twilight_sparkles = document.querySelector("#twilight-sparkles")
+      const el_fading_story = document.querySelector("#fading-story")
+
+      class Sparkles {
+        constructor() {
+          this.num = 30
+          // this.stars = []
+          this.root = document.createElement("div")
+        }
+
+        createStar() {
+          const star = document.createElement("div")
+          const x = Math.random() * 95
+          const y = Math.random() * 95
+          const size = Math.random() * 3 + 1.5
+          const color = Math.random() > 0.5 ? "pink" : "lightblue"
+          const animation = Math.random() * 2 + 1
+
+          star.innerHTML = `
+        <div style="position: absolute; top: ${y}%; left: ${x}%; width: ${size}px; height: ${size}px; background-color: ${color}; border-radius: 50%;
+        animation: sparkles ${animation}s ease 1;"></div>
+        `
+          this.root.appendChild(star)
+
+          star.addEventListener("animationend", () => {
+            this.root.removeChild(star)
+            this.createStar()
+          })
+          return star
+        }
+
+        start() {
+          this.root.innerHTML = ""
+          for (let i = 0; i < this.num; i++) {
+            this.createStar()
+          }
+          return this.root
+        }
+      }
+
+      const sparkles = new Sparkles()
+      el_twilight_sparkles.appendChild(sparkles.start())
+
+      const stories = {
+        A: [
+          `
+      2024-07-01
+      默默的...碎掉了  
+      好难受好难受好难受...  
+      又有些...感觉...被骗了...但又...没有别的路可走...好像...只成了别人的工具...那种，很强烈的，被利用被剥夺的感觉...  
+
+      怎么讲呢，合同里就一串含糊不清同时把解释权都拿到公司一边。培训时给的工具大便就大便吧...安排的任务也是——“这个做成什么样，大概是这样，虽然具体到底咋样我也不完全确定，但是最后由我决定算不算可以”。拿捏，捏捏捏捏。知道工作量，可能也知道无用交流，但就是要，让人一直忙着慌着。忙到无暇思考更多...  
+
+      嗯...可，不知道怎么讲，又觉得，这些家伙不过如此。 
+
+      我想想，那种小黄文里，主角是个懂一些规则，能被拿捏到，但没懂多少，或者懂了也没用，只能被别人用规则玩弄的存在。  
+      这一个行为是羞耻、那一个位置是卑贱、这样子应该高兴、那样你应该难过...... 从家庭学校到社会都在一遍又一遍的重复强化着类似的东西，在这样的预想里，一个完美的人应该是 “‘聪明’但木讷、容易控制，忍耐、执行力超强” 然而如果这真的被执行落实，情况可能是 “敏感敏锐、但是不敢表达，面对不能完成的请求也默默接受然后来个大的”...... 什么都能解决的超人估计只能存在于想象，但明白如何讨好人的魅魔可能还是可以人造的。  
+      一个真的木讷的人不可能能意识察觉、记得住那么多乱七八糟的规则，能记得住理解的必然是细腻敏锐的；而规则以及规则的实施无可避免的暴力，也让记住的过程也不可能是轻松自然的，对敏锐的人而言必然充满着折磨痛苦的（也可以期望有人能喜欢上这样，虽然我觉得这样可能更变态）——人造的规则想要起效果，原理是一种很奇怪的东西，它首先要求人敏锐知道什么是难受什么是疼，然后要求人闭嘴艾草，不然跟艹死人一样。 
+
+      如果这个世界想要的是这种玩意...那就来吧...懦弱又卑劣人把越来越烂的历史一手手交下去...来吧，就这样，来吧...
+      `,
+        ],
+      }
+
+      // now, split the stories into paragraphs, and make paragraphs to elements which can scroll away and fading.
+      const paragraphs = []
+      for (const name in stories) {
+        const story = stories[name].join("\n")
+        const lines = story.split("\n")
+        paragraphs.push(...lines)
+      }
+
+      // make the paragraphs to elements
+      const el_paragraphs = paragraphs.map((paragraph) => {
+        const el = document.createElement("p")
+        el.textContent = paragraph
+        return el
+      })
+
+      el_fading_story.append(...el_paragraphs)
+
+      /* 
       2024-07-01
       默默的...碎掉了  
       好难受好难受好难受...  
@@ -25,9 +171,9 @@
       如果这个世界想要的是这种玩意...那就来吧...懦弱又卑劣人把越来越烂的历史一手手交下去...来吧，就这样，来吧...
     */
 
-    /* 
-    */
-    /* 
+      /*
+       */
+      /* 
       “讲道理啊，在这边待到现在，能让我抬不起头的，只有太阳”
 
       人在遇到压力，玉玉的时候一种常见姿态是，解离，隔阂，不认为自己和周围的一切有什么关系。
@@ -37,7 +183,7 @@
       
       
     */
-    /* 
+      /* 
       2024-09-15
       ...看着好像还行的一个公司竟然整的这么烂...
       直接让几个应届生下场去迁移重构项目，所谓的老员工没提供多少像样的指导帮助，帮倒忙倒是挺会...
@@ -50,8 +196,6 @@
 
       test git x2
     */
-
-    
-  </script>
-</body>
+    </script>
+  </body>
 </html>
