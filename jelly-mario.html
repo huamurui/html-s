@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jelly Mario - 2D Platformer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5',
+                        secondary: '#EC4899',
+                        accent: '#10B981',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.25);
+                backdrop-filter: blur(4px);
+                -webkit-backdrop-filter: blur(4px);
+                border: 1px solid rgba(255, 255, 255, 0.18);
+            }
+            .slider-thumb::-webkit-slider-thumb {
+                @apply appearance-none w-4 h-4 rounded-full bg-primary cursor-pointer;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-blue-50 min-h-screen font-inter text-dark overflow-x-hidden">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="mb-8 text-center">
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary mb-2">Jelly Mario</h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">Control the jelly character with arrow keys or WASD. Jump on platforms and collect stars!</p>
+        </header>
+
+        <main class="flex flex-col lg:flex-row gap-6">
+            <!-- Game Canvas -->
+            <div class="lg:w-2/3 relative">
+                <div class="relative rounded-xl overflow-hidden shadow-2xl bg-white">
+                    <canvas id="gameCanvas" class="w-full h-[500px]"></canvas>
+                    <div class="absolute top-4 left-4 glass rounded-lg px-3 py-2 text-sm flex items-center gap-2">
+                        <i class="fa fa-gamepad text-primary"></i>
+                        <span>Arrow keys or WASD to move, Space to jump</span>
+                    </div>
+                    <div class="absolute top-4 right-4 glass rounded-lg px-3 py-2 text-sm flex items-center gap-2">
+                        <i class="fa fa-star text-yellow-500"></i>
+                        <span id="score">Score: 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="lg:w-1/3 glass rounded-xl p-5 shadow-xl">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    <i class="fa fa-sliders text-primary mr-2"></i> Game Controls
+                </h2>
+                
+                <div class="space-y-5">
+                    <!-- Game Physics Controls -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jelly Stiffness</label>
+                        <input type="range" id="stiffness" min="0.01" max="1" step="0.005" value="0.8" 
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Gravity</label>
+                        <input type="range" id="gravity" min="0.001" max="1" step="0.05" value="0.6" 
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Jump Strength</label>
+                        <input type="range" id="jumpStrength" min="0.5" max="20" step="0.1" value="7" 
+                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-thumb">
+                    </div>
+
+                    <!-- Game Actions -->
+                    <div class="pt-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Actions</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button id="resetGame" class="bg-red-100 hover:bg-red-200 text-red-600 py-1.5 px-3 rounded text-sm transition">
+                                <i class="fa fa-refresh mr-1"></i> Reset Game
+                            </button>
+                            <button id="toggleDebug" class="bg-blue-100 hover:bg-blue-200 text-blue-600 py-1.5 px-3 rounded text-sm transition">
+                                <i class="fa fa-bug mr-1"></i> Debug Mode
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>Jelly physics platformer inspired by Mario. Use keyboard to control the jelly character and collect stars!</p>
+        </footer>
+    </div>
+
+    <script>
+        // Helper functions
+        function isNaNValue(value) {
+            return typeof value !== 'number' || isNaN(value) || !isFinite(value);
+        }
+
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+
+        // Vector math helpers
+        const Vector2 = {
+            distance: (x1, y1, x2, y2) => {
+                const dx = x2 - x1;
+                const dy = y2 - y1;
+                return Math.sqrt(dx * dx + dy * dy);
+            },
+            normalize: (dx, dy) => {
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist === 0) return { x: 0, y: 0 };
+                return { x: dx / dist, y: dy / dist };
+            }
+        };
+
+        // Particle class representing each point in the jelly
+        class Particle {
+            constructor(x, y, fixed = false) {
+                this.x = isNaNValue(x) ? 0 : x;
+                this.y = isNaNValue(y) ? 0 : y;
+                this.oldX = this.x;
+                this.oldY = this.y;
+                this.fixed = fixed;
+                this.radius = 5;
+                this.onGround = false;
+                // 新增：记录受力情况
+                this.forceX = 0;
+                this.forceY = 0;
+            }
+
+            update(deltaTime, gravity, damping) {
+                if (this.fixed) return;
+                
+                if (isNaNValue(this.x) || isNaNValue(this.y) || 
+                    isNaNValue(this.oldX) || isNaNValue(this.oldY)) {
+                    this.x = isNaNValue(this.x) ? this.oldX : this.x;
+                    this.y = isNaNValue(this.y) ? this.oldY : this.y;
+                    return;
+                }
+                
+                const vx = (this.x - this.oldX) * (1 - damping);
+                const vy = (this.y - this.oldY) * (1 - damping);
+                
+                const maxVelocity = 5;
+                const clampedVx = clamp(vx, -maxVelocity, maxVelocity);
+                const clampedVy = clamp(vy, -maxVelocity, maxVelocity);
+                
+                this.oldX = this.x;
+                this.oldY = this.y;
+                
+                this.x += clampedVx;
+                this.y += clampedVy + gravity * deltaTime * deltaTime;
+            }
+
+            applyForce(fx, fy) {
+                if (this.fixed) return;
+                
+                if (isNaNValue(fx) || isNaNValue(fy)) return;
+                
+                const maxForce = 8;
+                const forceMagnitude = Math.sqrt(fx * fx + fy * fy);
+                
+                if (forceMagnitude > maxForce) {
+                    const scale = maxForce / forceMagnitude;
+                    fx *= scale;
+                    fy *= scale;
+                }
+                
+                // 记录受力
+                this.forceX = fx;
+                this.forceY = fy;
+                
+                this.x += fx;
+                this.y += fy;
+            }
+
+            draw(ctx) {
+                if (isNaNValue(this.x) || isNaNValue(this.y)) return;
+                
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(79, 70, 229, 0.5)';
+                ctx.fill();
+            }
+        }
+
+        // Spring class connecting two particles
+        class Spring {
+            constructor(p1, p2, restLength = null, stiffness = 0.8, nonLinearity = 0.0002) {
+                this.p1 = p1;
+                this.p2 = p2;
+                this.stiffness = stiffness;
+                this.nonLinearity = nonLinearity;
+                
+                if (restLength !== null) {
+                    this.restLength = Math.max(0.1, restLength);
+                } else {
+                    this.restLength = Math.max(0.1, this.calculateDistance());
+                }
+            }
+
+            calculateDistance() {
+                if (!this.p1 || !this.p2 || 
+                    isNaNValue(this.p1.x) || isNaNValue(this.p1.y) ||
+                    isNaNValue(this.p2.x) || isNaNValue(this.p2.y)) {
+                    return 1;
+                }
+                
+                const dx = this.p2.x - this.p1.x;
+                const dy = this.p2.y - this.p1.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                return Math.max(0.1, distance);
+            }
+
+            update() {
+                if (!this.p1 || !this.p2) return;
+                
+                if (isNaNValue(this.p1.x) || isNaNValue(this.p1.y) ||
+                    isNaNValue(this.p2.x) || isNaNValue(this.p2.y)) {
+                    return;
+                }
+                
+                const dx = this.p2.x - this.p1.x;
+                const dy = this.p2.y - this.p1.y;
+                
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                distance = Math.max(0.001, distance);
+                
+                const stretch = distance - this.restLength;
+                const clampedStretch = clamp(stretch, -this.restLength * 2, this.restLength * 2);
+                // F = k(x + bx^3); x=> clampedStretch,  k => stiffness, b => nonLinearity
+                const force = this.stiffness * (clampedStretch + this.nonLinearity * Math.pow(clampedStretch, 3));
+                
+                const nx = dx / distance;
+                const ny = dy / distance;
+                
+                if (isNaNValue(nx) || isNaNValue(ny) || isNaNValue(force)) return;
+                
+                const fx = nx * force;
+                const fy = ny * force;
+                
+                this.p1.applyForce(fx, fy);
+                this.p2.applyForce(-fx, -fy);
+            }
+
+            draw(ctx) {
+                if (!this.p1 || !this.p2 ||
+                    isNaNValue(this.p1.x) || isNaNValue(this.p1.y) ||
+                    isNaNValue(this.p2.x) || isNaNValue(this.p2.y)) {
+                    return;
+                }
+                
+                ctx.beginPath();
+                ctx.moveTo(this.p1.x, this.p1.y);
+                ctx.lineTo(this.p2.x, this.p2.y);
+                ctx.strokeStyle = 'rgba(79, 70, 229, 0.3)';
+                ctx.stroke();
+            }
+        }
+
+        // Game object classes
+        class Platform {
+            constructor(x, y, width, height, color = '#8B4513') {
+                this.x = x;
+                this.y = y;
+                this.width = width;
+                this.height = height;
+                this.color = color;
+                this.isGround = false;
+            }
+
+            draw(ctx) {
+                ctx.fillStyle = this.color;
+                ctx.fillRect(this.x, this.y, this.width, this.height);
+                
+                // Add some texture
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
+                for (let i = 0; i < this.width; i += 20) {
+                    ctx.fillRect(this.x + i, this.y, 10, this.height);
+                }
+            }
+
+            checkCollision(particle) {
+                // Simple AABB collision
+                if (particle.x > this.x && 
+                    particle.x < this.x + this.width && 
+                    particle.y + particle.radius > this.y && 
+                    particle.y - particle.radius < this.y + this.height) {
+                    
+                    // Top collision
+                    if (particle.oldY + particle.radius <= this.y) {
+                        particle.y = this.y - particle.radius;
+                        particle.oldY = particle.y;
+                        particle.onGround = true;
+                        return 'top';
+                    }
+                    // Bottom collision
+                    else if (particle.oldY - particle.radius >= this.y + this.height) {
+                        particle.y = this.y + this.height + particle.radius;
+                        particle.oldY = particle.y;
+                        return 'bottom';
+                    }
+                    // Left collision
+                    else if (particle.oldX + particle.radius <= this.x) {
+                        particle.x = this.x - particle.radius;
+                        particle.oldX = particle.x;
+                        return 'left';
+                    }
+                    // Right collision
+                    else if (particle.oldX - particle.radius >= this.x + this.width) {
+                        particle.x = this.x + this.width + particle.radius;
+                        particle.oldX = particle.x;
+                        return 'right';
+                    }
+                }
+                return null;
+            }
+        }
+
+        class Star {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.radius = 12;
+                this.collected = false;
+                this.pulse = 0;
+            }
+
+            update() {
+                this.pulse = (this.pulse + 0.05) % (Math.PI * 2);
+            }
+
+            draw(ctx) {
+                if (this.collected) return;
+                
+                const size = this.radius * (1 + Math.sin(this.pulse) * 0.2);
+                
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                // Draw star
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (i * 72 - 90) * Math.PI / 180;
+                    const x = Math.cos(angle) * size;
+                    const y = Math.sin(angle) * size;
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    // Inner points
+                    const innerAngle = (i * 72 + 36 - 90) * Math.PI / 180;
+                    const innerX = Math.cos(innerAngle) * size * 0.4;
+                    const innerY = Math.sin(innerAngle) * size * 0.4;
+                    ctx.lineTo(innerX, innerY);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Add glow
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.3)';
+                ctx.beginPath();
+                ctx.arc(0, 0, size * 1.2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+
+            checkCollection(jellyParticles) {
+                if (this.collected) return false;
+                
+                for (const particle of jellyParticles) {
+                    const dist = Vector2.distance(particle.x, particle.y, this.x, this.y);
+                    if (dist < this.radius + particle.radius) {
+                        this.collected = true;
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        // Main game class
+        class JellyMarioGame {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                if (!this.canvas) {
+                    console.error("Canvas element not found!");
+                    return;
+                }
+                
+                this.ctx = this.canvas.getContext('2d');
+                if (!this.ctx) {
+                    console.error("Could not get canvas context!");
+                    return;
+                }
+                
+                // Set canvas dimensions
+                this.resizeCanvas();
+                window.addEventListener('resize', () => this.resizeCanvas());
+                
+                // Game state
+                this.score = 0;
+                this.debugMode = false;
+                this.keys = {
+                    left: false,
+                    right: false,
+                    jump: false
+                };
+                
+                // Game parameters
+                this.params = {
+                    stiffness: 0.08,
+                    gravity: 0.06,
+                    jumpStrength: 12,
+
+                    damping: 0.005,
+                    surfaceTension: 0.001,
+                    nonLinearity: 0.09,
+                    particleRadius: 12,
+                    gridSize: 6,
+                    deltaTime: 16,
+                    friction: 0.98,
+                    moveForce: 0.08,
+                    maxSpeed: 3
+                };
+                
+                // Game objects
+                this.particles = [];
+                this.springs = [];
+                this.platforms = [];
+                this.stars = [];
+                this.cameraOffsetX = 0;
+                
+                // Initialize game
+                this.initialize();
+                
+                // Animation loop
+                this.lastTime = 0;
+                this.animate(0);
+                
+                // Event listeners
+                this.setupEventListeners();
+                
+                // Connect controls
+                this.setupControls();
+            }
+
+            resizeCanvas() {
+                if (!this.canvas) return;
+                
+                const { width, height } = this.canvas.getBoundingClientRect();
+                const validWidth = Math.max(100, Math.floor(width));
+                const validHeight = Math.max(100, Math.floor(height));
+                
+                this.canvas.width = validWidth;
+                this.canvas.height = validHeight;
+            }
+
+            initialize() {
+                this.particles = [];
+                this.springs = [];
+                this.platforms = [];
+                this.stars = [];
+                this.score = 0;
+                document.getElementById('score').textContent = `Score: ${this.score}`;
+                
+                if (!this.canvas) return;
+                
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                const gridSize = this.params.gridSize;
+                const particleRadius = this.params.particleRadius;
+                
+                const validGridSize = Math.max(2, Math.min(10, gridSize));
+                
+                // Create jelly particles
+                const startX = width / 4;
+                const startY = height / 2;
+                
+                for (let y = 0; y < validGridSize; y++) {
+                    for (let x = 0; x < validGridSize; x++) {
+                        const px = startX + x * particleRadius * 1.5
+                        const py = startY + y * particleRadius * 1.5
+                        
+                        // No fixed particles for better movement
+                        this.particles.push(new Particle(px, py, false));
+                    }
+                }
+                
+                // Create springs between adjacent particles
+                for (let y = 0; y < validGridSize; y++) {
+                    for (let x = 0; x < validGridSize; x++) {
+                        const index = y * validGridSize + x;
+                        if (!this.particles[index]) continue;
+                        
+                        // Connect to right neighbor
+                        if (x < validGridSize - 1) {
+                            const rightIndex = y * validGridSize + (x + 1);
+                            if (this.particles[rightIndex]) {
+                                this.springs.push(new Spring(
+                                    this.particles[index],
+                                    this.particles[rightIndex],
+                                    null,
+                                    this.params.stiffness,
+                                    this.params.nonLinearity
+                                ));
+                            }
+                        }
+                        
+                        // Connect to bottom neighbor
+                        if (y < validGridSize - 1) {
+                            const bottomIndex = (y + 1) * validGridSize + x;
+                            if (this.particles[bottomIndex]) {
+                                this.springs.push(new Spring(
+                                    this.particles[index],
+                                    this.particles[bottomIndex],
+                                    null,
+                                    this.params.stiffness,
+                                    this.params.nonLinearity
+                                ));
+                            }
+                        }
+                        
+                        // Connect to diagonal neighbors
+                        if (x < validGridSize - 1 && y < validGridSize - 1) {
+                            const diagIndex = (y + 1) * validGridSize + (x + 1);
+                            if (this.particles[diagIndex]) {
+                                this.springs.push(new Spring(
+                                    this.particles[index],
+                                    this.particles[diagIndex],
+                                    null,
+                                    this.params.stiffness * 0.7,
+                                    this.params.nonLinearity
+                                ));
+                            }
+                        }
+                        
+                        if (x < validGridSize - 1 && y > 0) {
+                            const diagIndex = (y - 1) * validGridSize + (x + 1);
+                            if (this.particles[diagIndex]) {
+                                this.springs.push(new Spring(
+                                    this.particles[index],
+                                    this.particles[diagIndex],
+                                    null,
+                                    this.params.stiffness * 0.7,
+                                    this.params.nonLinearity
+                                ));
+                            }
+                        }
+                    }
+                }
+                
+                // Create platforms
+                const ground = new Platform(0, height - 40, width * 3, 40, '#4CAF50');
+                ground.isGround = true;
+                this.platforms.push(ground);
+                
+                // Add some platforms
+                this.platforms.push(new Platform(width * 0.5, height * 0.7, 100, 20));
+                this.platforms.push(new Platform(width * 0.8, height * 0.5, 100, 20));
+                this.platforms.push(new Platform(width * 1.2, height * 0.6, 100, 20));
+                this.platforms.push(new Platform(width * 1.5, height * 0.4, 100, 20));
+                this.platforms.push(new Platform(width * 1.8, height * 0.7, 100, 20));
+                this.platforms.push(new Platform(width * 2.2, height * 0.5, 100, 20));
+                
+                // Add stars
+                this.stars.push(new Star(width * 0.6, height * 0.6));
+                this.stars.push(new Star(width * 0.9, height * 0.4));
+                this.stars.push(new Star(width * 1.3, height * 0.5));
+                this.stars.push(new Star(width * 1.6, height * 0.3));
+                this.stars.push(new Star(width * 2.0, height * 0.6));
+                this.stars.push(new Star(width * 2.3, height * 0.4));
+            }
+
+            applySurfaceTension() {
+                if (this.params.surfaceTension <= 0) return;
+                
+                for (let i = 0; i < this.particles.length; i++) {
+                    const p1 = this.particles[i];
+                    if (!p1 || isNaNValue(p1.x) || isNaNValue(p1.y)) continue;
+                    
+                    let neighbors = 0;
+                    let avgX = 0;
+                    let avgY = 0;
+                    
+                    for (let j = 0; j < this.particles.length; j++) {
+                        if (i === j) continue;
+                        
+                        const p2 = this.particles[j];
+                        if (!p2 || isNaNValue(p2.x) || isNaNValue(p2.y)) continue;
+                        
+                        const distance = Vector2.distance(p1.x, p1.y, p2.x, p2.y);
+                        
+                        if (distance < this.params.particleRadius * 3 && distance > 0.1) {
+                            neighbors++;
+                            avgX += p2.x;
+                            avgY += p2.y;
+                        }
+                    }
+                    
+                    if (neighbors > 0) {
+                        avgX /= neighbors;
+                        avgY /= neighbors;
+                        
+                        const fx = (avgX - p1.x) * this.params.surfaceTension;
+                        const fy = (avgY - p1.y) * this.params.surfaceTension;
+                        
+                        p1.applyForce(fx, fy);
+                    }
+                }
+            }
+
+            applyPlayerControls() {
+                // Find center of mass for better control feel
+                let centerX = 0;
+                let centerY = 0;
+                let onGround = false;
+                
+                this.particles.forEach(particle => {
+                    centerX += particle.x;
+                    centerY += particle.y;
+                    if (particle.onGround) onGround = true;
+                    particle.onGround = false; // Reset for next frame
+                });
+                
+                centerX /= this.particles.length;
+                centerY /= this.particles.length;
+                
+                // Apply movement forces
+                if (this.keys.left) {
+                    this.particles.forEach(particle => {
+                        // Apply more force to particles on the right for better turning
+                        const forceFactor = 1 + (particle.x - centerX) / 100;
+                        particle.applyForce(-this.params.moveForce * forceFactor, 0);
+                    });
+                }
+                
+                if (this.keys.right) {
+                    this.particles.forEach(particle => {
+                        // Apply more force to particles on the left for better turning
+                        const forceFactor = 1 + (centerX - particle.x) / 100;
+                        particle.applyForce(this.params.moveForce * forceFactor, 0);
+                    });
+                }
+                
+                // Apply jump force if on ground and jump key is pressed
+                if (this.keys.jump && onGround) {
+                    this.particles.forEach(particle => {
+                        // Apply more force to lower particles for better jumping feel
+                        const jumpFactor = 1 + (centerY - particle.y) / 50;
+                        particle.applyForce(0, -this.params.jumpStrength * jumpFactor);
+                    });
+                    this.keys.jump = false; // Prevent double jump
+                }
+                
+                // Apply some air control but less than ground control
+                if (!onGround) {
+                    if (this.keys.left) {
+                        this.particles.forEach(particle => {
+                            particle.applyForce(-this.params.moveForce * 0.3, 0);
+                        });
+                    }
+                    
+                    if (this.keys.right) {
+                        this.particles.forEach(particle => {
+                            particle.applyForce(this.params.moveForce * 0.3, 0);
+                        });
+                    }
+                }
+                
+                // Limit maximum speed
+                this.particles.forEach(particle => {
+                    const vx = particle.x - particle.oldX;
+                    if (vx > this.params.maxSpeed) {
+                        particle.x = particle.oldX + this.params.maxSpeed;
+                    } else if (vx < -this.params.maxSpeed) {
+                        particle.x = particle.oldX - this.params.maxSpeed;
+                    }
+                });
+            }
+
+            checkCollisions() {
+                // Check collisions with platforms
+                this.particles.forEach(particle => {
+                    this.platforms.forEach(platform => {
+                        platform.checkCollision(particle);
+                    });
+                });
+                
+                // Check star collection
+                this.stars.forEach(star => {
+                    if (star.checkCollection(this.particles)) {
+                        this.score += 10;
+                        document.getElementById('score').textContent = `Score: ${this.score}`;
+                        
+                        // Add a little celebration force
+                        this.particles.forEach(particle => {
+                            const dir = Vector2.normalize(
+                                particle.x - star.x, 
+                                particle.y - star.y
+                            );
+                            particle.applyForce(dir.x * 0.3, dir.y * 0.3);
+                        });
+                    }
+                });
+            }
+
+            updateCamera() {
+                // Find center of jelly
+                let centerX = 0;
+                this.particles.forEach(particle => {
+                    centerX += particle.x;
+                });
+                centerX /= this.particles.length;
+                
+                // Camera follows with some lag
+                const targetOffset = centerX - this.canvas.width / 3;
+                this.cameraOffsetX += (targetOffset - this.cameraOffsetX) * 0.1;
+            }
+
+            updatePhysics(deltaTime) {
+                // 重置每个质点的受力记录
+                this.particles.forEach(particle => {
+                    particle.forceX = 0;
+                    particle.forceY = 0;
+                });
+                
+                // Update particle positions
+                this.particles.forEach(particle => {
+                    if (particle) {
+                        particle.update(deltaTime, this.params.gravity, this.params.damping);
+                    }
+                });
+                
+                // Apply spring forces multiple times for stability
+                for (let i = 0; i < 5; i++) {
+                    this.springs.forEach(spring => {
+                        if (spring) {
+                            spring.update();
+                        }
+                    });
+                }
+                
+                // Apply surface tension
+                this.applySurfaceTension();
+                
+                // Apply player controls
+                this.applyPlayerControls();
+                
+                // Check collisions
+                this.checkCollisions();
+                
+                // Update stars
+                this.stars.forEach(star => star.update());
+                
+                // Update camera position
+                this.updateCamera();
+            }
+
+            drawJelly() {
+                if (!this.ctx || !this.canvas) return;
+                
+                const ctx = this.ctx;
+                const gridSize = this.params.gridSize;
+                
+                let hasValidParticles = false;
+                for (const particle of this.particles) {
+                    if (particle && !isNaNValue(particle.x) && !isNaNValue(particle.y)) {
+                        hasValidParticles = true;
+                        break;
+                    }
+                }
+                if (!hasValidParticles) return;
+                
+                // Jelly gradient color
+                const gradient = ctx.createLinearGradient(
+                    this.getJellyCenterX() - 30, this.getJellyCenterY() - 30, 
+                    this.getJellyCenterX() + 30, this.getJellyCenterY() + 30
+                );
+                gradient.addColorStop(0, 'rgba(79, 70, 229, 0.9)'); // primary
+                gradient.addColorStop(1, 'rgba(236, 72, 153, 0.8)'); // secondary
+                
+                // Draw jelly body using triangles
+                ctx.beginPath();
+                
+                for (let x = 0; x < gridSize - 1; x++) {
+                    for (let y = 0; y < gridSize - 1; y++) {
+                        const p1 = this.particles[y * gridSize + x];
+                        const p2 = this.particles[y * gridSize + (x + 1)];
+                        const p3 = this.particles[(y + 1) * gridSize + (x + 1)];
+                        const p4 = this.particles[(y + 1) * gridSize + x];
+                        
+                        if (!p1 || !p2 || !p3 || !p4 ||
+                            isNaNValue(p1.x) || isNaNValue(p1.y) ||
+                            isNaNValue(p2.x) || isNaNValue(p2.y) ||
+                            isNaNValue(p3.x) || isNaNValue(p3.y) ||
+                            isNaNValue(p4.x) || isNaNValue(p4.y)) {
+                            continue;
+                        }
+                        
+                        // Draw two triangles for each grid cell
+                        ctx.moveTo(p1.x - this.cameraOffsetX, p1.y);
+                        ctx.lineTo(p2.x - this.cameraOffsetX, p2.y);
+                        ctx.lineTo(p3.x - this.cameraOffsetX, p3.y);
+                        ctx.closePath();
+                        
+                        ctx.moveTo(p1.x - this.cameraOffsetX, p1.y);
+                        ctx.lineTo(p3.x - this.cameraOffsetX, p3.y);
+                        ctx.lineTo(p4.x - this.cameraOffsetX, p4.y);
+                        ctx.closePath();
+                    }
+                }
+                
+                ctx.fillStyle = gradient;
+                ctx.fill();
+                
+                // Add highlight for 3D effect
+                ctx.beginPath();
+                for (let x = 0; x < gridSize - 1; x++) {
+                    for (let y = 0; y < gridSize / 2; y++) { // Only top half
+                        const p1 = this.particles[y * gridSize + x];
+                        const p2 = this.particles[y * gridSize + (x + 1)];
+                        const p3 = this.particles[(y + 1) * gridSize + (x + 1)];
+                        const p4 = this.particles[(y + 1) * gridSize + x];
+                        
+                        if (!p1 || !p2 || !p3 || !p4 ||
+                            isNaNValue(p1.x) || isNaNValue(p1.y) ||
+                            isNaNValue(p2.x) || isNaNValue(p2.y) ||
+                            isNaNValue(p3.x) || isNaNValue(p3.y) ||
+                            isNaNValue(p4.x) || isNaNValue(p4.y)) {
+                            continue;
+                        }
+                        
+                        ctx.moveTo(p1.x - this.cameraOffsetX, p1.y);
+                        ctx.lineTo(p2.x - this.cameraOffsetX, p2.y);
+                        ctx.lineTo(p3.x - this.cameraOffsetX, p3.y);
+                        ctx.closePath();
+                        
+                        ctx.moveTo(p1.x - this.cameraOffsetX, p1.y);
+                        ctx.lineTo(p3.x - this.cameraOffsetX, p3.y);
+                        ctx.lineTo(p4.x - this.cameraOffsetX, p4.y);
+                        ctx.closePath();
+                    }
+                }
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.fill();
+                
+                // Draw outline
+                ctx.beginPath();
+                // Top edge
+                for (let x = 0; x < gridSize - 1; x++) {
+                    const p1 = this.particles[x];
+                    const p2 = this.particles[x + 1];
+                    if (!p1 || !p2 || isNaNValue(p1.x) || isNaNValue(p1.y) ||
+                        isNaNValue(p2.x) || isNaNValue(p2.y)) continue;
+                        
+                    if (x === 0) ctx.moveTo(p1.x - this.cameraOffsetX, p1.y);
+                    ctx.lineTo(p2.x - this.cameraOffsetX, p2.y);
+                }
+                // Right edge
+                for (let y = 0; y < gridSize - 1; y++) {
+                    const p1 = this.particles[y * gridSize + (gridSize - 1)];
+                    const p2 = this.particles[(y + 1) * gridSize + (gridSize - 1)];
+                    if (!p1 || !p2 || isNaNValue(p1.x) || isNaNValue(p1.y) ||
+                        isNaNValue(p2.x) || isNaNValue(p2.y)) continue;
+                        
+                    ctx.lineTo(p2.x - this.cameraOffsetX, p2.y);
+                }
+                // Bottom edge (reverse)
+                for (let x = gridSize - 1; x > 0; x--) {
+                    const p1 = this.particles[(gridSize - 1) * gridSize + x];
+                    const p2 = this.particles[(gridSize - 1) * gridSize + (x - 1)];
+                    if (!p1 || !p2 || isNaNValue(p1.x) || isNaNValue(p1.y) ||
+                        isNaNValue(p2.x) || isNaNValue(p2.y)) continue;
+                        
+                    ctx.lineTo(p2.x - this.cameraOffsetX, p2.y);
+                }
+                // Left edge (reverse)
+                for (let y = gridSize - 1; y > 0; y--) {
+                    const p1 = this.particles[y * gridSize];
+                    const p2 = this.particles[(y - 1) * gridSize];
+                    if (!p1 || !p2 || isNaNValue(p1.x) || isNaNValue(p1.y) ||
+                        isNaNValue(p2.x) || isNaNValue(p2.y)) continue;
+                        
+                    ctx.lineTo(p2.x - this.cameraOffsetX, p2.y);
+                }
+                ctx.closePath();
+                
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Draw eyes for character feel
+                this.drawEyes();
+            }
+
+            getJellyCenterX() {
+                let centerX = 0;
+                this.particles.forEach(particle => {
+                    centerX += particle.x;
+                });
+                return centerX / this.particles.length;
+            }
+
+            getJellyCenterY() {
+                let centerY = 0;
+                this.particles.forEach(particle => {
+                    centerY += particle.y;
+                });
+                return centerY / this.particles.length;
+            }
+
+            drawEyes() {
+                const centerX = this.getJellyCenterX();
+                const centerY = this.getJellyCenterY();
+                
+                // Determine look direction based on movement
+                let lookX = 0;
+                if (this.keys.right) lookX = 1;
+                if (this.keys.left) lookX = -1;
+                
+                // Eye positions
+                const leftEyeX = centerX - 15 + lookX * 5;
+                const rightEyeX = centerX + 5 + lookX * 5;
+                const eyeY = centerY - 10;
+                
+                // Draw eyes
+                this.ctx.fillStyle = 'white';
+                this.ctx.beginPath();
+                this.ctx.arc(leftEyeX - this.cameraOffsetX, eyeY, 8, 0, Math.PI * 2);
+                this.ctx.arc(rightEyeX - this.cameraOffsetX, eyeY, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Draw pupils
+                this.ctx.fillStyle = 'black';
+                this.ctx.beginPath();
+                this.ctx.arc(leftEyeX - this.cameraOffsetX + lookX * 3, eyeY, 4, 0, Math.PI * 2);
+                this.ctx.arc(rightEyeX - this.cameraOffsetX + lookX * 3, eyeY, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+            }
+
+            drawGame() {
+                if (!this.ctx || !this.canvas) return;
+                
+                const ctx = this.ctx;
+                const width = this.canvas.width;
+                const height = this.canvas.height;
+                
+                // Draw sky background with gradient
+                const skyGradient = ctx.createLinearGradient(0, 0, 0, height);
+                skyGradient.addColorStop(0, '#87CEEB');
+                skyGradient.addColorStop(1, '#E0F7FA');
+                ctx.fillStyle = skyGradient;
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw sun
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(width - 60, 60, 40, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Draw clouds
+                this.drawCloud(100, 50, 100);
+                this.drawCloud(300 - this.cameraOffsetX % 500, 80, 80);
+                this.drawCloud(600 - this.cameraOffsetX % 700, 40, 120);
+                
+                // Draw platforms
+                this.platforms.forEach(platform => {
+                    ctx.save();
+                    ctx.translate(-this.cameraOffsetX, 0);
+                    platform.draw(ctx);
+                    ctx.restore();
+                });
+                
+                // Draw stars
+                this.stars.forEach(star => {
+                    if (!star.collected) {
+                        ctx.save();
+                        ctx.translate(-this.cameraOffsetX, 0);
+                        star.draw(ctx);
+                        ctx.restore();
+                    }
+                });
+                
+                // Draw jelly
+                this.drawJelly();
+                
+                // Draw debug information if enabled
+                if (this.debugMode) {
+                    this.drawDebugInfo();
+                }
+            }
+
+            drawCloud(x, y, size) {
+                const ctx = this.ctx;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                
+                // Cloud shape
+                ctx.beginPath();
+                ctx.arc(x, y, size * 0.3, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.2, y - size * 0.1, size * 0.25, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.4, y, size * 0.3, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.1, y + size * 0.1, size * 0.2, 0, Math.PI * 2);
+                ctx.arc(x + size * 0.35, y + size * 0.1, size * 0.25, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            drawDebugInfo() {
+                const ctx = this.ctx;
+                ctx.fillStyle = 'black';
+                ctx.font = '12px Arial';
+                
+                // Display position
+                const centerX = this.getJellyCenterX();
+                const centerY = this.getJellyCenterY();
+                ctx.fillText(`Position: (${Math.round(centerX)}, ${Math.round(centerY)})`, 10, 20);
+                
+                // Display velocity
+                const vx = this.particles[0].x - this.particles[0].oldX;
+                ctx.fillText(`Speed: ${Math.round(vx * 100) / 100}`, 10, 40);
+                
+                // Draw particles and springs if debug mode
+                this.particles.forEach(particle => {
+                    ctx.save();
+                    ctx.translate(-this.cameraOffsetX, 0);
+                    particle.draw(ctx);
+                    ctx.restore();
+                });
+                
+                this.springs.forEach(spring => {
+                    ctx.save();
+                    ctx.translate(-this.cameraOffsetX, 0);
+                    spring.draw(ctx);
+                    ctx.restore();
+                });
+
+                // 绘制每个质点的受力情况
+                this.particles.forEach(particle => {
+                    // 只显示有明显力的情况
+                    if (Math.abs(particle.forceX) > 0.01 || Math.abs(particle.forceY) > 0.01) {
+                        // 力的大小
+                        const forceMagnitude = Math.sqrt(particle.forceX * particle.forceX + particle.forceY * particle.forceY);
+                        
+                        // 箭头长度（根据力的大小缩放）
+                        const arrowLength = forceMagnitude * 20;
+                        
+                        // 箭头方向
+                        const arrowX = particle.x + particle.forceX / forceMagnitude * arrowLength;
+                        const arrowY = particle.y + particle.forceY / forceMagnitude * arrowLength;
+                        
+                        ctx.save();
+                        ctx.translate(-this.cameraOffsetX, 0);
+                        
+                        // 绘制力的箭头
+                        ctx.beginPath();
+                        ctx.moveTo(particle.x, particle.y);
+                        ctx.lineTo(arrowX, arrowY);
+                        ctx.strokeStyle = 'red';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                        
+                        // 绘制箭头头部
+                        const angle = Math.atan2(particle.forceY, particle.forceX);
+                        ctx.beginPath();
+                        ctx.moveTo(arrowX, arrowY);
+                        ctx.lineTo(
+                            arrowX - Math.cos(angle - Math.PI/6) * 5,
+                            arrowY - Math.sin(angle - Math.PI/6) * 5
+                        );
+                        ctx.lineTo(
+                            arrowX - Math.cos(angle + Math.PI/6) * 5,
+                            arrowY - Math.sin(angle + Math.PI/6) * 5
+                        );
+                        ctx.closePath();
+                        ctx.fillStyle = 'red';
+                        ctx.fill();
+                        
+                        // 显示力的大小
+                        ctx.fillStyle = 'red';
+                        ctx.font = '10px Arial';
+                        ctx.fillText(
+                            forceMagnitude.toFixed(2), 
+                            (particle.x + arrowX) / 2, 
+                            (particle.y + arrowY) / 2
+                        );
+                        
+                        ctx.restore();
+                    }
+                });
+            }
+
+            animate(currentTime) {
+                if (!this.canvas || !this.ctx) return;
+                
+                const deltaTime = isNaNValue(currentTime) || isNaNValue(this.lastTime) 
+                    ? 16 
+                    : Math.max(1, Math.min(100, currentTime - this.lastTime));
+                
+                this.lastTime = currentTime;
+                
+                // Clear canvas
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Update physics
+                this.updatePhysics(deltaTime / 16);
+                
+                // Draw game
+                this.drawGame();
+                
+                // Request next frame
+                requestAnimationFrame((t) => this.animate(t));
+            }
+
+            setupEventListeners() {
+                // Keyboard controls
+                window.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                        case 'a':
+                        case 'A':
+                            this.keys.left = true;
+                            break;
+                        case 'ArrowRight':
+                        case 'd':
+                        case 'D':
+                            this.keys.right = true;
+                            break;
+                        case 'ArrowUp':
+                        case ' ':
+                        case 'w':
+                        case 'W':
+                            this.keys.jump = true;
+                            break;
+                    }
+                });
+                
+                window.addEventListener('keyup', (e) => {
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                        case 'a':
+                        case 'A':
+                            this.keys.left = false;
+                            break;
+                        case 'ArrowRight':
+                        case 'd':
+                        case 'D':
+                            this.keys.right = false;
+                            break;
+                    }
+                });
+            }
+
+            setupControls() {
+                const stiffnessSlider = document.getElementById('stiffness');
+                const gravitySlider = document.getElementById('gravity');
+                const jumpSlider = document.getElementById('jumpStrength');
+                
+                if (!stiffnessSlider || !gravitySlider || !jumpSlider) {
+                    console.warn("Some control elements not found");
+                    return;
+                }
+                
+                // Update parameters when sliders change
+                stiffnessSlider.addEventListener('input', () => {
+                    const value = parseFloat(stiffnessSlider.value);
+                    if (!isNaNValue(value)) {
+                        this.params.stiffness = value;
+                        this.springs.forEach(spring => {
+                            if (spring) spring.stiffness = this.params.stiffness;
+                        });
+                    }
+                });
+                
+                gravitySlider.addEventListener('input', () => {
+                    const value = parseFloat(gravitySlider.value);
+                    if (!isNaNValue(value)) {
+                        this.params.gravity = value;
+                    }
+                });
+                
+                jumpSlider.addEventListener('input', () => {
+                    const value = parseFloat(jumpSlider.value);
+                    if (!isNaNValue(value)) {
+                        this.params.jumpStrength = value;
+                    }
+                });
+                
+                // Buttons
+                document.getElementById('resetGame')?.addEventListener('click', () => {
+                    this.initialize();
+                });
+                
+                document.getElementById('toggleDebug')?.addEventListener('click', () => {
+                    this.debugMode = !this.debugMode;
+                });
+            }
+        }
+
+        // Initialize the game when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                const game = new JellyMarioGame('gameCanvas');
+            }, 100);
+        });
+    </script>
+</body>
+</html>

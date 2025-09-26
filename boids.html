@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boids群体行为模拟</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .description {
+            max-width: 800px;
+            text-align: center;
+            margin-bottom: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+        
+        .canvas-container {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+            flex: 1;
+            min-width: 500px;
+            max-width: 800px;
+        }
+        
+        #boidsCanvas {
+            background: rgba(0, 0, 0, 0.7);
+            display: block;
+            width: 100%;
+            height: 500px;
+        }
+        
+        .controls {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            flex: 1;
+            min-width: 300px;
+            max-width: 350px;
+        }
+        
+        .control-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin-bottom: 5px;
+        }
+        
+        .value-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9em;
+        }
+        
+        .rules {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .rules h3 {
+            margin-top: 0;
+        }
+        
+        .rules ul {
+            padding-left: 20px;
+        }
+        
+        .rules li {
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .canvas-container, .controls {
+                min-width: 90%;
+                max-width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Boids群体行为模拟</h1>
+    
+    <div class="description">
+        <p>Boids算法模拟鸟群或鱼群的群体行为，仅使用三个简单规则：分离、对齐和凝聚。调整下方参数来观察不同行为。</p>
+    </div>
+    
+    <div class="container">
+        <div class="canvas-container">
+            <canvas id="boidsCanvas"></canvas>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label for="separation">分离权重</label>
+                <input type="range" id="separation" min="0" max="2" step="0.1" value="1.5">
+                <div class="value-display">
+                    <span>低</span>
+                    <span id="separation-value">1.5</span>
+                    <span>高</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="alignment">对齐权重</label>
+                <input type="range" id="alignment" min="0" max="2" step="0.1" value="1.0">
+                <div class="value-display">
+                    <span>低</span>
+                    <span id="alignment-value">1.0</span>
+                    <span>高</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="cohesion">凝聚权重</label>
+                <input type="range" id="cohesion" min="0" max="2" step="0.1" value="1.0">
+                <div class="value-display">
+                    <span>低</span>
+                    <span id="cohesion-value">1.0</span>
+                    <span>高</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="perception">感知范围</label>
+                <input type="range" id="perception" min="10" max="200" step="5" value="100">
+                <div class="value-display">
+                    <span>小</span>
+                    <span id="perception-value">100</span>
+                    <span>大</span>
+                </div>
+            </div>
+            
+            <div class="control-group">
+                <label for="speed">最大速度</label>
+                <input type="range" id="speed" min="1" max="10" step="0.5" value="4">
+                <div class="value-display">
+                    <span>慢</span>
+                    <span id="speed-value">4</span>
+                    <span>快</span>
+                </div>
+            </div>
+            
+            <div class="rules">
+                <h3>Boids规则：</h3>
+                <ul>
+                    <li><strong>分离</strong>：避免与相邻个体碰撞</li>
+                    <li><strong>对齐</strong>：与相邻个体的平均速度匹配</li>
+                    <li><strong>凝聚</strong>：向相邻个体的平均位置移动</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 获取Canvas和上下文
+        const canvas = document.getElementById('boidsCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // 设置Canvas尺寸
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth;
+            canvas.height = canvas.clientHeight;
+        }
+        
+        // 初始化Canvas尺寸
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // Boid类
+        class Boid {
+            constructor() {
+                this.position = {
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height
+                };
+                this.velocity = {
+                    x: (Math.random() - 0.5) * 2,
+                    y: (Math.random() - 0.5) * 2
+                };
+                this.acceleration = { x: 0, y: 0 };
+                this.maxForce = 0.2;
+                this.maxSpeed = parseFloat(document.getElementById('speed').value);
+                this.perception = parseFloat(document.getElementById('perception').value);
+            }
+            
+            // 边缘检测
+            edges() {
+                if (this.position.x > canvas.width) {
+                    this.position.x = 0;
+                } else if (this.position.x < 0) {
+                    this.position.x = canvas.width;
+                }
+                if (this.position.y > canvas.height) {
+                    this.position.y = 0;
+                } else if (this.position.y < 0) {
+                    this.position.y = canvas.height;
+                }
+            }
+            
+            // 对齐行为
+            align(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                
+                for (let other of boids) {
+                    let d = Math.hypot(
+                        this.position.x - other.position.x,
+                        this.position.y - other.position.y
+                    );
+                    
+                    if (other !== this && d < this.perception) {
+                        steering.x += other.velocity.x;
+                        steering.y += other.velocity.y;
+                        total++;
+                    }
+                }
+                
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    
+                    // 设置大小为maxSpeed
+                    let mag = Math.hypot(steering.x, steering.y);
+                    if (mag > 0) {
+                        steering.x = steering.x / mag * this.maxSpeed;
+                        steering.y = steering.y / mag * this.maxSpeed;
+                    }
+                    
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    
+                    // 限制转向力
+                    mag = Math.hypot(steering.x, steering.y);
+                    if (mag > this.maxForce) {
+                        steering.x = steering.x / mag * this.maxForce;
+                        steering.y = steering.y / mag * this.maxForce;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            // 分离行为
+            separation(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                
+                for (let other of boids) {
+                    let d = Math.hypot(
+                        this.position.x - other.position.x,
+                        this.position.y - other.position.y
+                    );
+                    
+                    if (other !== this && d < this.perception && d > 0) {
+                        let diff = {
+                            x: this.position.x - other.position.x,
+                            y: this.position.y - other.position.y
+                        };
+                        
+                        // 距离越近，排斥力越大
+                        diff.x /= d * d;
+                        diff.y /= d * d;
+                        
+                        steering.x += diff.x;
+                        steering.y += diff.y;
+                        total++;
+                    }
+                }
+                
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    
+                    // 设置大小为maxSpeed
+                    let mag = Math.hypot(steering.x, steering.y);
+                    if (mag > 0) {
+                        steering.x = steering.x / mag * this.maxSpeed;
+                        steering.y = steering.y / mag * this.maxSpeed;
+                    }
+                    
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    
+                    // 限制转向力
+                    mag = Math.hypot(steering.x, steering.y);
+                    if (mag > this.maxForce) {
+                        steering.x = steering.x / mag * this.maxForce;
+                        steering.y = steering.y / mag * this.maxForce;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            // 凝聚行为
+            cohesion(boids) {
+                let steering = { x: 0, y: 0 };
+                let total = 0;
+                
+                for (let other of boids) {
+                    let d = Math.hypot(
+                        this.position.x - other.position.x,
+                        this.position.y - other.position.y
+                    );
+                    
+                    if (other !== this && d < this.perception) {
+                        steering.x += other.position.x;
+                        steering.y += other.position.y;
+                        total++;
+                    }
+                }
+                
+                if (total > 0) {
+                    steering.x /= total;
+                    steering.y /= total;
+                    
+                    steering.x -= this.position.x;
+                    steering.y -= this.position.y;
+                    
+                    // 设置大小为maxSpeed
+                    let mag = Math.hypot(steering.x, steering.y);
+                    if (mag > 0) {
+                        steering.x = steering.x / mag * this.maxSpeed;
+                        steering.y = steering.y / mag * this.maxSpeed;
+                    }
+                    
+                    steering.x -= this.velocity.x;
+                    steering.y -= this.velocity.y;
+                    
+                    // 限制转向力
+                    mag = Math.hypot(steering.x, steering.y);
+                    if (mag > this.maxForce) {
+                        steering.x = steering.x / mag * this.maxForce;
+                        steering.y = steering.y / mag * this.maxForce;
+                    }
+                }
+                
+                return steering;
+            }
+            
+            // 更新Boid状态
+            update() {
+                this.maxSpeed = parseFloat(document.getElementById('speed').value);
+                this.perception = parseFloat(document.getElementById('perception').value);
+                
+                // 获取规则权重
+                const separationWeight = parseFloat(document.getElementById('separation').value);
+                const alignmentWeight = parseFloat(document.getElementById('alignment').value);
+                const cohesionWeight = parseFloat(document.getElementById('cohesion').value);
+                
+                // 计算三种行为
+                let separation = this.separation(boids);
+                let alignment = this.align(boids);
+                let cohesion = this.cohesion(boids);
+                
+                // 应用权重
+                separation.x *= separationWeight;
+                separation.y *= separationWeight;
+                alignment.x *= alignmentWeight;
+                alignment.y *= alignmentWeight;
+                cohesion.x *= cohesionWeight;
+                cohesion.y *= cohesionWeight;
+                
+                // 累加加速度
+                this.acceleration.x = separation.x + alignment.x + cohesion.x;
+                this.acceleration.y = separation.y + alignment.y + cohesion.y;
+                
+                // 更新速度和位置
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+                
+                // 限制速度
+                let mag = Math.hypot(this.velocity.x, this.velocity.y);
+                if (mag > this.maxSpeed) {
+                    this.velocity.x = this.velocity.x / mag * this.maxSpeed;
+                    this.velocity.y = this.velocity.y / mag * this.maxSpeed;
+                }
+                
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+                
+                this.edges();
+            }
+            
+            // 绘制Boid
+            draw() {
+                // 绘制圆形Boid
+                ctx.beginPath();
+                ctx.arc(this.position.x, this.position.y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+                ctx.fill();
+                
+                // 绘制方向指示线
+                ctx.beginPath();
+                ctx.moveTo(this.position.x, this.position.y);
+                ctx.lineTo(
+                    this.position.x + this.velocity.x * 3,
+                    this.position.y + this.velocity.y * 3
+                );
+                ctx.strokeStyle = 'rgba(100, 200, 255, 0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            }
+        }
+        
+        // 创建Boids数组
+        const boids = [];
+        const boidsCount = 100;
+        
+        for (let i = 0; i < boidsCount; i++) {
+            boids.push(new Boid());
+        }
+        
+        // 动画循环
+        function animate() {
+            // 清除画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 更新并绘制所有Boid
+            for (let boid of boids) {
+                boid.update();
+                boid.draw();
+            }
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // 启动动画
+        animate();
+        
+        // 更新滑块数值显示
+        document.getElementById('separation').addEventListener('input', function() {
+            document.getElementById('separation-value').textContent = this.value;
+        });
+        
+        document.getElementById('alignment').addEventListener('input', function() {
+            document.getElementById('alignment-value').textContent = this.value;
+        });
+        
+        document.getElementById('cohesion').addEventListener('input', function() {
+            document.getElementById('cohesion-value').textContent = this.value;
+        });
+        
+        document.getElementById('perception').addEventListener('input', function() {
+            document.getElementById('perception-value').textContent = this.value;
+        });
+        
+        document.getElementById('speed').addEventListener('input', function() {
+            document.getElementById('speed-value').textContent = this.value;
+        });
+    </script>
+</body>
+</html>

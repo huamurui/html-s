@@ -15,11 +15,12 @@ i want to make some simple demo just through single html file.
 - [slider-paper-onboarding](./slider-paper-onboarding0.html)
 - [dialogue-chat-ui](./dialogue-chat-ui.html)
 - [snake](./snake.html)
-- [mario](./mario.html)
+- [jelly-mario](./jelly-mario.html)
 - [virtual-waterfall](./virtual-waterfall.html)
 - [b-page](./b-page.html)
 - [piano](./piano.html)
 - [shadow](./shadow.html)
+- [boids](./boids.html)
 
 other interesting toys:  
 
