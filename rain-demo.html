@@ -5,12 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Rain Glass Effect Demo</title>
   <style>
-    body { margin: 0; padding: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; font-family: sans-serif; }
+    body { background: #000 no-repeat center / cover; }
     canvas { display: block; position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
-    .upload-btn {
+    .controls {
       position: fixed;
       bottom: 30px;
       right: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 9999;
+    }
+    .btn {
       background: rgba(30, 30, 30, 0.7);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -19,21 +26,27 @@
       padding: 12px 24px;
       border-radius: 30px;
       cursor: pointer;
-      z-index: 9999;
       font-size: 14px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.3);
       transition: all 0.2s;
+      text-align: center;
+      user-select: none;
     }
-    .upload-btn:hover { background: rgba(50, 50, 50, 0.8); transform: scale(1.05); }
+    .btn:hover { background: rgba(50, 50, 50, 0.8); transform: scale(1.02); }
+    .btn.active { background: rgba(80, 150, 255, 0.8); border-color: rgba(255, 255, 255, 0.5); }
     #bg-upload { display: none; }
   </style>
 </head>
 <body>
   <canvas id="rain-canvas"></canvas>
-  <label class="upload-btn">
-    更换背景图片 🖼️
-    <input type="file" id="bg-upload" accept="image/*">
-  </label>
+  <div class="controls">
+    <div class="btn" id="btn-mode-1">屏幕水珠 (放大+色散)</div>
+    <div class="btn active" id="btn-mode-0">窗户玻璃 (缩小)</div>
+    <label class="btn">
+      更换背景图片 🖼️
+      <input type="file" id="bg-upload" accept="image/*">
+    </label>
+  </div>
   <script>
     "use strict";
 (() => {
@@ -380,6 +393,7 @@ uniform vec2 u_parallax;
 uniform float u_parallaxFg;
 uniform float u_parallaxBg;
 uniform float u_textureRatio;
+uniform float u_textureRatioFg;
 uniform int u_renderShine;
 uniform int u_renderShadow;
 uniform float u_minRefraction;
@@ -387,6 +401,7 @@ uniform float u_refractionDelta;
 uniform float u_brightness;
 uniform float u_alphaMultiply;
 uniform float u_alphaSubtract;
+uniform int u_dropMode;
 
 vec4 blend(vec4 bg, vec4 fg) {
   vec3 bgm = bg.rgb * bg.a;
@@ -403,14 +418,24 @@ vec2 pixel() { return vec2(1.0) / u_resolution; }
 vec2 parallax(float v) { return u_parallax * pixel() * v; }
 vec2 texCoord() { return vec2(gl_FragCoord.x, u_resolution.y - gl_FragCoord.y) / u_resolution; }
 
-vec2 scaledTexCoord() {
+vec2 scaledTexCoordFor(float texRatio) {
   float ratio = u_resolution.x / u_resolution.y;
   vec2 scale = vec2(1.0);
   vec2 offset = vec2(0.0);
-  float rd = ratio - u_textureRatio;
-  if (rd >= 0.0) { scale.y = 1.0 + rd; offset.y = rd / 2.0; }
-  else { scale.x = 1.0 - rd; offset.x = -rd / 2.0; }
+  
+  if (ratio > texRatio) { 
+    scale.y = ratio / texRatio; 
+    offset.y = (scale.y - 1.0) / 2.0; 
+  } else { 
+    scale.x = texRatio / ratio; 
+    offset.x = (scale.x - 1.0) / 2.0; 
+  }
+  
   return (texCoord() + offset) / scale;
+}
+
+vec2 scaledTexCoord() {
+  return scaledTexCoordFor(u_textureRatio);
 }
 
 vec4 fgColor(float x, float y) {
@@ -433,18 +458,39 @@ void main() {
     return;
   }
 
-  vec2 refraction = (vec2(x, y) - 0.5) * 2.0;
+  vec2 normal = (vec2(x, y) - 0.5) * 2.0;
   vec2 rPar = parallax(u_parallaxBg - u_parallaxFg);
-  vec2 rPos = scaledTexCoord() + pixel() * refraction * (u_minRefraction + d * u_refractionDelta) + rPar;
   
-  // clamp rPos to avoid edge artifacts
-  rPos = clamp(rPos, 0.0, 1.0);
-  
-  vec4 tex = texture2D(u_textureFg, rPos);
+  vec4 tex;
+  if (u_dropMode == 1) {
+    // 屏幕水滴（放大镜效应）
+    // 用 textureFg 的宽高比做 cover 计算，确保与 CSS 背景完全一致
+    vec2 baseCoord = scaledTexCoordFor(u_textureRatioFg);
+    float dist = 20.0 + d * 15.0; 
+    vec2 refraction = -normal * dist;
+    
+    // 轻微色散
+    vec2 rPosR = clamp(baseCoord + pixel() * refraction * 0.97, 0.0, 1.0);
+    vec2 rPosG = clamp(baseCoord + pixel() * refraction * 1.00, 0.0, 1.0);
+    vec2 rPosB = clamp(baseCoord + pixel() * refraction * 1.03, 0.0, 1.0);
+    
+    tex = vec4(
+      texture2D(u_textureFg, rPosR).r,
+      texture2D(u_textureFg, rPosG).g,
+      texture2D(u_textureFg, rPosB).b,
+      1.0
+    );
+  } else {
+    // 玻璃窗水滴（远距离缩小）
+    float dist = u_minRefraction + d * u_refractionDelta;
+    vec2 refraction = normal * dist; 
+    vec2 rPos = clamp(scaledTexCoord() + pixel() * refraction + rPar, 0.0, 1.0);
+    tex = texture2D(u_textureFg, rPos);
+  }
   
   if (u_renderShine != 0) {
     float maxS = 490.0, minS = maxS * 0.18;
-    vec2 sPos = vec2(0.5) + (1.0 / 512.0) * refraction * -(minS + (maxS - minS) * d);
+    vec2 sPos = vec2(0.5) + (1.0 / 512.0) * normal * -(minS + (maxS - minS) * d);
     vec4 shine = texture2D(u_textureShine, sPos);
     tex = blend(tex, shine);
   }
@@ -549,13 +595,15 @@ void main() {
         parallaxFg: u("u_parallaxFg"),
         parallaxBg: u("u_parallaxBg"),
         textureRatio: u("u_textureRatio"),
+        textureRatioFg: u("u_textureRatioFg"),
         renderShine: u("u_renderShine"),
         renderShadow: u("u_renderShadow"),
         minRefraction: u("u_minRefraction"),
         refractionDelta: u("u_refractionDelta"),
         brightness: u("u_brightness"),
         alphaMultiply: u("u_alphaMultiply"),
-        alphaSubtract: u("u_alphaSubtract")
+        alphaSubtract: u("u_alphaSubtract"),
+        dropMode: u("u_dropMode")
       };
       gl.uniform1i(u("u_waterMap"), 0);
       gl.uniform1i(u("u_textureShine"), 1);
@@ -563,6 +611,8 @@ void main() {
       gl.uniform1i(u("u_textureBg"), 3);
       const { w: bw, h: bh } = texSize(images.textureBg);
       gl.uniform1f(this.loc.textureRatio, bw / Math.max(bh, 1));
+      const { w: fw, h: fh } = texSize(images.textureFg);
+      gl.uniform1f(this.loc.textureRatioFg, fw / Math.max(fh, 1));
       gl.uniform1i(this.loc.renderShine, o.renderShine ? 1 : 0);
       gl.uniform1i(this.loc.renderShadow, o.renderShadow ? 1 : 0);
       gl.uniform1f(this.loc.minRefraction, o.minRefraction);
@@ -572,6 +622,7 @@ void main() {
       gl.uniform1f(this.loc.alphaSubtract, o.alphaSubtract);
       gl.uniform1f(this.loc.parallaxBg, o.parallaxBg);
       gl.uniform1f(this.loc.parallaxFg, o.parallaxFg);
+      gl.uniform1i(this.loc.dropMode, 0); // Default to Mode 0
     }
     canvas;
     gl;
@@ -629,6 +680,10 @@ void main() {
       gl.bindTexture(gl.TEXTURE_2D, this.staticTex[1]);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, textureFg);
     }
+    setDropMode(mode) {
+      this.gl.useProgram(this.program);
+      this.gl.uniform1i(this.loc.dropMode, mode);
+    }
   };
 
   // demo-entry.ts
@@ -650,13 +705,20 @@ void main() {
   async function start(customFg = null, customBg = null) {
     if (window.currentRenderer) window.currentRenderer.dispose();
     if (window.currentRain) window.currentRain.stop();
+    
+    // customFg is the sharp image, customBg is the blurred image
+    window.currentSharpUrl = customFg || imagesBase64.textureFg;
+    window.currentBlurredUrl = customBg || imagesBase64.textureBg;
+
     const canvasEl = document.getElementById("rain-canvas");
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     canvasEl.width = vw * dpr;
     canvasEl.height = vh * dpr;
-    document.body.style.backgroundImage = "url(" + (customBg || imagesBase64.textureBg) + ")";
+    
+    const isMode1 = document.getElementById("btn-mode-1").classList.contains("active");
+    document.body.style.backgroundImage = "url(" + (isMode1 ? window.currentSharpUrl : window.currentBlurredUrl) + ")";
     document.body.style.backgroundSize = "cover";
     document.body.style.backgroundPosition = "center";
     const dropAlpha = await loadImage(imagesBase64.dropAlpha);
@@ -717,6 +779,25 @@ void main() {
       renderer.setParallax(nx, ny);
     });
   }
+
+  document.getElementById("btn-mode-0").addEventListener("click", () => {
+    if (window.currentRenderer) window.currentRenderer.setDropMode(0);
+    document.getElementById("btn-mode-0").classList.add("active");
+    document.getElementById("btn-mode-1").classList.remove("active");
+    if (window.currentBlurredUrl) {
+      document.body.style.backgroundImage = "url(" + window.currentBlurredUrl + ")";
+    }
+  });
+
+  document.getElementById("btn-mode-1").addEventListener("click", () => {
+    if (window.currentRenderer) window.currentRenderer.setDropMode(1);
+    document.getElementById("btn-mode-1").classList.add("active");
+    document.getElementById("btn-mode-0").classList.remove("active");
+    if (window.currentSharpUrl) {
+      document.body.style.backgroundImage = "url(" + window.currentSharpUrl + ")";
+    }
+  });
+
   document.getElementById("bg-upload").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
