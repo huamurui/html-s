@@ -740,11 +740,38 @@ void main() {
     window.currentRain = rain;
     window.currentRenderer = renderer;
     renderer.start();
+    // 桌面：鼠标视差
     window.addEventListener("pointermove", (e) => {
       const nx = e.clientX / window.innerWidth * 2 - 1;
       const ny = e.clientY / window.innerHeight * 2 - 1;
       renderer.setParallax(nx, ny);
     });
+
+    // 移动端：陀螺仪视差
+    const onOrientation = (e) => {
+      // beta: 前后倾斜 (-180~180), gamma: 左右倾斜 (-90~90)
+      const beta = e.beta ?? 0;
+      const gamma = e.gamma ?? 0;
+      // 将倾斜角度映射到 [-1, 1]，±30° 为满幅
+      const nx = Math.max(-1, Math.min(1, gamma / 30));
+      const ny = Math.max(-1, Math.min(1, (beta - 45) / 30)); // 45° 为手持自然角度
+      renderer.setParallax(nx, ny);
+    };
+    if (typeof DeviceOrientationEvent !== "undefined" &&
+        typeof DeviceOrientationEvent.requestPermission === "function") {
+      // iOS 13+ 需要用户手势触发权限请求
+      const askBtn = document.createElement("div");
+      askBtn.className = "btn";
+      askBtn.textContent = "启用陀螺仪 📱";
+      askBtn.addEventListener("click", async () => {
+        const perm = await DeviceOrientationEvent.requestPermission();
+        if (perm === "granted") window.addEventListener("deviceorientation", onOrientation);
+        askBtn.remove();
+      }, { once: true });
+      document.querySelector(".controls").prepend(askBtn);
+    } else if ("DeviceOrientationEvent" in window) {
+      window.addEventListener("deviceorientation", onOrientation);
+    }
   }
 
   document.getElementById("btn-mode-0").addEventListener("click", () => {
