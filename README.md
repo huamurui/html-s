@@ -21,6 +21,7 @@ i want to make some simple demo just through single html file.
 - [piano](./piano.html)
 - [shadow](./shadow.html)
 - [boids](./boids.html)
+- [rain](./rain-demo.html)
 
 other interesting toys:  
 
