@@ -18,7 +18,7 @@ i want to make some simple demo just through single html file.
 - [jelly-mario](./jelly-mario.html)
 - [virtual-waterfall](./virtual-waterfall.html)
 - [b-page](./b-page.html)
-- [piano](./piano.html)
+- [piano3](./piano3.html)
 - [shadow](./shadow.html)
 - [boids](./boids.html)
 - [rain](./rain-demo.html)
