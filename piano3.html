@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Piano No.3 · 简谱钢琴</title>
+    <meta name="description" content="单文件网页钢琴：采样发声、键盘与触控演奏、卷帘可视化、和弦识别、简谱写谱与多声部播放、演奏录制成谱。" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --paper: #f2f0ea;
+        --surface: #faf9f5;
+        --ink: #171717;
+        --ink-2: #3a3a38;
+        --mute: #8b887f;
+        --line: #d8d4ca;
+        --line-2: #e7e3da;
+        --accent: #e4472c;
+        --accent-soft: #f7ddd5;
+        --t1: #e4472c;
+        --t2: #2f5bd3;
+        --t3: #23946a;
+        --t4: #c08415;
+        --kb-h: clamp(140px, 26vh, 220px);
+        --sans: "IBM Plex Sans", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+        --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "PingFang SC", monospace;
+      }
+      * { box-sizing: border-box; }
+      html, body { height: 100%; }
+      body {
+        margin: 0; height: 100dvh; overflow: hidden;
+        display: grid; grid-template-rows: auto auto 1fr;
+        background: var(--paper); color: var(--ink);
+        font-family: var(--sans); font-size: 14px;
+        -webkit-tap-highlight-color: transparent;
+      }
+      button, select, input { font: inherit; color: inherit; }
+      button { cursor: pointer; }
+      :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+      /* ---------- header ---------- */
+      header {
+        display: flex; align-items: baseline; gap: 18px; padding: 18px 24px 14px;
+        border-bottom: 1px solid var(--ink);
+      }
+      .title { display: flex; align-items: baseline; gap: 10px; }
+      .title h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+      .title .no { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+      .sub { margin: 0; color: var(--mute); font-size: 13px; flex: 1; }
+      .status { font-family: var(--mono); font-size: 11px; letter-spacing: .06em; color: var(--mute); text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+      .status i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+      .status[data-state="ready"] i { background: var(--ink); }
+      .status[data-state="loading"] i { background: var(--accent); animation: blink 1s steps(2) infinite; }
+      @keyframes blink { 50% { opacity: 0; } }
+
+      /* ---------- control strip ---------- */
+      .controls { display: flex; border-bottom: 1px solid var(--ink); overflow-x: auto; scrollbar-width: none; }
+      .controls::-webkit-scrollbar { display: none; }
+      .cell { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 10px 18px 12px; border-right: 1px solid var(--line); }
+      .cell.grow { flex: 1; border-right: 0; }
+      .cell.end { border-left: 1px solid var(--line); border-right: 0; }
+      .label { font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); white-space: nowrap; }
+      .row { display: flex; align-items: center; gap: 6px; }
+      .btn {
+        height: 30px; min-width: 30px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        border: 1px solid var(--ink); border-radius: 3px; background: var(--surface); font-size: 13px; white-space: nowrap;
+        transition: background .12s, color .12s;
+      }
+      .btn:hover { background: #fff; }
+      .btn:active { transform: translateY(1px); }
+      .btn[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+      .btn.rec[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .btn.rec .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+      .btn.rec[aria-pressed="true"] .dot { background: #fff; animation: blink 1s steps(2) infinite; }
+      .btn.solid { background: var(--ink); color: var(--paper); }
+      .btn.solid:hover { background: var(--ink-2); }
+      .btn svg { width: 12px; height: 12px; fill: currentColor; }
+      .seg { display: inline-flex; }
+      .seg .btn { border-radius: 0; }
+      .seg .btn + .btn { border-left: 0; }
+      .seg .btn:first-child { border-radius: 3px 0 0 3px; }
+      .seg .btn:last-child { border-radius: 0 3px 3px 0; }
+      .readout-sm { font-family: var(--mono); font-size: 14px; min-width: 34px; text-align: center; }
+      input[type="range"] { -webkit-appearance: none; appearance: none; width: 110px; height: 30px; background: transparent; margin: 0; }
+      input[type="range"]::-webkit-slider-runnable-track { height: 2px; background: var(--ink); }
+      input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -5px; background: var(--ink); border: 0; }
+      input[type="range"]::-moz-range-track { height: 2px; background: var(--ink); }
+      input[type="range"]::-moz-range-thumb { width: 12px; height: 12px; background: var(--ink); border: 0; border-radius: 0; }
+      .keys-hint { font-family: var(--mono); font-size: 11px; color: var(--mute); line-height: 30px; white-space: nowrap; }
+      kbd { font-family: var(--mono); font-size: 11px; padding: 1px 5px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 3px; background: var(--surface); color: var(--ink-2); }
+
+      /* ---------- workspace ---------- */
+      .workspace { min-height: 0; display: grid; grid-template-columns: 1fr auto; }
+      .stage { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 0 24px 20px; }
+      .roll { position: relative; flex: 1; min-height: 80px; }
+      #roll { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .readout { position: absolute; left: 0; top: 18px; pointer-events: none; }
+      .readout .chord { font-size: 44px; font-weight: 600; letter-spacing: -0.03em; line-height: 1; min-height: 44px; }
+      .readout .held { margin-top: 6px; font-family: var(--mono); font-size: 12px; color: var(--mute); min-height: 16px; }
+      .readout.idle .chord { color: var(--line); }
+      .intro { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; pointer-events: none; color: var(--mute); transition: opacity .5s; }
+      .intro p { margin: 0; line-height: 2; font-size: 13px; }
+      body.played .intro { opacity: 0; }
+
+      /* ---------- keyboard ---------- */
+      .keyboard {
+        position: relative; height: var(--kb-h); flex: none; display: flex;
+        border: 1px solid var(--ink); border-top-width: 3px; border-radius: 0 0 4px 4px; overflow: hidden;
+        background: #fff; touch-action: none; user-select: none; -webkit-user-select: none;
+      }
+      .slot { position: relative; flex: 1 1 0; display: flex; min-width: 0; }
+      .slot:not(:last-child) .key.white { border-right: 1px solid var(--ink-2); }
+      .key { position: relative; }
+      .key.white {
+        flex: 1; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 5px; padding-bottom: 9px;
+        transition: background .08s;
+      }
+      .key.white:hover { background: #fbfaf7; }
+      .key.white.active { background: var(--accent-soft); box-shadow: inset 0 -5px 0 var(--accent); }
+      .key.black {
+        position: absolute; top: 0; right: 0; z-index: 2; width: 58%; height: 60%; transform: translateX(50%);
+        background: var(--ink); border-radius: 0 0 3px 3px;
+        display: flex; flex-direction: column; justify-content: flex-end; align-items: center; padding-bottom: 7px;
+        transition: background .08s;
+      }
+      .key.black:hover { background: #2c2c2a; }
+      .key.black.active { background: var(--accent); }
+      .key .hint, .key .name { font-family: var(--mono); pointer-events: none; line-height: 1; }
+      .key .hint { font-size: 10px; color: var(--mute); }
+      .key.black .hint { color: #8a8a86; }
+      .key.black.active .hint { color: #fff; }
+      .key .name { font-size: 10px; color: var(--ink); font-weight: 600; }
+      @media (hover: none) { .key .hint { display: none; } }
+
+      /* ---------- score column ---------- */
+      .score {
+        width: 440px; min-height: 0; display: flex; flex-direction: column;
+        border-left: 1px solid var(--ink); background: var(--surface);
+      }
+      body.no-score .score { display: none; }
+      .score-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+      .score-head .label { flex: 1; }
+      select.btn { appearance: none; padding-right: 26px; background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' stroke='%23171717' fill='none' stroke-width='1.4'/%3E%3C/svg%3E") no-repeat right 9px center; }
+      .editor { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: auto 1fr; font-family: var(--mono); font-size: 13px; line-height: 22px; }
+      .gutter { margin: 0; padding: 12px 10px 12px 14px; color: #b9b5aa; text-align: right; overflow: hidden; user-select: none; font: inherit; border-right: 1px solid var(--line-2); }
+      .code { position: relative; min-width: 0; }
+      .code pre, .code textarea { position: absolute; inset: 0; margin: 0; padding: 12px 14px; border: 0; font: inherit; tab-size: 2; white-space: pre; overflow: auto; }
+      .code pre { pointer-events: none; overflow: hidden; color: var(--ink); }
+      .code textarea { resize: none; background: transparent; color: transparent; caret-color: var(--accent); outline: none; }
+      .code textarea::selection { background: rgba(228, 71, 44, .18); }
+      .tk-track { font-weight: 600; color: var(--ink); background: var(--line-2); }
+      .tk-dkey { color: var(--t2); }
+      .tk-dval { color: var(--ink-2); }
+      .tk-punc, .tk-br { color: var(--mute); }
+      .tk-cm { color: #a9a59a; font-style: italic; }
+      .tk-acc { color: var(--mute); }
+      .tk-num { color: var(--ink); font-weight: 500; }
+      .tk-num.rest { color: #b4b0a5; }
+      .tk-mark { color: var(--accent); font-weight: 600; }
+      .tk-dur { color: var(--t3); }
+      .tk-dash { color: var(--t3); }
+      .tk-bar { color: #c4c0b5; }
+      .tk-err { color: var(--accent); text-decoration: wavy underline; text-underline-offset: 3px; }
+      .tk-note { border-radius: 2px; }
+      .tk-note.playing { background: var(--hl, var(--t1)); color: #fff; }
+      .tk-note.playing span { color: #fff; }
+
+      .diag { padding: 8px 14px; min-height: 36px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; color: var(--mute); display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; }
+      .diag b { color: var(--ink); font-weight: 500; }
+      .diag button { border: 0; padding: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 2px; }
+      .transport { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--ink); }
+      .transport .btn.solid { min-width: 74px; }
+      .progress { position: relative; flex: 1; height: 2px; background: var(--line); }
+      .progress div { position: absolute; left: 0; top: -1px; height: 4px; width: 0; background: var(--accent); }
+      .time { font-family: var(--mono); font-size: 11px; color: var(--mute); min-width: 74px; text-align: right; }
+      .help { border-top: 1px solid var(--line); font-size: 12px; }
+      .help summary { padding: 9px 14px; cursor: pointer; font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--mute); }
+      .help table { width: 100%; border-collapse: collapse; margin: 0 0 10px; }
+      .help td { padding: 3px 14px; vertical-align: top; color: var(--ink-2); }
+      .help td:first-child { font-family: var(--mono); color: var(--ink); white-space: nowrap; width: 1%; }
+
+      .toast {
+        position: fixed; left: 50%; bottom: calc(var(--kb-h) + 40px); z-index: 20; transform: translate(-50%, 8px); opacity: 0; pointer-events: none;
+        background: var(--ink); color: var(--paper); font-size: 13px; padding: 8px 14px; border-radius: 3px; transition: opacity .25s, transform .25s;
+      }
+      .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+      @media (max-width: 900px) {
+        header { padding: 12px 16px 10px; }
+        .sub, .cell.hint-cell { display: none; }
+        .cell { padding: 8px 12px 10px; }
+        .stage { padding: 0 10px 12px; }
+        .score {
+          position: fixed; left: 0; right: 0; bottom: 0; height: 72dvh; width: auto; z-index: 10;
+          border-left: 0; border-top: 1px solid var(--ink); box-shadow: 0 -16px 40px rgba(0,0,0,.12);
+          transform: translateY(100%); transition: transform .35s cubic-bezier(.2,.8,.2,1);
+        }
+        body.no-score .score { display: flex; }
+        body:not(.no-score) .score { transform: none; }
+      }
+    </style>
+  </head>
+  <body class="">
+    <header>
+      <div class="title"><h1>Piano</h1><span class="no">No.3</span></div>
+      <p class="sub">简谱钢琴 —— 演奏、写谱、录制</p>
+      <div id="status" class="status" data-state="loading" role="status"><i></i><span id="status-text">samples 0/61</span></div>
+    </header>
+
+    <nav class="controls" aria-label="演奏控制">
+      <div class="cell">
+        <span class="label">Octave</span>
+        <div class="row">
+          <button id="oct-down" class="btn" aria-label="降低八度" title="降低八度 (←)">−</button>
+          <output id="oct-label" class="readout-sm">C3</output>
+          <button id="oct-up" class="btn" aria-label="升高八度" title="升高八度 (→)">+</button>
+        </div>
+      </div>
+      <div class="cell">
+        <span class="label">Pedal</span>
+        <div class="row"><button id="sustain-btn" class="btn" aria-pressed="false" title="延音（按住空格）">延音</button></div>
+      </div>
+      <div class="cell">
+        <span class="label">Volume</span>
+        <div class="row"><input id="volume" type="range" min="0" max="1" step="0.01" value="0.8" aria-label="音量" /></div>
+      </div>
+      <div class="cell">
+        <span class="label">Sound</span>
+        <div class="row seg" role="group" aria-label="音色">
+          <button class="btn" data-inst="piano" aria-pressed="true">钢琴</button>
+          <button class="btn" data-inst="synth" aria-pressed="false">合成</button>
+        </div>
+      </div>
+      <div class="cell grow hint-cell">
+        <span class="label">Keys</span>
+        <div class="keys-hint"><kbd>Z</kbd>–<kbd>M</kbd> 低八度 · <kbd>Q</kbd>–<kbd>U</kbd> 高八度 · <kbd>←</kbd><kbd>→</kbd> 八度 · <kbd>Space</kbd> 延音</div>
+      </div>
+      <div class="cell end">
+        <span class="label">Record</span>
+        <div class="row"><button id="record-btn" class="btn rec" aria-pressed="false"><span class="dot"></span><span id="record-label">录制</span></button></div>
+      </div>
+      <div class="cell">
+        <span class="label">Score</span>
+        <div class="row"><button id="score-btn" class="btn" aria-pressed="true" aria-controls="score">乐谱</button></div>
+      </div>
+    </nav>
+
+    <div class="workspace">
+      <main class="stage">
+        <div class="roll">
+          <canvas id="roll" aria-hidden="true"></canvas>
+          <div id="readout" class="readout idle" aria-live="off">
+            <div id="chord" class="chord">—</div>
+            <div id="held" class="held"></div>
+          </div>
+          <div class="intro"><p>点击或滑过琴键，也可以直接用电脑键盘弹<br />右侧写简谱，<kbd>⌘/Ctrl</kbd> + <kbd>Enter</kbd> 播放</p></div>
+        </div>
+        <div id="keyboard" class="keyboard" aria-label="钢琴键盘"></div>
+      </main>
+
+      <aside id="score" class="score" aria-label="乐谱">
+        <div class="score-head">
+          <span class="label">Score · 简谱</span>
+          <select id="example-select" class="btn" aria-label="载入示例">
+            <option value="">示例…</option>
+            <option value="twinkle">小星星</option>
+            <option value="ode">欢乐颂</option>
+            <option value="canon">卡农</option>
+            <option value="jasmine">茉莉花</option>
+          </select>
+        </div>
+        <div class="editor">
+          <pre id="gutter" class="gutter" aria-hidden="true"></pre>
+          <div class="code">
+            <pre id="hl" aria-hidden="true"></pre>
+            <textarea id="src" spellcheck="false" wrap="off" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="简谱源码"></textarea>
+          </div>
+        </div>
+        <div id="diag" class="diag" aria-live="polite"></div>
+        <div class="transport">
+          <button id="play-btn" class="btn solid"><svg viewBox="0 0 12 12"><path d="M2 1v10l9-5z" /></svg><span>播放</span></button>
+          <div class="progress"><div id="progress-bar"></div></div>
+          <span id="time" class="time">0:00 / 0:00</span>
+          <button id="loop-btn" class="btn" aria-pressed="false" title="循环播放">循环</button>
+        </div>
+        <details class="help">
+          <summary>Syntax · 语法</summary>
+          <table>
+            <tr><td>1 2 3 … 7</td><td>唱名，空格分隔；<b>0</b> 为休止</td></tr>
+            <tr><td>#4  b7</td><td>升 / 降半音</td></tr>
+            <tr><td>1'  1''  5,</td><td>高八度 / 再高 / 低八度</td></tr>
+            <tr><td>5 -  5 - -</td><td>每个 <b>-</b> 延长一拍</td></tr>
+            <tr><td>5_  5__  5.</td><td>八分 / 十六分 / 附点</td></tr>
+            <tr><td>[135]</td><td>和弦，可带修饰：[5,7,2]_</td></tr>
+            <tr><td>|   // …</td><td>小节线（装饰）/ 注释</td></tr>
+            <tr><td>@旋律</td><td>开始一个声部，多个声部同时播放</td></tr>
+            <tr><td>tempo: 100</td><td>速度（BPM），写在顶部为全局，写在声部内只作用该声部</td></tr>
+            <tr><td>key: D</td><td>调（1 = D4），也可写 Bb3</td></tr>
+            <tr><td>oct: -1  vol: .6</td><td>声部整体移八度 / 音量</td></tr>
+          </table>
+        </details>
+      </aside>
+    </div>
+
+    <div id="toast" class="toast" role="status"></div>
+
+    <script>
+      // ===================================================================
+      //  utils
+      // ===================================================================
+      const $ = (s) => document.querySelector(s)
+      const NOTE_NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+      const MAJOR = [0, 2, 4, 5, 7, 9, 11]
+      const isBlack = (m) => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12)
+      const midiName = (m) => NOTE_NAMES[m % 12] + (Math.floor(m / 12) - 1)
+      const midiFreq = (m) => 440 * Math.pow(2, (m - 69) / 12)
+      const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
+      const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      const fmtTime = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`
+      const TRACK_COLORS = ["#e4472c", "#2f5bd3", "#23946a", "#c08415"]
+      const USER_COLOR = "#171717"
+      function parsePitch(s, defOct = 4) {
+        const m = /^\s*([A-Ga-g])([#b]?)(-?\d)?\s*$/.exec(s || "")
+        if (!m) return null
+        let pc = NOTE_NAMES.indexOf(m[1].toUpperCase())
+        if (m[2] === "#") pc++
+        if (m[2] === "b") pc--
+        return (Number(m[3] ?? defOct) + 1) * 12 + pc
+      }
+      function toast(msg) {
+        const t = $("#toast")
+        t.textContent = msg
+        t.classList.add("show")
+        clearTimeout(toast.t)
+        toast.t = setTimeout(() => t.classList.remove("show"), 2000)
+      }
+
+      // ===================================================================
+      //  audio engine — Web Audio, piano samples with synth fallback
+      // ===================================================================
+      const SAMPLE_BASE = "https://huamurui.github.io/data_and_so_on/audios/samples/piano/"
+      const SAMPLE_FILES = [
+        ["C2", "a49"], ["D2", "a50"], ["E2", "a51"], ["F2", "a52"], ["G2", "a53"], ["A2", "a54"], ["B2", "a55"],
+        ["C3", "a56"], ["D3", "a57"], ["E3", "a48"], ["F3", "a81"], ["G3", "a87"], ["A3", "a69"], ["B3", "a82"],
+        ["C4", "a84"], ["D4", "a89"], ["E4", "a85"], ["F4", "a73"], ["G4", "a79"], ["A4", "a80"], ["B4", "a65"],
+        ["C5", "a83"], ["D5", "a68"], ["E5", "a70"], ["F5", "a71"], ["G5", "a72"], ["A5", "a74"], ["B5", "a75"],
+        ["C6", "a76"], ["D6", "a90"], ["E6", "a88"], ["F6", "a67"], ["G6", "a86"], ["A6", "a66"], ["B6", "a78"],
+        ["C7", "a77"],
+        ["C#2", "b49"], ["D#2", "b50"], ["F#2", "b52"], ["G#2", "b53"], ["A#2", "b54"],
+        ["C#3", "b56"], ["D#3", "b57"], ["F#3", "b81"], ["G#3", "b87"], ["A#3", "b69"],
+        ["C#4", "b84"], ["D#4", "b89"], ["F#4", "b73"], ["G#4", "b79"], ["A#4", "b80"],
+        ["C#5", "b83"], ["D#5", "b68"], ["F#5", "b71"], ["G#5", "b72"], ["A#5", "b74"],
+        ["C#6", "b76"], ["D#6", "b90"], ["F#6", "b67"], ["G#6", "b86"], ["A#6", "b66"],
+      ]
+
+      const engine = (() => {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)({ latencyHint: "interactive" })
+        const master = ctx.createGain()
+        master.gain.value = 0.8
+        const comp = ctx.createDynamicsCompressor()
+        comp.threshold.value = -14
+        comp.ratio.value = 4
+        const bus = ctx.createGain()
+        const verb = ctx.createConvolver()
+        verb.buffer = (() => {
+          const len = Math.floor(ctx.sampleRate * 2.2)
+          const b = ctx.createBuffer(2, len, ctx.sampleRate)
+          for (let c = 0; c < 2; c++) {
+            const d = b.getChannelData(c)
+            for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.8)
+          }
+          return b
+        })()
+        const wet = ctx.createGain()
+        wet.gain.value = 0.16
+        bus.connect(master)
+        bus.connect(verb).connect(wet).connect(master)
+        master.connect(comp).connect(ctx.destination)
+
+        const buffers = new Map()
+        let instrument = "piano"
+
+        function load(onProgress) {
+          const p = { loaded: 0, failed: 0, total: SAMPLE_FILES.length }
+          SAMPLE_FILES.forEach(([name, file]) => {
+            fetch(`${SAMPLE_BASE}${file}.mp3`)
+              .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject()))
+              .then((ab) => new Promise((res, rej) => ctx.decodeAudioData(ab, res, rej)))
+              .then((buf) => { buffers.set(parsePitch(name), buf); p.loaded++ })
+              .catch(() => p.failed++)
+              .finally(() => onProgress(p))
+          })
+        }
+        function nearest(m) {
+          for (let d = 0; d <= 24; d++) {
+            if (buffers.has(m + d)) return m + d
+            if (buffers.has(m - d)) return m - d
+          }
+          return null
+        }
+
+        function play(midi, { when, velocity = 0.8, duration = null, gain = 1 } = {}) {
+          const t = Math.max(when ?? ctx.currentTime, ctx.currentTime)
+          const out = ctx.createGain()
+          out.connect(bus)
+          const sources = []
+          const ref = instrument === "piano" ? nearest(midi) : null
+          if (ref != null) {
+            const s = ctx.createBufferSource()
+            s.buffer = buffers.get(ref)
+            s.playbackRate.value = Math.pow(2, (midi - ref) / 12)
+            const g = ctx.createGain()
+            g.gain.value = Math.pow(velocity, 1.5) * 1.1 * gain
+            s.connect(g).connect(out)
+            s.start(t)
+            sources.push(s)
+          } else {
+            const f = midiFreq(midi)
+            const dec = clamp(3 - (midi - 48) * 0.04, 0.6, 3.6)
+            const pk = Math.pow(velocity, 1.4) * 0.28 * gain
+            const env = ctx.createGain()
+            env.gain.setValueAtTime(0.0001, t)
+            env.gain.exponentialRampToValueAtTime(pk, t + 0.006)
+            env.gain.exponentialRampToValueAtTime(pk * 0.3, t + 0.3)
+            env.gain.exponentialRampToValueAtTime(0.0001, t + dec)
+            const lp = ctx.createBiquadFilter()
+            lp.type = "lowpass"
+            lp.frequency.setValueAtTime(Math.min(f * 10, 16000), t)
+            lp.frequency.exponentialRampToValueAtTime(Math.max(f * 2, 400), t + dec * 0.6)
+            lp.connect(env).connect(out)
+            ;[[1, "triangle", 1], [2, "sine", 0.3], [4, "sine", 0.06]].forEach(([mul, type, amp]) => {
+              const o = ctx.createOscillator()
+              o.type = type
+              o.frequency.value = f * mul
+              const og = ctx.createGain()
+              og.gain.value = amp
+              o.connect(og).connect(lp)
+              o.start(t)
+              o.stop(t + dec + 0.05)
+              sources.push(o)
+            })
+          }
+          sources[0].onended = () => out.disconnect()
+          let releaseAt = null
+          const voice = {
+            stop(at = ctx.currentTime) {
+              at = Math.max(at, ctx.currentTime)
+              if (releaseAt != null && at >= releaseAt) return
+              releaseAt = at
+              out.gain.cancelScheduledValues(at)
+              out.gain.setValueAtTime(1, at)
+              out.gain.setTargetAtTime(0, at, 0.08)
+              sources.forEach((s) => { try { s.stop(at + 0.7) } catch (e) {} })
+            },
+          }
+          if (duration != null) voice.stop(t + duration)
+          return voice
+        }
+
+        return {
+          ctx, load, play,
+          resume: () => ctx.state !== "running" && ctx.resume(),
+          setVolume: (v) => master.gain.setTargetAtTime(v, ctx.currentTime, 0.02),
+          setInstrument: (i) => (instrument = i),
+        }
+      })()
+
+      engine.load((p) => {
+        const done = p.loaded + p.failed
+        const el = $("#status")
+        if (done < p.total) $("#status-text").textContent = `samples ${done}/${p.total}`
+        else if (!p.loaded) { el.dataset.state = "synth"; $("#status-text").textContent = "offline · synth" }
+        else { el.dataset.state = "ready"; $("#status-text").textContent = p.failed ? `samples ${p.loaded}/${p.total}` : "piano ready" }
+      })
+
+      // ===================================================================
+      //  keyboard layout
+      // ===================================================================
+      const kb = $("#keyboard")
+      const LOW_ROW = ["KeyZ", "KeyS", "KeyX", "KeyD", "KeyC", "KeyV", "KeyG", "KeyB", "KeyH", "KeyN", "KeyJ", "KeyM", "Comma", "KeyL", "Period", "Semicolon", "Slash"]
+      const HIGH_ROW = ["KeyQ", "Digit2", "KeyW", "Digit3", "KeyE", "KeyR", "Digit5", "KeyT", "Digit6", "KeyY", "Digit7", "KeyU", "KeyI", "Digit9", "KeyO", "Digit0", "KeyP", "BracketLeft", "Equal", "BracketRight"]
+      const CODE_LABEL = { Comma: ",", Period: ".", Semicolon: ";", Slash: "/", BracketLeft: "[", BracketRight: "]", Equal: "=" }
+      const codeOffset = new Map()
+      HIGH_ROW.forEach((c, i) => codeOffset.set(c, 12 + i))
+      LOW_ROW.forEach((c, i) => codeOffset.set(c, i))
+
+      let baseOctave = 3, octaves = 2
+      const baseMidi = () => (baseOctave + 1) * 12
+      const geo = new Map() // midi -> {x, w} relative to roll canvas
+      const downCount = new Map()
+
+      function buildKeyboard() {
+        const width = kb.clientWidth || innerWidth
+        octaves = clamp(Math.floor((Math.floor(width / 36) - 1) / 7), 1, 4)
+        baseOctave = clamp(baseOctave, 1, 7 - octaves)
+        const start = baseMidi(), end = start + octaves * 12
+        const labels = new Map()
+        codeOffset.forEach((off, code) => {
+          if (!labels.has(start + off)) labels.set(start + off, CODE_LABEL[code] || code.replace(/^(Key|Digit)/, ""))
+        })
+        const frag = document.createDocumentFragment()
+        for (let m = start; m <= end; m++) {
+          if (isBlack(m)) continue
+          const slot = document.createElement("div")
+          slot.className = "slot"
+          slot.appendChild(makeKey(m, labels.get(m)))
+          if (m + 1 < end && isBlack(m + 1)) slot.appendChild(makeKey(m + 1, labels.get(m + 1)))
+          frag.appendChild(slot)
+        }
+        kb.replaceChildren(frag)
+        $("#oct-label").textContent = `C${baseOctave}`
+        measure()
+      }
+      function makeKey(m, hint) {
+        const el = document.createElement("div")
+        el.className = `key ${isBlack(m) ? "black" : "white"}${downCount.get(m) ? " active" : ""}`
+        el.dataset.midi = m
+        el.setAttribute("role", "button")
+        el.setAttribute("aria-label", midiName(m))
+        el.innerHTML = (hint ? `<span class="hint">${esc(hint)}</span>` : "") + (m % 12 === 0 ? `<span class="name">${midiName(m)}</span>` : "")
+        return el
+      }
+      function measure() {
+        const base = $("#roll").getBoundingClientRect().left
+        geo.clear()
+        kb.querySelectorAll(".key").forEach((el) => {
+          const r = el.getBoundingClientRect()
+          geo.set(Number(el.dataset.midi), { x: r.left - base, w: r.width })
+        })
+      }
+      function shiftOctave(d) {
+        const next = clamp(baseOctave + d, 1, 7 - octaves)
+        if (next !== baseOctave) { baseOctave = next; buildKeyboard() }
+      }
+      $("#oct-down").onclick = () => shiftOctave(-1)
+      $("#oct-up").onclick = () => shiftOctave(1)
+
+      // ===================================================================
+      //  piano roll (canvas) + chord readout
+      // ===================================================================
+      const roll = (() => {
+        const cv = $("#roll"), g = cv.getContext("2d")
+        let W = 0, H = 0
+        const notes = [], rings = [], live = new Map()
+        const SPEED = 90 // px / s
+        const now = () => performance.now() / 1000
+
+        function resize() {
+          const dpr = Math.min(devicePixelRatio || 1, 2)
+          W = cv.clientWidth
+          H = cv.clientHeight
+          cv.width = W * dpr
+          cv.height = H * dpr
+          g.setTransform(dpr, 0, 0, dpr, 0, 0)
+        }
+        function start(id, midi, color) {
+          const n = { midi, color, t0: now(), t1: null }
+          notes.push(n)
+          live.set(id, n)
+          rings.push({ midi, color, t0: now() })
+        }
+        function end(id) {
+          const n = live.get(id)
+          if (n) { n.t1 = now(); live.delete(id) }
+        }
+
+        function frame() {
+          const t = now()
+          g.clearRect(0, 0, W, H)
+          // key lanes
+          geo.forEach((k, m) => {
+            if (isBlack(m)) {
+              g.fillStyle = "rgba(23,23,23,0.035)"
+              g.fillRect(k.x, 0, k.w, H)
+            } else if (m % 12 === 0) {
+              g.fillStyle = "rgba(23,23,23,0.12)"
+              g.fillRect(Math.round(k.x), 0, 1, H)
+            }
+          })
+          // beat lines while playing
+          const pb = player.beatInfo()
+          if (pb) {
+            const ct = engine.ctx.currentTime
+            const first = Math.max(0, Math.floor((ct - pb.t0 - H / SPEED) / pb.spb))
+            for (let k = first; ; k++) {
+              const age = ct - (pb.t0 + k * pb.spb)
+              if (age < 0) break
+              const y = H - age * SPEED
+              g.fillStyle = k % 4 === 0 ? "rgba(23,23,23,0.16)" : "rgba(23,23,23,0.06)"
+              g.fillRect(0, Math.round(y), W, 1)
+            }
+          }
+          // notes
+          g.font = "500 9px 'IBM Plex Mono', monospace"
+          g.textAlign = "center"
+          for (let i = notes.length - 1; i >= 0; i--) {
+            const n = notes[i]
+            const top = H - (t - n.t0) * SPEED
+            const bottom = n.t1 == null ? H : H - (t - n.t1) * SPEED
+            if (bottom < 0) { notes.splice(i, 1); continue }
+            const k = geo.get(n.midi)
+            if (!k) continue
+            const inset = isBlack(n.midi) ? 1 : Math.max(2, k.w * 0.14)
+            const x = k.x + inset, w = k.w - inset * 2
+            g.fillStyle = n.color
+            g.fillRect(x, top, w, Math.max(2, bottom - top))
+            if (w >= 20 && bottom - top > 16) {
+              g.fillStyle = "#faf9f5"
+              g.fillText(midiName(n.midi), x + w / 2, top + 11)
+            }
+          }
+          // onset rings
+          for (let i = rings.length - 1; i >= 0; i--) {
+            const r = rings[i], age = t - r.t0
+            const k = geo.get(r.midi)
+            if (age > 0.5 || !k) { rings.splice(i, 1); continue }
+            g.strokeStyle = r.color
+            g.globalAlpha = 1 - age / 0.5
+            g.lineWidth = 1
+            g.beginPath()
+            g.arc(k.x + k.w / 2, H - 2, 4 + age * 60, Math.PI, 0)
+            g.stroke()
+            g.globalAlpha = 1
+          }
+          requestAnimationFrame(frame)
+        }
+        resize()
+        requestAnimationFrame(frame)
+        return { start, end, resize }
+      })()
+
+      const CHORDS = [
+        ["", [0, 4, 7]], ["m", [0, 3, 7]], ["dim", [0, 3, 6]], ["aug", [0, 4, 8]],
+        ["7", [0, 4, 7, 10]], ["maj7", [0, 4, 7, 11]], ["m7", [0, 3, 7, 10]], ["m7b5", [0, 3, 6, 10]], ["dim7", [0, 3, 6, 9]],
+        ["sus2", [0, 2, 7]], ["sus4", [0, 5, 7]], ["6", [0, 4, 7, 9]], ["m6", [0, 3, 7, 9]], ["add9", [0, 2, 4, 7]], ["5", [0, 7]],
+      ]
+      function chordName(midis) {
+        if (!midis.length) return ""
+        const sorted = [...midis].sort((a, b) => a - b)
+        if (sorted.length === 1) return NOTE_NAMES[sorted[0] % 12]
+        const pcs = [...new Set(sorted.map((m) => m % 12))]
+        if (pcs.length === 1) return NOTE_NAMES[pcs[0]]
+        const bass = sorted[0] % 12
+        const roots = [bass, ...pcs.filter((p) => p !== bass)]
+        for (const root of roots) {
+          const iv = pcs.map((p) => (p - root + 12) % 12).sort((a, b) => a - b).join()
+          const hit = CHORDS.find(([, tpl]) => tpl.join() === iv)
+          if (hit) return NOTE_NAMES[root] + hit[0] + (root !== bass ? "/" + NOTE_NAMES[bass] : "")
+        }
+        return sorted.map((m) => NOTE_NAMES[m % 12]).join(" ")
+      }
+      let readoutTimer
+      function updateReadout() {
+        const held = [...downCount].filter(([, c]) => c > 0).map(([m]) => m)
+        const box = $("#readout")
+        if (held.length) {
+          clearTimeout(readoutTimer)
+          box.classList.remove("idle")
+          $("#chord").textContent = chordName(held)
+          $("#held").textContent = held.sort((a, b) => a - b).map(midiName).join("  ")
+        } else {
+          clearTimeout(readoutTimer)
+          readoutTimer = setTimeout(() => box.classList.add("idle"), 600)
+        }
+      }
+
+      // ===================================================================
+      //  note on/off (shared by pointer, computer keys, playback)
+      // ===================================================================
+      const voices = new Map()
+      const sustained = new Set()
+      let sustain = false
+
+      function keyVisual(midi, on) {
+        const c = Math.max(0, (downCount.get(midi) || 0) + (on ? 1 : -1))
+        downCount.set(midi, c)
+        kb.querySelector(`[data-midi="${midi}"]`)?.classList.toggle("active", c > 0)
+        updateReadout()
+      }
+      function noteOn(midi, source, velocity = 0.8) {
+        const id = `${source}:${midi}`
+        if (voices.has(id) || midi < 21 || midi > 108) return
+        engine.resume()
+        voices.set(id, engine.play(midi, { velocity }))
+        keyVisual(midi, true)
+        roll.start(id, midi, USER_COLOR)
+        recorder.on(midi)
+        document.body.classList.add("played")
+      }
+      function noteOff(midi, source) {
+        const id = `${source}:${midi}`
+        const v = voices.get(id)
+        if (!v) return
+        voices.delete(id)
+        sustain ? sustained.add(v) : v.stop()
+        keyVisual(midi, false)
+        roll.end(id)
+        recorder.off(midi)
+      }
+      function setSustain(on) {
+        sustain = on
+        $("#sustain-btn").setAttribute("aria-pressed", on)
+        if (!on) { sustained.forEach((v) => v.stop()); sustained.clear() }
+      }
+
+      // pointer: multi-touch + glissando
+      const pointers = new Map()
+      const keyAt = (x, y) => {
+        const el = document.elementFromPoint(x, y)?.closest(".key")
+        return el && kb.contains(el) ? el : null
+      }
+      const velOf = (e, el) => {
+        const r = el.getBoundingClientRect()
+        return clamp(0.45 + 0.55 * ((e.clientY - r.top) / r.height), 0.3, 1)
+      }
+      kb.addEventListener("pointerdown", (e) => {
+        e.preventDefault()
+        kb.setPointerCapture(e.pointerId)
+        const el = keyAt(e.clientX, e.clientY)
+        const m = el ? Number(el.dataset.midi) : null
+        pointers.set(e.pointerId, m)
+        if (m != null) noteOn(m, `p${e.pointerId}`, velOf(e, el))
+      })
+      kb.addEventListener("pointermove", (e) => {
+        if (!pointers.has(e.pointerId)) return
+        const el = keyAt(e.clientX, e.clientY)
+        const m = el ? Number(el.dataset.midi) : null
+        const cur = pointers.get(e.pointerId)
+        if (m === cur) return
+        if (cur != null) noteOff(cur, `p${e.pointerId}`)
+        if (m != null) noteOn(m, `p${e.pointerId}`, velOf(e, el))
+        pointers.set(e.pointerId, m)
+      })
+      const endPointer = (e) => {
+        if (!pointers.has(e.pointerId)) return
+        const cur = pointers.get(e.pointerId)
+        if (cur != null) noteOff(cur, `p${e.pointerId}`)
+        pointers.delete(e.pointerId)
+      }
+      ;["pointerup", "pointercancel", "lostpointercapture"].forEach((t) => kb.addEventListener(t, endPointer))
+
+      // computer keyboard
+      const heldCodes = new Map()
+      const typing = (t) => t.closest?.("textarea, input, select, [contenteditable]")
+      addEventListener("keydown", (e) => {
+        if (typing(e.target) || e.metaKey || e.ctrlKey || e.altKey) return
+        if (e.code === "Space") { e.preventDefault(); if (!e.repeat) setSustain(true); return }
+        if (e.code === "ArrowLeft") { e.preventDefault(); return shiftOctave(-1) }
+        if (e.code === "ArrowRight") { e.preventDefault(); return shiftOctave(1) }
+        if (e.repeat || !codeOffset.has(e.code) || heldCodes.has(e.code)) return
+        e.preventDefault()
+        const m = baseMidi() + codeOffset.get(e.code)
+        heldCodes.set(e.code, m)
+        noteOn(m, `k${e.code}`)
+      })
+      addEventListener("keyup", (e) => {
+        if (e.code === "Space") return setSustain(false)
+        const m = heldCodes.get(e.code)
+        if (m == null) return
+        heldCodes.delete(e.code)
+        noteOff(m, `k${e.code}`)
+      })
+      addEventListener("blur", () => {
+        heldCodes.forEach((m, c) => noteOff(m, `k${c}`))
+        heldCodes.clear()
+        setSustain(false)
+      })
+      addEventListener("pointerdown", () => engine.resume(), { capture: true })
+
+      $("#sustain-btn").onclick = () => setSustain(!sustain)
+      $("#volume").oninput = (e) => engine.setVolume(Number(e.target.value))
+      document.querySelectorAll("[data-inst]").forEach((b) => {
+        b.onclick = () => {
+          engine.setInstrument(b.dataset.inst)
+          document.querySelectorAll("[data-inst]").forEach((x) => x.setAttribute("aria-pressed", x === b))
+        }
+      })
+      // 点按钮后移走焦点，空格只当延音
+      document.querySelectorAll(".controls button").forEach((b) => b.addEventListener("click", () => b.blur()))
+
+      // ===================================================================
+      //  score language — ASCII 简谱
+      //
+      //    tempo: 100        全局 / 声部设置（tempo key oct vol title）
+      //    @旋律              开始一个声部
+      //    1 2 3 - | 5_ 5_ 6. 1' [135] - 0 |
+      // ===================================================================
+      const DIRECTIVE = /^(\s*)(title|tempo|key|oct|vol)(\s*:\s*)(.*?)\s*$/i
+      const TOKEN = /(\[(?:[#b]?[0-7][',]*)+\]|[#b]?[0-7][',]*)(_{0,3})(\.?)|(-)|(\|+)|(\s+)|(\/\/.*$)|(.)/g
+      const NOTE_IN = /([#b]?)([0-7])([',]*)/g
+
+      function analyze(text) {
+        const lines = text.split("\n")
+        const gset = {}, tracks = [], errors = [], html = []
+        let cur = null, off = 0
+        const newTrack = (name, li) => {
+          const t = { name, li, set: {}, groups: [] }
+          tracks.push(t)
+          return t
+        }
+
+        lines.forEach((line, li) => {
+          const tr = line.trim()
+          let h, m
+          if (tr.startsWith("//")) h = `<span class="tk-cm">${esc(line)}</span>`
+          else if (tr.startsWith("@")) {
+            cur = newTrack(tr.slice(1).trim() || `声部 ${tracks.length + 1}`, li)
+            h = `<span class="tk-track">${esc(line)}</span>`
+          } else if ((m = DIRECTIVE.exec(line))) {
+            const key = m[2].toLowerCase(), raw = m[4]
+            let val = raw, ok = true
+            if (key === "tempo") ok = (val = Number(raw)) >= 20 && val <= 400
+            else if (key === "key") ok = (val = parsePitch(raw)) != null
+            else if (key === "oct") ok = Number.isInteger((val = Number(raw))) && Math.abs(val) <= 4
+            else if (key === "vol") ok = (val = Number(raw)) >= 0 && val <= 1
+            if (!ok) errors.push({ li, msg: `${key} 的值 “${raw}” 无效` })
+            else (cur ? cur.set : gset)[key] = val
+            h = `${esc(m[1])}<span class="tk-dkey">${esc(m[2])}</span><span class="tk-punc">${esc(m[3])}</span><span class="${ok ? "tk-dval" : "tk-err"}">${esc(raw)}</span>`
+          } else if (!tr) h = esc(line)
+          else {
+            if (!cur) cur = newTrack("主旋律", li)
+            h = scan(line, li, off, cur, errors)
+          }
+          html.push(h)
+          off += line.length + 1
+        })
+
+        tracks.forEach((tr, ti) => {
+          const s = { tempo: 100, key: 60, oct: 0, vol: 1, ...gset, ...tr.set }
+          const spb = 60 / s.tempo
+          let t = 0
+          tr.spb = spb
+          tr.events = []
+          tr.groups.forEach((gr) => {
+            const dur = gr.beats * spb
+            const midis = gr.notes.filter((n) => n.deg > 0).map((n) => clamp(s.key + MAJOR[n.deg - 1] + n.acc + 12 * (n.marks + s.oct), 21, 108))
+            if (midis.length) tr.events.push({ t, dur, midis, offset: gr.offset, li: gr.li, track: ti, vol: s.vol })
+            t += dur
+          })
+          tr.duration = t
+        })
+        return { html: html.join("\n") + "\n", tracks, errors, lineCount: lines.length, title: gset.title }
+      }
+
+      function scan(line, li, lineOff, cur, errors) {
+        let out = "", bad = false, m
+        TOKEN.lastIndex = 0
+        while ((m = TOKEN.exec(line))) {
+          const [, note, under, dot, dash, bar, ws, cm, other] = m
+          if (note) {
+            const offset = lineOff + m.index
+            const notes = []
+            let inner = ""
+            note.replace(NOTE_IN, (_, acc, deg, marks) => {
+              const up = (marks.match(/'/g) || []).length, down = marks.length - up
+              notes.push({ deg: Number(deg), acc: acc === "#" ? 1 : acc === "b" ? -1 : 0, marks: up - down })
+              inner += `<span class="tk-acc">${acc}</span><span class="tk-num${deg === "0" ? " rest" : ""}">${deg}</span><span class="tk-mark">${marks}</span>`
+            })
+            if (note.startsWith("[")) inner = `<span class="tk-br">[</span>${inner}<span class="tk-br">]</span>`
+            const beats = Math.pow(0.5, under.length) * (dot ? 1.5 : 1)
+            cur.groups.push({ notes, beats, offset, li })
+            out += `<span class="tk-note" id="t-${offset}">${inner}<span class="tk-dur">${under}${dot}</span></span>`
+          } else if (dash) {
+            const last = cur.groups[cur.groups.length - 1]
+            if (last) { last.beats += 1; out += `<span class="tk-dash">-</span>` }
+            else { out += `<span class="tk-err">-</span>`; if (!bad) errors.push({ li, msg: "“-” 前面没有音符" }); bad = true }
+          } else if (bar) out += `<span class="tk-bar">${bar}</span>`
+          else if (ws) out += ws
+          else if (cm) out += `<span class="tk-cm">${esc(cm)}</span>`
+          else {
+            out += `<span class="tk-err">${esc(other)}</span>`
+            if (!bad) errors.push({ li, msg: `无法识别 “${other}”` })
+            bad = true
+          }
+        }
+        return out
+      }
+
+      // ===================================================================
+      //  editor — textarea over highlighted <pre>
+      // ===================================================================
+      const src = $("#src"), hl = $("#hl"), gutter = $("#gutter"), diag = $("#diag")
+      const STORE = "piano3-score"
+      const LH = 22
+
+      function refresh() {
+        const a = analyze(src.value)
+        hl.innerHTML = a.html
+        gutter.textContent = Array.from({ length: a.lineCount }, (_, i) => i + 1).join("\n") + "\n"
+        syncScroll()
+        const total = Math.max(0, ...a.tracks.map((t) => t.duration))
+        if (a.errors.length) {
+          diag.replaceChildren(
+            ...a.errors.slice(0, 3).map((er) => {
+              const b = document.createElement("button")
+              b.textContent = `L${er.li + 1} ${er.msg}`
+              b.onclick = () => gotoLine(er.li)
+              return b
+            })
+          )
+        } else if (a.tracks.length) {
+          const n = a.tracks.reduce((s, t) => s + t.events.length, 0)
+          diag.innerHTML = a.tracks
+            .map((t, i) => `<span><i style="display:inline-block;width:8px;height:8px;margin-right:6px;background:${TRACK_COLORS[i % 4]}"></i><b>${esc(t.name)}</b></span>`)
+            .join("") + `<span>${n} notes · ${fmtTime(total)}</span>`
+        } else diag.textContent = "写几个数字试试：1 2 3 4 5 - - -"
+        $("#time").textContent = `0:00 / ${fmtTime(total)}`
+        try { localStorage.setItem(STORE, src.value) } catch (e) {}
+      }
+      function syncScroll() {
+        hl.scrollTop = gutter.scrollTop = src.scrollTop
+        hl.scrollLeft = src.scrollLeft
+      }
+      function gotoLine(li) {
+        const lines = src.value.split("\n")
+        const pos = lines.slice(0, li).reduce((s, l) => s + l.length + 1, 0)
+        src.focus()
+        src.setSelectionRange(pos, pos + lines[li].length)
+        ensureVisible(li)
+      }
+      function ensureVisible(li) {
+        const y = 12 + li * LH
+        if (y < src.scrollTop + LH || y > src.scrollTop + src.clientHeight - LH * 2) {
+          src.scrollTop = y - src.clientHeight / 3
+          syncScroll()
+        }
+      }
+      src.addEventListener("input", refresh)
+      src.addEventListener("scroll", syncScroll)
+      src.addEventListener("keydown", (e) => {
+        if (e.key === "Tab") {
+          e.preventDefault()
+          if (!document.execCommand("insertText", false, "  ")) { src.setRangeText("  ", src.selectionStart, src.selectionEnd, "end"); refresh() }
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); player.toggle() }
+      })
+
+      const EXAMPLES = {
+        twinkle: `// 小星星
+tempo: 100
+key: C
+
+@旋律
+1 1 5 5 | 6 6 5 - | 4 4 3 3 | 2 2 1 - |
+5 5 4 4 | 3 3 2 - | 5 5 4 4 | 3 3 2 - |
+1 1 5 5 | 6 6 5 - | 4 4 3 3 | 2 2 1 - |
+
+@伴奏
+oct: -1
+vol: 0.5
+[135] - - - | [146] - [135] - | [146] - [135] - | [7,25] - [135] - |
+[135] - [146] - | [135] - [7,25] - | [135] - [146] - | [135] - [7,25] - |
+[135] - - - | [146] - [135] - | [146] - [135] - | [7,25] - [135] - |
+`,
+        ode: `// 欢乐颂
+tempo: 120
+key: C
+
+@旋律
+3 3 4 5 | 5 4 3 2 | 1 1 2 3 | 3. 2_ 2 - |
+3 3 4 5 | 5 4 3 2 | 1 1 2 3 | 2. 1_ 1 - |
+
+@左手
+oct: -1
+vol: 0.5
+[15] - - - | [5,2] - - - | [135] - - - | [5,7,2] - - - |
+[15] - - - | [5,2] - - - | [135] - - - | [5,2] - [15] - |
+`,
+        canon: `// 卡农 · Pachelbel
+tempo: 120
+key: D
+
+@旋律
+oct: 1
+3 - 2 - | 1 - 7, - | 6, - 5, - | 6, - 7, - |
+1 - 7, - | 6, - 5, - | 4, - 3, - | 4, - 2, - |
+1 3 5 4 | 3 1 3 2 | 1 6, 1 5, | 4, 6, 5, 4, |
+
+@低音
+oct: -1
+vol: 0.7
+1 - 5, - | 6, - 3, - | 4, - 1, - | 4, - 5, - |
+1 - 5, - | 6, - 3, - | 4, - 1, - | 4, - 5, - |
+1 - 5, - | 6, - 3, - | 4, - 1, - | 4, - 5, - |
+`,
+        jasmine: `// 茉莉花（片段）
+tempo: 76
+key: F
+
+@旋律
+3 3_ 5_ 6_ 1'_ 1'_ 6_ | 5 5_ 6_ 5 - |
+3 3_ 5_ 6_ 1'_ 1'_ 6_ | 5 5_ 6_ 5 - |
+5 5 5 3_ 5_ | 6 6 5 - |
+3 2_ 3_ 5 3_ 2_ | 1 1_ 2_ 1 - |
+
+@和声
+oct: -1
+vol: 0.45
+[135] - - - | [135] - - - |
+[146] - - - | [135] - - - |
+[135] - [146] - | [146] - [135] - |
+[135] - [5,7,2] - | [135] - - - |
+`,
+      }
+
+      let saved = null
+      try { saved = localStorage.getItem(STORE) } catch (e) {}
+      src.value = saved || EXAMPLES.twinkle
+      refresh()
+      $("#example-select").onchange = (e) => {
+        if (!e.target.value) return
+        player.stop()
+        src.value = EXAMPLES[e.target.value]
+        src.scrollTop = 0
+        refresh()
+        e.target.value = ""
+      }
+
+      // score column toggle
+      const scoreBtn = $("#score-btn")
+      function setScore(open) {
+        document.body.classList.toggle("no-score", !open)
+        scoreBtn.setAttribute("aria-pressed", open)
+        $("#score").inert = !open
+      }
+      scoreBtn.onclick = () => setScore(document.body.classList.contains("no-score"))
+      if (innerWidth <= 900) setScore(false)
+
+      // ===================================================================
+      //  player — lookahead scheduling on the audio clock
+      // ===================================================================
+      const player = (() => {
+        const ctx = engine.ctx
+        let playing = false, events = [], idx = 0, t0 = 0, total = 0, spb = 0.6
+        let tick = null, raf = null
+        const timers = new Set(), live = [], lit = new Map()
+        let loop = false
+
+        const later = (fn, ms) => {
+          const id = setTimeout(() => { timers.delete(id); fn() }, Math.max(0, ms))
+          timers.add(id)
+        }
+
+        function schedule(ev, n) {
+          const when = t0 + ev.t, hold = ev.dur * 0.95
+          const color = TRACK_COLORS[ev.track % 4]
+          ev.midis.forEach((m) => live.push({ v: engine.play(m, { when, duration: hold, velocity: 0.78, gain: ev.vol }), end: when + hold }))
+          const delay = (when - ctx.currentTime) * 1000
+          later(() => {
+            ev.midis.forEach((m) => {
+              const id = `pb${n}:${m}`
+              lit.set(id, m)
+              keyVisual(m, true)
+              roll.start(id, m, color)
+            })
+            const tok = document.getElementById(`t-${ev.offset}`)
+            if (tok) { tok.style.setProperty("--hl", color); tok.classList.add("playing") }
+            if (ev.track === 0) ensureVisible(ev.li)
+            document.body.classList.add("played")
+          }, delay)
+          later(() => {
+            ev.midis.forEach((m) => {
+              const id = `pb${n}:${m}`
+              if (!lit.delete(id)) return
+              keyVisual(m, false)
+              roll.end(id)
+            })
+            document.getElementById(`t-${ev.offset}`)?.classList.remove("playing")
+          }, delay + hold * 1000)
+        }
+
+        function pump() {
+          const horizon = ctx.currentTime + 0.25
+          while (idx < events.length && t0 + events[idx].t < horizon) { schedule(events[idx], idx); idx++ }
+          for (let i = live.length - 1; i >= 0; i--) if (live[i].end < ctx.currentTime) live.splice(i, 1)
+          if (idx >= events.length && ctx.currentTime > t0 + total + 0.1) {
+            stop()
+            if (loop) play()
+          }
+        }
+        function draw() {
+          const el = clamp(ctx.currentTime - t0, 0, total)
+          $("#progress-bar").style.width = `${(el / total) * 100}%`
+          $("#time").textContent = `${fmtTime(el)} / ${fmtTime(total)}`
+          raf = requestAnimationFrame(draw)
+        }
+        function setBtn(on) {
+          const b = $("#play-btn")
+          b.querySelector("span").textContent = on ? "停止" : "播放"
+          b.querySelector("svg").innerHTML = on ? '<rect x="2" y="2" width="8" height="8" />' : '<path d="M2 1v10l9-5z" />'
+        }
+        function play() {
+          stop()
+          const a = analyze(src.value)
+          events = a.tracks.flatMap((t) => t.events).sort((x, y) => x.t - y.t)
+          if (!events.length) return toast(a.errors.length ? "乐谱有错误，先修一下" : "乐谱里还没有音符")
+          total = Math.max(...a.tracks.map((t) => t.duration))
+          spb = a.tracks[0].spb
+          engine.resume()
+          playing = true
+          idx = 0
+          t0 = ctx.currentTime + 0.12
+          setBtn(true)
+          pump()
+          tick = setInterval(pump, 40)
+          draw()
+        }
+        function stop() {
+          if (!playing) return
+          playing = false
+          clearInterval(tick)
+          cancelAnimationFrame(raf)
+          timers.forEach(clearTimeout)
+          timers.clear()
+          live.forEach((l) => l.v.stop())
+          live.length = 0
+          lit.forEach((m, id) => { keyVisual(m, false); roll.end(id) })
+          lit.clear()
+          hl.querySelectorAll(".playing").forEach((el) => el.classList.remove("playing"))
+          setBtn(false)
+          $("#progress-bar").style.width = "0%"
+          $("#time").textContent = `0:00 / ${fmtTime(total)}`
+        }
+        return {
+          play, stop,
+          toggle: () => (playing ? stop() : play()),
+          setLoop: (v) => (loop = v),
+          beatInfo: () => (playing ? { t0, spb } : null),
+        }
+      })()
+      $("#play-btn").onclick = () => player.toggle()
+      $("#loop-btn").onclick = (e) => {
+        const on = e.currentTarget.getAttribute("aria-pressed") !== "true"
+        e.currentTarget.setAttribute("aria-pressed", on)
+        player.setLoop(on)
+      }
+
+      // ===================================================================
+      //  recorder — quantize live playing into the same 简谱 syntax
+      // ===================================================================
+      const recorder = (() => {
+        let active = false, notes = [], open = new Map()
+        const BPM = 100
+        const now = () => performance.now() / 1000
+        const PC = ["1", "#1", "2", "#2", "3", "4", "#4", "5", "#5", "6", "#6", "7"]
+        const STEPS = [0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4]
+        const snap = (b) => STEPS.reduce((best, s) => (Math.abs(s - b) < Math.abs(best - b) ? s : best), STEPS[0])
+        const suffix = (b) => ({ 0.25: "__", 0.5: "_", 0.75: "_.", 1: "", 1.5: "." }[b] ?? " -".repeat(b - 1))
+        const tokenOf = (m) => {
+          const rel = m - 60, oct = Math.floor(rel / 12)
+          return PC[rel - oct * 12] + (oct > 0 ? "'".repeat(oct) : ",".repeat(-oct))
+        }
+
+        function toScore() {
+          if (!notes.length) return null
+          notes.sort((a, b) => a.start - b.start)
+          const beat = 60 / BPM, q = 0.25
+          const qz = (x) => Math.round(x / beat / q) * q
+          const t0 = notes[0].start
+          const groups = []
+          notes.forEach((n) => {
+            const s = qz(n.start - t0), held = Math.max(q, qz(n.end - n.start))
+            const last = groups[groups.length - 1]
+            if (last && last.s === s) {
+              if (!last.midis.includes(n.midi)) last.midis.push(n.midi)
+              last.held = Math.max(last.held, held)
+            } else groups.push({ s, held, midis: [n.midi] })
+          })
+          const out = []
+          let cursor = 0
+          groups.forEach((g, i) => {
+            if (g.s - cursor >= q) {
+              let gap = g.s - cursor
+              while (gap >= q) { const r = snap(Math.min(gap, 4)); out.push("0" + suffix(r)); gap -= r; if (r <= 0) break }
+            }
+            const next = groups[i + 1]
+            let dur = next ? next.s - g.s : g.held
+            if (next && dur - g.held >= 1) dur = g.held // 明显的空隙留给休止符
+            dur = snap(dur)
+            const ms = g.midis.sort((a, b) => a - b).map(tokenOf)
+            out.push((ms.length > 1 ? `[${ms.join("")}]` : ms[0]) + suffix(dur))
+            cursor = g.s + dur
+          })
+          const lines = []
+          for (let i = 0; i < out.length; i += 8) lines.push(out.slice(i, i + 8).join("  "))
+          const stamp = new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })
+          return `\n@录音 ${stamp}\ntempo: ${BPM}\nkey: C\n${lines.join("\n")}\n`
+        }
+        function start() {
+          active = true
+          notes = []
+          open.clear()
+          $("#record-btn").setAttribute("aria-pressed", "true")
+          $("#record-label").textContent = "停止"
+          toast("录制中，弹完再点一次停止")
+        }
+        function stop() {
+          active = false
+          const t = now()
+          open.forEach((s, m) => notes.push({ midi: m, start: s, end: t }))
+          open.clear()
+          $("#record-btn").setAttribute("aria-pressed", "false")
+          $("#record-label").textContent = "录制"
+          const text = toScore()
+          if (!text) return toast("什么也没录到")
+          src.value = src.value.replace(/\s*$/, "\n") + text
+          refresh()
+          setScore(true)
+          src.scrollTop = src.scrollHeight
+          syncScroll()
+          toast(`录下 ${notes.length} 个音，已追加到乐谱末尾`)
+        }
+        return {
+          toggle: () => (active ? stop() : start()),
+          on: (m) => { if (active && !open.has(m)) open.set(m, now()) },
+          off: (m) => {
+            if (!active || !open.has(m)) return
+            notes.push({ midi: m, start: open.get(m), end: now() })
+            open.delete(m)
+          },
+        }
+      })()
+      $("#record-btn").onclick = () => recorder.toggle()
+
+      // ===================================================================
+      //  layout
+      // ===================================================================
+      let lastW = 0
+      new ResizeObserver(() => {
+        roll.resize()
+        const w = kb.clientWidth
+        const want = clamp(Math.floor((Math.floor(w / 36) - 1) / 7), 1, 4)
+        if (want !== octaves || !kb.children.length) buildKeyboard()
+        else if (w !== lastW) measure()
+        lastW = w
+      }).observe($(".stage"))
+      buildKeyboard()
+    </script>
+  </body>
+</html>
