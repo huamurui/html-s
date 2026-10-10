@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -39,11 +39,13 @@
         main {
             display: flex;
             gap: 16px;
+            align-items: flex-start;
         }
 
         /* 画布区域 */
         .canvas-wrap {
             flex: 2;
+            min-width: 0;
             position: relative;
             border-radius: 12px;
             overflow: hidden;
@@ -75,6 +77,24 @@
             padding: 4px 10px;
             font-size: 13px;
         }
+        .game-overlay {
+            position: absolute; inset: 0; z-index: 5;
+            display: grid; place-items: center; padding: 24px;
+            background: rgba(227,242,253,.35);
+            backdrop-filter: blur(3px);
+        }
+        [hidden] { display: none !important; }
+        .overlay-card {
+            width: min(100%, 320px); padding: 24px; text-align: center;
+            background: rgba(255,255,255,.94); border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(79,70,229,.16);
+        }
+        .overlay-card h2 { color: #4f46e5; font-size: 22px; margin-bottom: 10px; }
+        .overlay-card p { color: #64748b; font-size: 13px; line-height: 1.8; margin-bottom: 18px; white-space: pre-line; }
+        .overlay-card button { border: 0; border-radius: 8px; padding: 10px 24px; background: #4f46e5; color: #fff; cursor: pointer; }
+        .game-notice { position: absolute; top: 50px; left: 50%; transform: translateX(-50%); z-index: 3; max-width: 90%; width: max-content; padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,.9); color: #4f46e5; font-size: 12px; text-align: center; pointer-events: none; }
+        button:focus-visible, input:focus-visible { outline: 2px solid #4f46e5; outline-offset: 3px; }
+        #gameCanvas:focus-visible { outline: 2px solid #4f46e5; outline-offset: -2px; }
 
         /* 控制面板 */
         .controls {
@@ -104,6 +124,13 @@
             width: 100%;
             accent-color: #4f46e5;
         }
+        .ctrl-group output { float: right; color: #4f46e5; font: 12px ui-monospace, monospace; }
+        .ctrl-note { margin-top: 5px; font-size: 11px; color: #8490a2; }
+        .level-progress { padding: 12px 0; margin-bottom: 14px; border-bottom: 1px solid rgba(79,70,229,.1); font-size: 12px; }
+        .progress-labels { display: flex; justify-content: space-between; color: #64748b; }
+        .level-progress progress { width: 100%; height: 6px; margin: 9px 0 6px; accent-color: #4f46e5; }
+        .level-progress p { color: #64748b; font-size: 11px; line-height: 1.7; }
+        .controls-help { margin-top: 14px; color: #64748b; font-size: 11px; line-height: 1.8; }
         .actions {
             display: flex;
             gap: 8px;
@@ -121,22 +148,21 @@
         .actions button:hover { filter: brightness(.92); }
         .btn-reset { background: #fee2e2; color: #dc2626; }
         .btn-debug { background: #dbeafe; color: #2563eb; }
+        .btn-pause { background: #ede9fe; color: #6d28d9; }
+        .btn-defaults { margin-top: 10px; border: 0; background: transparent; color: #64748b; font-size: 12px; cursor: pointer; }
 
         @media (max-width: 768px) {
-            main { flex-direction: column; }
+            main { flex-direction: column; align-items: stretch; }
             .controls { min-width: auto; }
         }
 
         /* 手机虚拟按键 */
         .gamepad {
             display: none;
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            padding: 16px 20px 28px;
+            padding: 12px 18px max(12px, env(safe-area-inset-bottom));
             justify-content: space-between;
-            align-items: flex-end;
-            z-index: 100;
-            pointer-events: none;
+            align-items: center;
+            background: rgba(227,242,253,.8);
         }
         .gamepad button {
             pointer-events: auto;
@@ -164,7 +190,12 @@
             width: 72px; height: 72px;
             font-size: 26px;
         }
+        .gamepad .pause-btn { width: 40px; height: 40px; font-size: 16px; background: rgba(79,70,229,.25); }
         @media (hover: none) and (pointer: coarse) {
+            .gamepad { display: flex; }
+            .hint { display: none; }
+        }
+        @media (max-width: 600px) {
             .gamepad { display: flex; }
             .hint { display: none; }
         }
@@ -174,43 +205,60 @@
     <div class="container">
         <header>
             <h1>Jelly Mario</h1>
-            <p>方向键 / WASD 移动，空格跳跃，收集星星！</p>
+            <p>← → / A D 移动，空格 / W / ↑ 跳跃，收集星星！</p>
         </header>
 
         <main>
             <div class="canvas-wrap">
-                <canvas id="gameCanvas"></canvas>
-                <div class="hint">← → ↑ / WASD / Space</div>
-                <div id="score">Score: 0</div>
-            </div>
-
-            <!-- 手机虚拟按键 -->
-            <div class="gamepad" id="gamepad">
-                <div class="dpad">
-                    <button id="pad-left">◀</button>
-                    <button id="pad-right">▶</button>
+                <canvas id="gameCanvas" tabindex="0" aria-label="果冻游戏，方向键或 A、D 移动，空格、W 或上方向键跳跃"></canvas>
+                <div class="hint">← → / A D · Space 跳跃 · P 暂停</div>
+                <div id="score" role="status" aria-live="polite">Score: 0</div>
+                <div class="game-notice" id="gameNotice" role="status" hidden></div>
+                <div class="game-overlay" id="gameOverlay" hidden>
+                    <div class="overlay-card" role="dialog" aria-labelledby="overlayTitle" aria-describedby="overlayDescription">
+                        <h2 id="overlayTitle">游戏已暂停</h2>
+                        <p id="overlayDescription">小果冻等你回来继续冒险。</p>
+                        <button id="overlayAction">继续游戏</button>
+                    </div>
                 </div>
-                <button class="jump-btn" id="pad-jump">▲</button>
+                <!-- 手机虚拟按键：跟随游戏区域，不再遮挡参数控件。 -->
+                <div class="gamepad" id="gamepad" aria-label="触屏操作">
+                    <div class="dpad">
+                        <button id="pad-left" aria-label="向左移动">◀</button>
+                        <button id="pad-right" aria-label="向右移动">▶</button>
+                    </div>
+                    <button class="pause-btn" id="pad-pause" aria-label="暂停游戏">Ⅱ</button>
+                    <button class="jump-btn" id="pad-jump" aria-label="跳跃">▲</button>
+                </div>
             </div>
 
             <div class="controls">
                 <h2>⚙ 参数调节</h2>
+                <div class="level-progress">
+                    <div class="progress-labels"><span id="starProgress">⭐ 0 / 6</span><span id="checkpointProgress">检查点 0 / 2</span></div>
+                    <progress id="levelProgress" max="100" value="0" aria-label="关卡进度"></progress>
+                    <p>收集 6 颗星星，再到右侧的终点旗。<br>经过绿色旗帜后，掉落会在附近复活。</p>
+                </div>
                 <div class="ctrl-group">
-                    <label>弹簧刚度 (Stiffness)</label>
+                    <label for="stiffness">弹簧刚度 (Stiffness)<output id="stiffnessValue" for="stiffness">0.08</output></label>
                     <input type="range" id="stiffness" min="0.01" max="1" step="0.005" value="0.08">
+                    <p class="ctrl-note">越小越软，越大越 Q 弹</p>
                 </div>
                 <div class="ctrl-group">
-                    <label>重力 (Gravity)</label>
-                    <input type="range" id="gravity" min="0.001" max="1" step="0.05" value="0.06">
+                    <label for="gravity">重力 (Gravity)<output id="gravityValue" for="gravity">0.06</output></label>
+                    <input type="range" id="gravity" min="0.001" max="1" step="0.001" value="0.06">
                 </div>
                 <div class="ctrl-group">
-                    <label>跳跃力 (Jump)</label>
+                    <label for="jumpStrength">跳跃力 (Jump)<output id="jumpStrengthValue" for="jumpStrength">12</output></label>
                     <input type="range" id="jumpStrength" min="0.5" max="20" step="0.1" value="12">
                 </div>
                 <div class="actions">
+                    <button class="btn-pause" id="pauseGame">Ⅱ 暂停</button>
                     <button class="btn-reset" id="resetGame">↻ 重置</button>
-                    <button class="btn-debug" id="toggleDebug">🐛 调试</button>
+                    <button class="btn-debug" id="toggleDebug" aria-pressed="false">🐛 调试</button>
                 </div>
+                <button class="btn-defaults" id="resetParams">恢复默认参数</button>
+                <p class="controls-help">🍄 蘑菇弹起 · ↔ 平台移动 · ↑ 气流托举<br>P / Esc 暂停或继续，R 重新开始。<br>参数会影响关卡难度，卡住时可恢复默认。</p>
             </div>
         </main>
     </div>
@@ -246,9 +294,10 @@
 
     // ========== 弹簧 ==========
     class Spring {
-        constructor(a, b, stiffness = 0.08, nonLin = 0.0002) {
+        constructor(a, b, stiffness = 0.08, nonLin = 0.0002, stiffnessScale = 1) {
             this.a = a; this.b = b
-            this.stiffness = stiffness
+            this.stiffnessScale = stiffnessScale
+            this.stiffness = stiffness * stiffnessScale
             this.nonLin = nonLin
             this.rest = Math.max(0.1, this.dist())
         }
@@ -261,7 +310,10 @@
             const d = Math.max(0.001, Math.sqrt(dx * dx + dy * dy))
             const stretch = clamp(d - this.rest, -this.rest * 2, this.rest * 2)
             // F = k(x + bx³) 非线性弹簧
-            const f = this.stiffness * (stretch + this.nonLin * stretch * stretch * stretch)
+            // 一次修正最多消除当前误差，避免大刚度让两端越过平衡位置。
+            // 保留原来的非线性弹簧和质点形变，不把果冻替换成刚体。
+            const limit = Math.abs(stretch) * 0.5
+            const f = clamp(this.stiffness * (stretch + this.nonLin * stretch * stretch * stretch), -limit, limit)
             const nx = dx / d, ny = dy / d
             this.a.applyForce(nx * f, ny * f)
             this.b.applyForce(-nx * f, -ny * f)
@@ -281,25 +333,65 @@
             this.x = x; this.y = y; this.w = w; this.h = h; this.color = color
         }
         draw(ctx) {
-            ctx.fillStyle = this.color
-            ctx.fillRect(this.x, this.y, this.w, this.h)
-            // 砖纹
-            ctx.fillStyle = 'rgba(0,0,0,.1)'
-            for (let i = 0; i < this.w; i += 20) ctx.fillRect(this.x + i, this.y, 10, this.h)
+            const { x, y, w, h } = this
+            const radius = Math.min(5, h * .2)
+            const outline = () => {
+                ctx.beginPath()
+                ctx.moveTo(x + radius, y); ctx.lineTo(x + w - radius, y)
+                ctx.quadraticCurveTo(x + w, y, x + w, y + radius)
+                ctx.lineTo(x + w, y + h - radius)
+                ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h)
+                ctx.lineTo(x + radius, y + h)
+                ctx.quadraticCurveTo(x, y + h, x, y + h - radius)
+                ctx.lineTo(x, y + radius); ctx.quadraticCurveTo(x, y, x + radius, y)
+                ctx.closePath()
+            }
+            ctx.save()
+            // 接触面仍在 y，圆角与草皮只作为装饰，不改变碰撞位置。
+            ctx.shadowColor = 'rgba(67,77,89,.17)'
+            ctx.shadowBlur = 0; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 4
+            outline(); ctx.fillStyle = this.color === '#4CAF50' ? '#B8783D' : this.color; ctx.fill()
+            ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0
+            outline(); ctx.clip()
+            const earth = ctx.createLinearGradient(0, y, 0, y + h)
+            earth.addColorStop(0, 'rgba(255,196,109,.3)')
+            earth.addColorStop(1, 'rgba(66,30,15,.12)')
+            ctx.fillStyle = earth; ctx.fillRect(x, y, w, h)
+            // 疏落的小土粒，比整齐条纹更像轻盈的浮岛。
+            for (let i = 11; i < w - 4; i += 27) {
+                const py = y + 12 + ((i * 7) % Math.max(1, h - 17))
+                ctx.fillStyle = 'rgba(255,220,159,.3)'
+                ctx.fillRect(x + i, py, 5, 2)
+                ctx.fillStyle = 'rgba(87,44,23,.18)'
+                ctx.fillRect(x + i + 10, Math.min(y + h - 4, py + 5), 3, 2)
+            }
+            const turf = Math.min(7, h * .32)
+            ctx.fillStyle = '#48B54F'; ctx.fillRect(x, y, w, turf)
+            for (let i = 7; i < w; i += 21) {
+                ctx.beginPath(); ctx.arc(x + i, y + turf - 1, 3, 0, Math.PI); ctx.fill()
+            }
+            ctx.fillStyle = '#8CE56D'; ctx.fillRect(x, y, w, 2)
+            ctx.fillStyle = 'rgba(42,99,40,.18)'; ctx.fillRect(x, y + turf - 1, w, 1)
+            ctx.restore()
         }
         collide(p) {
-            if (p.x > this.x && p.x < this.x + this.w &&
-                p.y + p.r > this.y && p.y - p.r < this.y + this.h) {
-                if (p.oy + p.r <= this.y) { // 从上方
-                    p.y = this.y - p.r; p.oy = p.y; p.onGround = true
-                } else if (p.oy - p.r >= this.y + this.h) { // 从下方
-                    p.y = this.y + this.h + p.r; p.oy = p.y
-                } else if (p.ox + p.r <= this.x) {
-                    p.x = this.x - p.r; p.ox = p.x
-                } else if (p.ox - p.r >= this.x + this.w) {
-                    p.x = this.x + this.w + p.r; p.ox = p.x
-                }
+            // 按质点半径检测边缘，并给已经嵌入平台的点一个明确的推出方向。
+            const left = this.x - p.r, right = this.x + this.w + p.r
+            const top = this.y - p.r, bottom = this.y + this.h + p.r
+            if (p.x <= left || p.x >= right || p.y < top || p.y > bottom) return
+            let side
+            if (p.oy <= top) side = 'top'
+            else if (p.oy >= bottom) side = 'bottom'
+            else if (p.ox <= left) side = 'left'
+            else if (p.ox >= right) side = 'right'
+            else {
+                const depths = [p.y - top, bottom - p.y, p.x - left, right - p.x]
+                side = ['top', 'bottom', 'left', 'right'][depths.indexOf(Math.min(...depths))]
             }
+            if (side === 'top') { p.y = top; p.oy = top; p.onGround = true }
+            else if (side === 'bottom') { p.y = bottom; p.oy = bottom }
+            else if (side === 'left') { p.x = left; p.ox = left }
+            else { p.x = right; p.ox = right }
         }
     }
 
@@ -314,8 +406,16 @@
             if (this.collected) return
             const sz = this.r * (1 + Math.sin(this.pulse) * 0.2)
             ctx.save(); ctx.translate(this.x, this.y)
+            // 光晕放在星星后面，保留清楚的金色轮廓。
+            const glow = ctx.createRadialGradient(0, 0, sz * .4, 0, 0, sz * 1.8)
+            glow.addColorStop(0, 'rgba(255,230,84,.45)')
+            glow.addColorStop(1, 'rgba(255,230,84,0)')
+            ctx.fillStyle = glow
+            ctx.beginPath(); ctx.arc(0, 0, sz * 1.8, 0, Math.PI * 2); ctx.fill()
             // 五角星
-            ctx.fillStyle = '#FFD700'; ctx.beginPath()
+            const gold = ctx.createLinearGradient(0, -sz, 0, sz)
+            gold.addColorStop(0, '#FFF37B'); gold.addColorStop(.5, '#FFD700'); gold.addColorStop(1, '#FFB82E')
+            ctx.fillStyle = gold; ctx.beginPath()
             for (let i = 0; i < 5; i++) {
                 const a = (i * 72 - 90) * Math.PI / 180
                 const ia = (i * 72 + 36 - 90) * Math.PI / 180
@@ -324,9 +424,9 @@
                 ctx.lineTo(Math.cos(ia) * sz * 0.4, Math.sin(ia) * sz * 0.4)
             }
             ctx.closePath(); ctx.fill()
-            // 光晕
-            ctx.fillStyle = 'rgba(255,215,0,.3)'
-            ctx.beginPath(); ctx.arc(0, 0, sz * 1.2, 0, Math.PI * 2); ctx.fill()
+            ctx.lineJoin = 'round'; ctx.lineWidth = 1.3; ctx.strokeStyle = '#EBA52A'; ctx.stroke()
+            ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 1.7; ctx.lineCap = 'round'
+            ctx.beginPath(); ctx.moveTo(-sz * .13, -sz * .34); ctx.lineTo(0, -sz * .67); ctx.stroke()
             ctx.restore()
         }
         tryCollect(particles) {
@@ -352,7 +452,14 @@
             this.score = 0
             this.debug = false
             this.keys = { left: false, right: false, jump: false }
+            this.inputSources = { left: new Set(), right: new Set(), jump: new Set() }
+            this.touchPointers = []
+            this.jumpBuffer = 0
             this.camX = 0 // 摄像机偏移
+            this.levelWidth = 700 // 固定关卡尺寸，手机和窗口缩放只改变视野
+            this.worldWidth = this.levelWidth * 3
+            this.suspended = document.hidden
+            this.state = 'running'
 
             // 物理参数——UI 控件的默认值也会同步到这里
             this.P = {
@@ -367,28 +474,81 @@
             this.init()
             this.bindKeys()
             this.bindControls()
-            this.lastT = 0
+            this.lastT = null
+            this.accumulator = 0
             requestAnimationFrame(t => this.loop(t))
         }
 
         resize() {
             const { width, height } = this.canvas.getBoundingClientRect()
-            this.canvas.width = Math.max(100, width | 0)
-            this.canvas.height = Math.max(100, height | 0)
+            this.viewWidth = Math.max(100, width)
+            this.viewHeight = Math.max(100, height)
+            this.dpr = Math.min(window.devicePixelRatio || 1, 2)
+            this.canvas.width = Math.round(this.viewWidth * this.dpr)
+            this.canvas.height = Math.round(this.viewHeight * this.dpr)
+            if (this.worldWidth) this.camX = clamp(this.camX, 0, Math.max(0, this.worldWidth - this.viewWidth))
         }
 
         // ---- 初始化关卡 ----
         init() {
-            this.particles = []; this.springs = []
             this.platforms = []; this.stars = []
             this.score = 0
             document.getElementById('score').textContent = 'Score: 0'
+            this.state = 'running'
+            this.elapsed = 0
+            this.suspended = document.hidden
+            this.falls = 0
+            this.noticeFrames = 0
+            this.goalHintCooldown = 0
+            this.spawnPoint = { x: this.levelWidth / 4, y: 230 }
+            this.checkpoints = [{ x: 750, active: false }, { x: 1450, active: false }]
+            this.goalX = 1980
+            this.lastProgress = ''
+            document.getElementById('gameNotice').hidden = true
+            this.clearInput()
+            this.camX = 0
+            this.lastT = null
+            this.accumulator = 0
+            this.spawnJelly()
 
-            const W = this.canvas.width, H = this.canvas.height
+            const W = this.levelWidth, H = 460
+
+            // 地面 + 平台（保留原来的布局）
+            const ground = new Platform(0, H - 40, 1730, 40, '#4CAF50')
+            this.platforms = [
+                ground,
+                new Platform(1830, H - 40, this.worldWidth - 1830, 40, '#4CAF50'),
+                new Platform(W * .5, H * .7, 100, 20),
+                new Platform(W * .8, H * .5, 100, 20),
+                new Platform(W * 1.2, H * .6, 100, 20),
+                new Platform(W * 1.5, H * .4, 100, 20),
+                new Platform(W * 1.8, H * .7, 100, 20),
+                new Platform(W * 2.2, H * .5, 100, 20),
+            ]
+            const moving = this.platforms[4]
+            moving.motion = { baseX: moving.x, amplitude: 45, speed: 0.9 }
+            const mushroom = new Platform(480, 404, 76, 16, '#ec4899')
+            mushroom.kind = 'spring'
+            mushroom.cooldown = 0
+            this.platforms.push(mushroom)
+            this.springPads = [mushroom]
+            this.windZones = [{ x: 1120, y: 130, w: 160, h: 290 }]
+
+            // 星星
+            ;[.6, .9, 1.3, 1.6, 2.0, 2.3].forEach((mx, i) => {
+                this.stars.push(new Star(W * mx, H * [.6, .4, .5, .3, .6, .4][i]))
+            })
+            this.updateProgress()
+            this.updateOverlay()
+        }
+
+        // 只重建果冻：意外掉落时保留已收集的星星。
+        spawnJelly() {
+            this.particles = []; this.springs = []
             const G = this.P.grid, R = this.P.pRadius
 
             // 果冻质点网格
-            const sx = W / 4, sy = H / 2
+            const { x: sx, y: sy } = this.spawnPoint
             for (let y = 0; y < G; y++)
                 for (let x = 0; x < G; x++)
                     this.particles.push(new Particle(sx + x * R * 1.5, sy + y * R * 1.5))
@@ -400,27 +560,11 @@
                     const i = idx(x, y)
                     if (x < G - 1) this.springs.push(new Spring(this.particles[i], this.particles[idx(x + 1, y)], this.P.stiffness, this.P.nonLin))
                     if (y < G - 1) this.springs.push(new Spring(this.particles[i], this.particles[idx(x, y + 1)], this.P.stiffness, this.P.nonLin))
-                    if (x < G - 1 && y < G - 1) this.springs.push(new Spring(this.particles[i], this.particles[idx(x + 1, y + 1)], this.P.stiffness * 0.7, this.P.nonLin))
-                    if (x < G - 1 && y > 0) this.springs.push(new Spring(this.particles[i], this.particles[idx(x + 1, y - 1)], this.P.stiffness * 0.7, this.P.nonLin))
+                    if (x < G - 1 && y < G - 1) this.springs.push(new Spring(this.particles[i], this.particles[idx(x + 1, y + 1)], this.P.stiffness, this.P.nonLin, 0.7))
+                    if (x < G - 1 && y > 0) this.springs.push(new Spring(this.particles[i], this.particles[idx(x + 1, y - 1)], this.P.stiffness, this.P.nonLin, 0.7))
                 }
             }
 
-            // 地面 + 平台
-            const ground = new Platform(0, H - 40, W * 3, 40, '#4CAF50')
-            this.platforms = [
-                ground,
-                new Platform(W * .5, H * .7, 100, 20),
-                new Platform(W * .8, H * .5, 100, 20),
-                new Platform(W * 1.2, H * .6, 100, 20),
-                new Platform(W * 1.5, H * .4, 100, 20),
-                new Platform(W * 1.8, H * .7, 100, 20),
-                new Platform(W * 2.2, H * .5, 100, 20),
-            ]
-
-            // 星星
-            ;[.6, .9, 1.3, 1.6, 2.0, 2.3].forEach((mx, i) => {
-                this.stars.push(new Star(W * mx, H * [.6, .4, .5, .3, .6, .4][i]))
-            })
         }
 
         // ---- 质心 ----
@@ -433,8 +577,30 @@
 
         // ---- 物理更新 ----
         step(dt) {
+            this.elapsed += 1 / 60
+            if (this.noticeFrames > 0 && --this.noticeFrames === 0) document.getElementById('gameNotice').hidden = true
+            if (this.goalHintCooldown > 0) this.goalHintCooldown--
+            // 只带动真正接触移动台面的质点，保留果冻的弯曲、倾斜和翻滚。
+            for (const platform of this.platforms) if (platform.motion) {
+                const previousX = platform.x
+                platform.x = platform.motion.baseX + Math.sin(this.elapsed * platform.motion.speed) * platform.motion.amplitude
+                const dx = platform.x - previousX
+                for (const p of this.particles) {
+                    if (p.onGround && Math.abs(p.y + p.r - platform.y) < 0.6 && p.x + p.r > previousX && p.x - p.r < previousX + platform.w) {
+                        p.x += dx; p.ox += dx
+                    }
+                }
+            }
             // Verlet 积分
             for (const p of this.particles) p.update(dt, this.P.gravity, this.P.damping)
+
+            // 气流逐点作用，身体先进入风区的一侧会先抬起。
+            for (const wind of this.windZones) for (const p of this.particles) {
+                if (p.x > wind.x && p.x < wind.x + wind.w && p.y > wind.y && p.y < wind.y + wind.h) {
+                    const lift = this.P.gravity * dt * dt * 1.5
+                    p.applyForce(0.018 * Math.sin(this.elapsed * 2 + p.y / 70), -lift)
+                }
+            }
 
             // 弹簧迭代 5 次保持稳定
             for (let i = 0; i < 5; i++) for (const s of this.springs) s.update()
@@ -462,19 +628,122 @@
             // 碰撞
             for (const p of this.particles) for (const pl of this.platforms) pl.collide(p)
 
+            // 蘑菇落点给整张质点网格一次向上的冲量，不约束姿态。
+            for (const pad of this.springPads) {
+                if (pad.cooldown > 0) pad.cooldown--
+                if (pad.cooldown === 0 && this.particles.some(p => p.onGround && Math.abs(p.y + p.r - pad.y) < 0.6 && p.x > pad.x && p.x < pad.x + pad.w)) {
+                    const center = this.getCenter()
+                    for (const p of this.particles) {
+                        p.oy = p.y + 5.4 * clamp(1 + (center.y - p.y) / 250, 0.8, 1.2)
+                        p.onGround = false
+                    }
+                    pad.cooldown = 45
+                    this.showNotice('🍄 弹跳蘑菇！在空中也能左右调整')
+                }
+            }
+
+            // 两侧边界，避免离开有限地面后一直坠落。
+            for (const p of this.particles) {
+                if (p.x < p.r) { p.x = p.r; p.ox = p.x }
+                if (p.x > this.worldWidth - p.r) { p.x = this.worldWidth - p.r; p.ox = p.x }
+            }
+
             // 星星收集
             for (const s of this.stars) {
                 if (s.tryCollect(this.particles)) {
                     this.score += 10
-                    document.getElementById('score').textContent = `Score: ${this.score}`
+                    const complete = this.stars.every(star => star.collected)
+                    document.getElementById('score').textContent = `Score: ${this.score}${complete ? ' · 全部收集！' : ''}`
                 }
                 s.update()
             }
 
             // 摄像机跟随
-            const { x: cx } = this.getCenter()
-            const target = cx - this.canvas.width / 3
+            const { x: cx, y: cy } = this.getCenter()
+            if (!this.particles.every(p => Number.isFinite(p.x) && Number.isFinite(p.y)) || cy > 660) {
+                this.clearInput()
+                this.spawnJelly()
+                this.falls++
+                this.camX = clamp(this.getCenter().x - this.viewWidth / 3, 0, Math.max(0, this.worldWidth - this.viewWidth))
+                this.showNotice(this.checkpoints.some(checkpoint => checkpoint.active) ? '已回到检查点，收集的星星还在！' : '再来一次，收集的星星还在！')
+                this.updateProgress()
+                return
+            }
+            for (const checkpoint of this.checkpoints) {
+                if (!checkpoint.active && cx >= checkpoint.x && cy < 420) {
+                    checkpoint.active = true
+                    this.spawnPoint = { x: checkpoint.x - 45, y: 315 }
+                    this.showNotice('✓ 检查点已保存')
+                }
+            }
+            if (cx >= this.goalX - 30 && cy < 420 && this.particles.some(p => p.onGround)) {
+                if (this.stars.every(star => star.collected)) {
+                    this.state = 'won'
+                    this.clearInput()
+                    this.updateOverlay()
+                } else if (this.goalHintCooldown === 0) {
+                    this.showNotice(`还差 ${this.stars.filter(star => !star.collected).length} 颗星星，可以往回找找！`)
+                    this.goalHintCooldown = 240
+                }
+            }
+            const target = clamp(cx - this.viewWidth / 3, 0, Math.max(0, this.worldWidth - this.viewWidth))
             this.camX += (target - this.camX) * 0.1
+            this.updateProgress()
+        }
+
+        showNotice(message) {
+            const notice = document.getElementById('gameNotice')
+            notice.textContent = message
+            notice.hidden = false
+            this.noticeFrames = 180
+        }
+
+        updateProgress() {
+            const progress = clamp(Math.round((this.getCenter().x - 220) / (this.goalX - 220) * 100), 0, 100)
+            const saved = this.checkpoints.filter(checkpoint => checkpoint.active).length
+            const key = `${progress}:${this.score}:${saved}`
+            if (key === this.lastProgress) return
+            this.lastProgress = key
+            document.getElementById('levelProgress').value = progress
+            document.getElementById('starProgress').textContent = `⭐ ${this.score / 10} / ${this.stars.length}`
+            document.getElementById('checkpointProgress').textContent = `检查点 ${saved} / ${this.checkpoints.length}`
+        }
+
+        pause() {
+            if (this.state !== 'running') return
+            this.state = 'paused'
+            this.clearInput()
+            this.accumulator = 0
+            this.updateOverlay()
+        }
+
+        resume() {
+            if (this.state !== 'paused') return
+            this.state = 'running'
+            this.suspended = document.hidden
+            this.clearInput()
+            this.lastT = null
+            this.accumulator = 0
+            this.updateOverlay()
+            this.canvas.focus({ preventScroll: true })
+        }
+
+        updateOverlay() {
+            const $ = id => document.getElementById(id)
+            $('gameOverlay').hidden = this.state === 'running'
+            $('pauseGame').textContent = this.state === 'paused' ? '▶ 继续' : 'Ⅱ 暂停'
+            $('pauseGame').disabled = this.state === 'won'
+            $('pad-pause').disabled = this.state === 'won'
+            if (this.state === 'running') return
+            const won = this.state === 'won'
+            $('overlayTitle').textContent = won ? '⭐ 全部收集，冒险完成！' : '游戏已暂停'
+            const minutes = Math.floor(this.elapsed / 60)
+            const seconds = Math.floor(this.elapsed % 60).toString().padStart(2, '0')
+            $('overlayDescription').textContent = won
+                ? `6 颗星星全部找到啦！\n用时 ${minutes}:${seconds} · 掉落 ${this.falls} 次\n带着你的果冻，再翻滚一遍吧。`
+                : '小果冻等你回来继续冒险。\n按 P / Esc 或点击下方按钮继续。'
+            $('overlayAction').textContent = won ? '再玩一次' : '继续游戏'
+            if (!document.hidden) $('overlayAction').focus({ preventScroll: true })
         }
 
         applyControls() {
@@ -487,9 +756,13 @@
             if (this.keys.right) for (const p of this.particles) p.applyForce(mf * (1 + (cx - p.x) / 100), 0)
 
             if (this.keys.jump && anyGround) {
-                for (const p of this.particles) p.applyForce(0, -this.P.jumpStrength * (1 + (cy - p.y) / 50))
+                // 深度形变时也只向上施力，避免底部质点被跳跃力推入地面。
+                for (const p of this.particles) p.applyForce(0, -this.P.jumpStrength * clamp(1 + (cy - p.y) / 50, 0.2, 2))
+                this.jumpBuffer = 0
                 this.keys.jump = false
             }
+            if (this.jumpBuffer > 0) this.jumpBuffer--
+            if (this.jumpBuffer === 0) this.keys.jump = false
 
             // 空中微调
             if (!anyGround) {
@@ -507,7 +780,8 @@
 
         // ---- 绘制 ----
         draw() {
-            const ctx = this.ctx, W = this.canvas.width, H = this.canvas.height
+            const ctx = this.ctx, W = this.viewWidth, H = this.viewHeight
+            ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0)
 
             // 天空
             const sky = ctx.createLinearGradient(0, 0, 0, H)
@@ -522,10 +796,14 @@
             this.drawCloud(100, 50, 100)
             this.drawCloud(300 - this.camX % 500, 80, 80)
             this.drawCloud(600 - this.camX % 700, 40, 120)
+            this.drawScenery()
 
             // 平台 & 星星（带摄像机偏移）
             ctx.save(); ctx.translate(-this.camX, 0)
-            for (const pl of this.platforms) pl.draw(ctx)
+            for (const pl of this.platforms) if (pl.kind !== 'spring') pl.draw(ctx)
+            this.drawMechanisms()
+            for (const checkpoint of this.checkpoints) this.drawFlag(checkpoint.x, checkpoint.active, false)
+            this.drawFlag(this.goalX, this.stars.every(star => star.collected), true)
             for (const s of this.stars) s.draw(ctx)
             ctx.restore()
 
@@ -536,15 +814,163 @@
             if (this.debug) this.drawDebug()
         }
 
+        drawFlag(x, active, goal) {
+            const ctx = this.ctx, y = 420, height = goal ? 118 : 85
+            ctx.save()
+            ctx.lineWidth = 3; ctx.strokeStyle = '#64748b'
+            ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y - height); ctx.stroke()
+            ctx.fillStyle = goal ? (active ? '#fbbf24' : '#a78bfa') : (active ? '#22c55e' : '#86efac')
+            const wave = Math.sin(this.elapsed * 3 + x) * 3
+            ctx.beginPath(); ctx.moveTo(x + 1, y - height + 4)
+            ctx.quadraticCurveTo(x + 21, y - height + wave, x + 43, y - height + 10)
+            ctx.lineTo(x + 39, y - height + 34)
+            ctx.quadraticCurveTo(x + 20, y - height + 25 + wave, x + 1, y - height + 30)
+            ctx.closePath(); ctx.fill()
+            ctx.fillStyle = '#fff'; ctx.font = 'bold 16px sans-serif'; ctx.textAlign = 'center'
+            ctx.fillText(goal ? '★' : active ? '✓' : '•', x + 20, y - height + 25)
+            ctx.fillStyle = '#fef3c7'; ctx.beginPath(); ctx.arc(x, y - height, 4, 0, Math.PI * 2); ctx.fill()
+            ctx.font = '11px -apple-system, sans-serif'; ctx.fillStyle = '#475569'
+            ctx.fillText(goal ? '终点' : active ? '已保存' : '检查点', x + 17, y + 26)
+            ctx.restore()
+        }
+
+        drawMechanisms() {
+            const ctx = this.ctx
+            ctx.save()
+            for (const wind of this.windZones) {
+                const glow = ctx.createLinearGradient(wind.x, 0, wind.x + wind.w, 0)
+                glow.addColorStop(0, 'rgba(56,189,248,0)')
+                glow.addColorStop(0.5, 'rgba(56,189,248,.16)')
+                glow.addColorStop(1, 'rgba(56,189,248,0)')
+                ctx.fillStyle = glow; ctx.fillRect(wind.x, wind.y, wind.w, wind.h)
+                ctx.strokeStyle = 'rgba(14,165,233,.5)'; ctx.lineWidth = 1.5
+                for (let i = 0; i < 9; i++) {
+                    const y = wind.y + wind.h - (this.elapsed * 46 + i * 37) % wind.h
+                    const x = wind.x + 18 + i % 4 * 38 + Math.sin(this.elapsed + i) * 6
+                    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x - 7, y - 12, x, Math.max(wind.y, y - 25)); ctx.stroke()
+                }
+                ctx.fillStyle = '#0284c7'; ctx.textAlign = 'center'; ctx.font = '11px -apple-system, sans-serif'
+                ctx.fillText('上升气流 ↑', wind.x + wind.w / 2, 445)
+            }
+            for (const platform of this.platforms) if (platform.motion) {
+                ctx.strokeStyle = 'rgba(79,70,229,.35)'; ctx.lineWidth = 1.5; ctx.setLineDash([3, 5])
+                ctx.beginPath(); ctx.moveTo(platform.motion.baseX - platform.motion.amplitude, platform.y + 33)
+                ctx.lineTo(platform.motion.baseX + platform.w + platform.motion.amplitude, platform.y + 33); ctx.stroke(); ctx.setLineDash([])
+                ctx.fillStyle = '#4f46e5'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center'
+                ctx.fillText('↔', platform.x + platform.w / 2, platform.y + 16)
+            }
+            for (const pad of this.springPads) {
+                const bounce = pad.cooldown > 30 ? Math.sin((45 - pad.cooldown) / 15 * Math.PI) * 4 : 0
+                const x = pad.x, y = pad.y + bounce
+                ctx.fillStyle = '#fff1d6'; ctx.strokeStyle = '#d3ac83'; ctx.lineWidth = 1
+                ctx.beginPath(); ctx.roundRect(x + 28, y + 7, 20, 420 - y - 6, 5); ctx.fill(); ctx.stroke()
+                const cap = ctx.createLinearGradient(0, y, 0, y + 16)
+                cap.addColorStop(0, '#fb7185'); cap.addColorStop(1, '#db2777')
+                ctx.fillStyle = cap; ctx.strokeStyle = '#be185d'
+                ctx.beginPath(); ctx.moveTo(x, y + 12); ctx.quadraticCurveTo(x + pad.w / 2, y - 12, x + pad.w, y + 12)
+                ctx.quadraticCurveTo(x + pad.w / 2, y + 23, x, y + 12); ctx.fill(); ctx.stroke()
+                ctx.fillStyle = '#fff1f2'
+                for (const [dx, dy, r] of [[18, 10, 3], [38, 6, 4], [57, 11, 3]]) {
+                    ctx.beginPath(); ctx.ellipse(x + dx, y + dy, r + 1, r, 0, 0, Math.PI * 2); ctx.fill()
+                }
+                ctx.font = '11px -apple-system, sans-serif'; ctx.textAlign = 'center'; ctx.fillStyle = '#9d174d'
+                ctx.fillText('弹跳蘑菇 ↑', x + pad.w / 2, 445)
+            }
+            ctx.restore()
+        }
+
+        drawScenery() {
+            const ctx = this.ctx, W = this.viewWidth, H = this.viewHeight
+            const time = this.elapsed || 0, ground = 420
+            ctx.save()
+            // 远山缓慢经过，近处的小花仍然扎根在关卡里。
+            for (const [spacing, speed, height, color] of [
+                [330, .12, 104, '#B8DEDB'], [280, .25, 68, '#B0DEA8']
+            ]) {
+                ctx.fillStyle = color
+                const offset = this.camX * speed
+                for (let i = Math.floor(offset / spacing) - 1; i < Math.ceil((offset + W) / spacing) + 1; i++) {
+                    const x = i * spacing - offset
+                    const peak = ground - height - Math.sin(i * 2.7) * 25
+                    ctx.beginPath(); ctx.moveTo(x - 35, ground)
+                    ctx.bezierCurveTo(x + 35, ground, x + 35, peak, x + spacing * .5, peak)
+                    ctx.bezierCurveTo(x + spacing - 35, peak, x + spacing - 30, ground, x + spacing + 40, ground)
+                    ctx.lineTo(x + spacing + 40, Math.max(H, ground))
+                    ctx.lineTo(x - 35, Math.max(H, ground)); ctx.closePath(); ctx.fill()
+                }
+            }
+            ctx.translate(-this.camX, 0)
+            const visible = (x, margin = 60) => x > this.camX - margin && x < this.camX + W + margin
+            for (const x of [225, 360, 650, 1040, 1300, 1540, 1880, 2080]) {
+                if (!visible(x)) continue
+                ctx.fillStyle = '#79C77E'; ctx.beginPath()
+                for (const [dx, dy, r] of [[-13, -7, 12], [0, -13, 17], [17, -7, 12]]) {
+                    ctx.moveTo(x + dx + r, ground + dy)
+                    ctx.arc(x + dx, ground + dy, r, 0, Math.PI * 2)
+                }
+                ctx.fill()
+                ctx.fillStyle = '#A5E393'
+                ctx.beginPath(); ctx.ellipse(x - 6, ground - 24, 7, 3, -.25, 0, Math.PI * 2); ctx.fill()
+            }
+            const flowers = [135, 195, 285, 340, 430, 575, 680, 940, 1075, 1325, 1515, 1615, 1660, 1865, 1940, 2050]
+            flowers.forEach((x, i) => {
+                if (!visible(x)) return
+                const sway = Math.sin(time * 1.8 + i * 1.7) * 2
+                const y = ground - 13 - (i % 3) * 5
+                ctx.strokeStyle = '#63AA54'; ctx.lineWidth = 1.5
+                ctx.beginPath(); ctx.moveTo(x, ground); ctx.quadraticCurveTo(x - 2, y + 10, x + sway, y); ctx.stroke()
+                ctx.fillStyle = '#79C96C'
+                ctx.beginPath(); ctx.ellipse(x + 3, ground - 7, 4, 2, -.5, 0, Math.PI * 2); ctx.fill()
+                ctx.fillStyle = ['#FFF8D8', '#F5A2CF', '#FFE082'][i % 3]
+                ctx.beginPath()
+                for (let petal = 0; petal < 5; petal++) {
+                    const a = petal * Math.PI * 2 / 5
+                    const px = x + sway + Math.cos(a) * 3, py = y + Math.sin(a) * 3
+                    ctx.moveTo(px + 2.4, py); ctx.arc(px, py, 2.4, 0, Math.PI * 2)
+                }
+                ctx.fill(); ctx.fillStyle = '#EAAF38'
+                ctx.beginPath(); ctx.arc(x + sway, y, 1.7, 0, Math.PI * 2); ctx.fill()
+            })
+            for (const [i, baseX] of [310, 985, 1570].entries()) {
+                const x = baseX + Math.sin(time * .65 + i * 2) * 22
+                if (!visible(x)) continue
+                const y = ground - 70 + Math.sin(time * 1.4 + i) * 12
+                const wing = 2.5 + Math.abs(Math.sin(time * 7 + i)) * 3
+                ctx.fillStyle = ['#F5B56C', '#BEA8EE', '#F4A6CC'][i]
+                ctx.beginPath(); ctx.ellipse(x - wing * .55, y, wing, 4, -.5, 0, Math.PI * 2)
+                ctx.ellipse(x + wing * .55, y, wing, 4, .5, 0, Math.PI * 2); ctx.fill()
+                ctx.strokeStyle = '#887871'; ctx.lineWidth = 1
+                ctx.beginPath(); ctx.moveTo(x, y - 2); ctx.lineTo(x, y + 3); ctx.stroke()
+            }
+            for (const [x, label] of [[90, '向前探险'], [1675, '跳过小沟']]) {
+                if (!visible(x, 85)) continue
+                ctx.fillStyle = '#B58A55'; ctx.fillRect(x - 2, ground - 43, 5, 43)
+                ctx.fillStyle = '#E7BD7D'; ctx.beginPath()
+                ctx.moveTo(x - 33, ground - 48); ctx.lineTo(x + 27, ground - 48)
+                ctx.lineTo(x + 38, ground - 36); ctx.lineTo(x + 27, ground - 24)
+                ctx.lineTo(x - 33, ground - 24); ctx.closePath(); ctx.fill()
+                ctx.strokeStyle = '#BC925A'; ctx.lineWidth = 1; ctx.stroke()
+                ctx.fillStyle = '#785731'; ctx.font = '11px system-ui, sans-serif'
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, x - 2, ground - 36)
+                ctx.fillStyle = 'rgba(255,246,207,.6)'; ctx.fillRect(x - 29, ground - 45, 48, 1)
+            }
+            ctx.restore()
+        }
+
         drawCloud(x, y, sz) {
             const ctx = this.ctx
-            ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.beginPath()
-            ctx.arc(x, y, sz * .3, 0, Math.PI * 2)
-            ctx.arc(x + sz * .2, y - sz * .1, sz * .25, 0, Math.PI * 2)
-            ctx.arc(x + sz * .4, y, sz * .3, 0, Math.PI * 2)
-            ctx.arc(x + sz * .1, y + sz * .1, sz * .2, 0, Math.PI * 2)
-            ctx.arc(x + sz * .35, y + sz * .1, sz * .25, 0, Math.PI * 2)
+            ctx.save()
+            const cloud = ctx.createLinearGradient(0, y - sz * .35, 0, y + sz * .35)
+            cloud.addColorStop(0, 'rgba(255,255,255,.96)')
+            cloud.addColorStop(.7, 'rgba(255,255,255,.92)')
+            cloud.addColorStop(1, 'rgba(218,239,255,.82)')
+            ctx.fillStyle = cloud; ctx.beginPath()
+            for (const [dx, dy, r] of [[0, 0, .3], [.2, -.1, .25], [.4, 0, .3], [.1, .1, .2], [.35, .1, .25]]) {
+                ctx.moveTo(x + sz * (dx + r), y + sz * dy)
+                ctx.arc(x + sz * dx, y + sz * dy, sz * r, 0, Math.PI * 2)
+            }
             ctx.fill()
+            ctx.restore()
         }
 
         drawJelly() {
@@ -552,7 +978,7 @@
             const { x: cx, y: cy } = this.getCenter()
 
             // 渐变填充
-            const grad = ctx.createLinearGradient(cx - 30, cy - 30, cx + 30, cy + 30)
+            const grad = ctx.createLinearGradient(cx - this.camX - 30, cy - 30, cx - this.camX + 30, cy + 30)
             grad.addColorStop(0, 'rgba(79,70,229,.9)')
             grad.addColorStop(1, 'rgba(236,72,153,.8)')
 
@@ -604,9 +1030,9 @@
         drawDebug() {
             const ctx = this.ctx, { x: cx, y: cy } = this.getCenter()
             ctx.fillStyle = '#000'; ctx.font = '12px monospace'
-            ctx.fillText(`pos: (${cx | 0}, ${cy | 0})`, 10, 20)
+            ctx.fillText(`pos: (${cx | 0}, ${cy | 0})`, 10, 66)
             const vx = this.particles[0].x - this.particles[0].ox
-            ctx.fillText(`vx: ${(vx * 100 | 0) / 100}`, 10, 36)
+            ctx.fillText(`vx: ${(vx * 100 | 0) / 100}`, 10, 82)
 
             ctx.save(); ctx.translate(-this.camX, 0)
             for (const p of this.particles) {
@@ -619,55 +1045,140 @@
 
         // ---- 主循环 ----
         loop(t) {
-            const dt = Math.max(1, Math.min(100, t - this.lastT))
+            const fixedStep = 1000 / 60
+            if (this.lastT === null) this.lastT = t
+            const dt = clamp(t - this.lastT, 0, 100)
             this.lastT = t
-            this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height)
-            this.step(dt / 16)
+            if (!this.suspended && this.state === 'running') {
+                this.accumulator += dt
+                while (this.accumulator + 1e-7 >= fixedStep && this.state === 'running') {
+                    // 沿用原版在 60Hz 时的重力标度，保留默认手感。
+                    this.step(fixedStep / 16)
+                    this.accumulator = Math.max(0, this.accumulator - fixedStep)
+                }
+            }
             this.draw()
             requestAnimationFrame(t => this.loop(t))
         }
 
+        clearInput() {
+            for (const sources of Object.values(this.inputSources)) sources.clear()
+            for (const pointers of this.touchPointers) pointers.clear()
+            this.keys.left = this.keys.right = this.keys.jump = false
+            this.jumpBuffer = 0
+            document.querySelectorAll('.gamepad button').forEach(button => button.classList.remove('pressed'))
+        }
+
+        setInput(action, source, down) {
+            const sources = this.inputSources[action]
+            if (down) {
+                if (this.state !== 'running' || this.suspended) return
+                if (action === 'jump' && sources.size === 0) {
+                    this.keys.jump = true
+                    this.jumpBuffer = 8 // 约 130ms 的落地前输入缓冲，不无限排队
+                }
+                sources.add(source)
+            } else sources.delete(source)
+            if (action !== 'jump') this.keys[action] = sources.size > 0
+        }
+
         // ---- 键盘绑定 ----
         bindKeys() {
-            const map = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right', d: 'right', D: 'right' }
-            const jumpKeys = new Set(['ArrowUp', ' ', 'w', 'W'])
+            const map = { ArrowLeft: 'left', KeyA: 'left', ArrowRight: 'right', KeyD: 'right', ArrowUp: 'jump', KeyW: 'jump', Space: 'jump' }
+            const isControl = target => target instanceof Element && target.closest('input, textarea, select, button, [contenteditable]')
             window.addEventListener('keydown', e => {
-                if (map[e.key]) this.keys[map[e.key]] = true
-                if (jumpKeys.has(e.key)) this.keys.jump = true
+                if (e.ctrlKey || e.metaKey || e.altKey) return
+                const editing = e.target instanceof Element && e.target.closest('input, textarea, select, [contenteditable]')
+                if (editing) return
+                if (e.code === 'KeyP' || e.code === 'Escape') {
+                    e.preventDefault()
+                    if (!e.repeat) this.state === 'running' ? this.pause() : this.resume()
+                    return
+                }
+                if (e.code === 'KeyR') {
+                    e.preventDefault()
+                    if (!e.repeat) { this.init(); this.canvas.focus({ preventScroll: true }) }
+                    return
+                }
+                const action = map[e.code]
+                if (!action || isControl(e.target)) return
+                e.preventDefault()
+                if (!e.repeat) this.setInput(action, `key:${e.code}`, true)
             })
             window.addEventListener('keyup', e => {
-                if (map[e.key]) this.keys[map[e.key]] = false
+                const action = map[e.code]
+                if (!action) return
+                if (!isControl(e.target)) e.preventDefault()
+                this.setInput(action, `key:${e.code}`, false)
             })
+            const suspend = () => { this.pause(); this.clearInput(); this.suspended = true; this.lastT = null; this.accumulator = 0 }
+            const resume = () => { this.suspended = document.hidden; this.lastT = null; this.accumulator = 0 }
+            window.addEventListener('blur', suspend)
+            window.addEventListener('focus', resume)
+            document.addEventListener('visibilitychange', () => document.hidden ? suspend() : resume())
+            this.canvas.addEventListener('pointerdown', () => this.canvas.focus({ preventScroll: true }))
         }
 
         // ---- 手机虚拟按键 ----
         bindTouch() {
-            const bind = (id, onDown, onUp) => {
+            const bind = (id, action) => {
                 const el = document.getElementById(id)
                 if (!el) return
-                const down = e => { e.preventDefault(); el.classList.add('pressed'); onDown() }
-                const up = e => { el.classList.remove('pressed'); onUp() }
-                el.addEventListener('touchstart', down, { passive: false })
-                el.addEventListener('touchend', up)
-                el.addEventListener('touchcancel', up)
+                const pointers = new Set()
+                this.touchPointers.push(pointers)
+                el.addEventListener('pointerdown', e => {
+                    if (e.pointerType === 'mouse' && e.button !== 0) return
+                    e.preventDefault()
+                    if (this.state !== 'running' || this.suspended) return
+                    el.setPointerCapture(e.pointerId)
+                    pointers.add(e.pointerId)
+                    el.classList.add('pressed')
+                    this.setInput(action, `pointer:${e.pointerId}`, true)
+                })
+                const release = e => {
+                    pointers.delete(e.pointerId)
+                    el.classList.toggle('pressed', pointers.size > 0)
+                    this.setInput(action, `pointer:${e.pointerId}`, false)
+                }
+                el.addEventListener('pointerup', release)
+                el.addEventListener('pointercancel', release)
+                el.addEventListener('lostpointercapture', release)
+                el.addEventListener('contextmenu', e => e.preventDefault())
             }
-            bind('pad-left',  () => this.keys.left = true,  () => this.keys.left = false)
-            bind('pad-right', () => this.keys.right = true, () => this.keys.right = false)
-            bind('pad-jump',  () => this.keys.jump = true,  () => {})
+            bind('pad-left', 'left')
+            bind('pad-right', 'right')
+            bind('pad-jump', 'jump')
         }
 
         // ---- 控件绑定 ----
         bindControls() {
             const $ = id => document.getElementById(id)
-
-            $('stiffness').addEventListener('input', e => {
-                this.P.stiffness = +e.target.value
-                for (const s of this.springs) s.stiffness = this.P.stiffness
+            const defaults = { stiffness: 0.08, gravity: 0.06, jumpStrength: 12 }
+            const applyParameter = id => {
+                this.P[id] = +$(id).value
+                $(`${id}Value`).textContent = String(this.P[id])
+                if (id === 'stiffness') for (const s of this.springs) s.stiffness = this.P.stiffness * s.stiffnessScale
+            }
+            for (const id of Object.keys(defaults)) {
+                $(id).addEventListener('input', () => applyParameter(id))
+                applyParameter(id)
+            }
+            $('resetParams').addEventListener('click', () => {
+                for (const [id, value] of Object.entries(defaults)) { $(id).value = value; applyParameter(id) }
+                this.canvas.focus({ preventScroll: true })
             })
-            $('gravity').addEventListener('input', e => { this.P.gravity = +e.target.value })
-            $('jumpStrength').addEventListener('input', e => { this.P.jumpStrength = +e.target.value })
-            $('resetGame').addEventListener('click', () => this.init())
-            $('toggleDebug').addEventListener('click', () => { this.debug = !this.debug })
+            $('pauseGame').addEventListener('click', () => this.state === 'running' ? this.pause() : this.resume())
+            $('pad-pause').addEventListener('click', () => this.pause())
+            $('overlayAction').addEventListener('click', () => {
+                if (this.state === 'won') { this.init(); this.canvas.focus({ preventScroll: true }) }
+                else this.resume()
+            })
+            $('resetGame').addEventListener('click', () => { this.init(); this.canvas.focus({ preventScroll: true }) })
+            $('toggleDebug').addEventListener('click', () => {
+                this.debug = !this.debug
+                $('toggleDebug').setAttribute('aria-pressed', String(this.debug))
+                this.canvas.focus({ preventScroll: true })
+            })
         }
     }
 
