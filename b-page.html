@@ -1,226 +1,65 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>b page</title>
     <style>
-      * {
-        margin: 0;
-        padding: 0;
-      }
-
+      * { box-sizing: border-box; margin: 0; padding: 0; }
       #playground {
-        width: 100vw;
-        height: 100vh;
-        font-size: 16px;
-        font-family: "Hiragino Sans GB", "STXihei";
+        min-height: 100vh;
+        min-height: 100dvh;
+        font: 14px/1.6 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
         color: #372d52;
       }
-
       .menu__column {
         position: fixed;
-        display: flex;
-        flex-direction: column;
         width: 200px;
-        box-shadow: 2px 1px 1px #a7783d, -1px -1px 1px #fff;
-        background-color: antiquewhite;
-        border-radius: 4px;
+        max-width: calc(100vw - 16px);
+        max-height: calc(100vh - 16px);
+        max-height: calc(100dvh - 16px);
+        overflow-y: auto;
+        padding: 4px;
+        border: 1px solid #e6d4bc;
+        border-radius: 7px;
+        background: #fff6e8;
+        box-shadow: 0 4px 14px #57452e20;
+        scrollbar-width: thin;
+        animation: appear 120ms ease-out;
       }
+      .menu__start { left: 8px; top: 8px; }
       .menu__item {
         display: flex;
-        margin: 2px;
-        padding: 2px 6px 2px 6px;
+        align-items: flex-start;
         justify-content: space-between;
+        gap: 10px;
+        width: 100%;
+        padding: 5px 8px;
+        border: 0;
+        border-radius: 4px;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        overflow-wrap: anywhere;
+        cursor: pointer;
       }
-      .menu__item--on-path,
-      .menu__item:hover {
-        border-radius: 8px;
-        background-color: aliceblue;
-        /* color: #fff; */
-      }
-      .menu__icon {
-        width: 16px;
-        height: 16px;
-        /* color: #000; */
-        font-weight: bolder;
-      }
+      .menu__item--on-path, .menu__item:hover { background: #eaf2f5; }
+      .menu__item:focus-visible { outline: 2px solid #91a5b4; outline-offset: -2px; }
+      .menu__icon { flex-shrink: 0; color: #9d8d78; }
+      @keyframes appear { from { opacity: 0; } to { opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { .menu__column { animation: none; } }
     </style>
   </head>
   <body>
-    <div id="playground"></div>
+    <div id="playground">
+      <div class="menu__column menu__start">
+        <button class="menu__item" id="start" aria-expanded="false">
+          Start~<span class="menu__icon" aria-hidden="true">›</span>
+        </button>
+      </div>
+    </div>
     <script>
-      let position = {
-        x: 0,
-        y: 0,
-      }
-      let direction = {
-        x: "right",
-        y: "bottom",
-      }
-
-      let adjustXY = {
-        x: 0,
-        y: 0,
-      }
-      // 新添加的栏，要在哪个方向上新增
-      function getAppendDirection(position = position, size = adjustXY) {
-        const { x, y } = position
-        const { innerWidth, innerHeight } = window
-        const { x: width, y: height } = size
-        if (x + (width + 200) > innerWidth) {
-          direction.x = "left"
-        }
-        if (y + height > innerHeight) {
-          direction.y = "top"
-        }
-        if (x - (width + 200) < 0) {
-          direction.x = "right"
-        }
-        if (y - height < 0) {
-          direction.y = "bottom"
-        }
-        const directionstr = `${direction.x}-${direction.y}`
-        return directionstr
-      }
-      function operateAdjustXY(adjustXY, direction) {
-        switch (direction) {
-          case "right-bottom":
-            adjustXY.x = 190
-            adjustXY.y = 21
-            break
-          case "left-bottom":
-            adjustXY.x = -190
-            adjustXY.y = 21
-            break
-          case "right-top":
-            adjustXY.x = 190
-            adjustXY.y = -21
-            break
-          case "left-top":
-            adjustXY.x = -190
-            adjustXY.y = -21
-            break
-          default:
-            break
-        }
-      }
-
-      let layer = -1
-      function renderOneLayer(name = "0", root = playground) {
-        const thisPosition = position
-        const selfData = getNode(name, article) || article[0]
-
-        if (!selfData) return
-        if (!selfData.children) return
-        const selfEle = document.createElement("div")
-        selfEle.classList.add("menu__column")
-        selfEle.setAttribute("data-name", name)
-        selfEle.style.left = `${thisPosition.x}px`
-        selfEle.style.top = `${thisPosition.y}px`
-        selfEle.innerHTML = `${selfData.children.map((child) => `<div class="menu__item" data-name=${child.name}>${child.content + (child.children ? '<div class="menu__icon">></div>' : "")}</div>`).join("")}`
-        root.appendChild(selfEle)
-        selfEle.animate(
-          [
-            {
-              opacity: 0,
-              transform: "translateY(-20px)",
-            },
-            {
-              opacity: 1,
-              transform: "translateY(0px)",
-            },
-          ],
-          {
-            duration: 200,
-            easing: "ease-in-out",
-          }
-        )
-        const items = selfEle.querySelectorAll(".menu__item")
-
-        // get next position
-        operateAdjustXY(adjustXY, getAppendDirection(thisPosition))
-
-        items.forEach((item, index) => {
-          const name = item.getAttribute("data-name")
-          const data = getNode(name, article)
-
-          // layer 这个变量什么时候更新合适？
-          item.addEventListener("mouseenter", function (e) {
-            // 这里的这个函数也许可以抽出来，里面的 item 等同与 e.target，加防抖节流也方便。但...总觉得那样并不好。
-            // 总而言之这现在是个递归，再搞得到处都是，看代码跳来跳去...得不偿失。
-            let thisLayer = e.target.getAttribute("data-name").length
-            position.x = item.getBoundingClientRect().left + adjustXY.x
-            position.y = item.getBoundingClientRect().top + adjustXY.y
-
-            let tobeRemoved = []
-
-            if (layer - thisLayer === 0) {
-              const siblings = getSiblings(e.target.getAttribute("data-name"), article)
-              const children = siblings.map((sibling) => getChildren(sibling.name, article)).flat()
-              tobeRemoved = [...siblings, ...children]
-            }
-            if (layer - thisLayer > 0) {
-              tobeRemoved = getChildren(e.target.getAttribute("data-name"), article)
-            }
-            if (layer - thisLayer < 0) {
-            }
-
-            tobeRemoved.forEach((child) => {
-              const columnEles = document.querySelectorAll(".menu__column")
-              const childEle = [...columnEles].find((ele) => ele.getAttribute("data-name") === child.name)
-              if (childEle) childEle.remove()
-            })
-            if (data.children) renderOneLayer(e.target.getAttribute("data-name"))
-            layer = thisLayer
-          })
-        })
-      }
-
-      function getNode(name, article) {
-        let node = null
-        for (let i = 0; i < article.length; i++) {
-          if (article[i].name === name) {
-            node = article[i]
-            break
-          } else if (article[i].children) {
-            node = getNode(name, article[i].children)
-            if (node) {
-              break
-            }
-          }
-        }
-        return node
-      }
-      function getSiblings(name, article) {
-        let siblings = null
-        for (let i = 0; i < article.length; i++) {
-          if (article[i].name === name) {
-            siblings = article // this is the only difference between getSiblings and getNode...?
-            break
-          } else if (article[i].children) {
-            siblings = getSiblings(name, article[i].children)
-            if (siblings) {
-              break
-            }
-          }
-        }
-        return siblings
-      }
-
-      function getChildren(name, article) {
-        let children = []
-        getNode(name, article)?.children?.forEach((child) => {
-          children.push(child)
-          if (child.children) {
-            children = children.concat(getChildren(child.name, article))
-          }
-        })
-        return children
-      }
-
-      const playground = document.getElementById("playground")
-      const background = document.getElementById("background")
       const article = [
         {
           name: "",
@@ -411,35 +250,119 @@
           ],
         },
       ]
-      function init() {
-        const start = document.createElement("div")
-        start.innerHTML = `
-                <div class="menu__column" data-name="start00000000" style="left: 0px;top: 0px;">
-                    <div class="menu__item" data-name="0">Start~<div class="menu__icon">></div></div>
-                </div>
-            `
-        start.addEventListener("click", (e) => {
-          document.querySelectorAll(".menu__column").forEach((ele) => {
-            if (ele.getAttribute("data-name") !== "start00000000") {
-              ele.remove()
-            }
-          })
-          position.x = 200
-          position.y = 21
-          renderOneLayer("0")
-        })
-        playground.appendChild(start)
-        document.addEventListener("click", (e) => {
-          if (e.target === playground) {
-            document.querySelectorAll(".menu__column").forEach((ele) => {
-              if (ele.getAttribute("data-name") !== "start00000000") {
-                ele.remove()
-              }
-            })
-          }
+
+      const playground = document.getElementById("playground")
+      const start = document.getElementById("start")
+      const menus = []
+
+      // Each array entry is one open level; switching a branch removes all later levels.
+      function closeMenus(from = 0) {
+        menus.splice(from).reverse().forEach(({ element, trigger }) => {
+          element.remove()
+          trigger.classList.remove("menu__item--on-path")
+          trigger.setAttribute("aria-expanded", "false")
         })
       }
-      init()
+
+      function positionMenu(menu, trigger) {
+        const margin = 8
+        const gap = 4
+        const anchor = trigger.getBoundingClientRect()
+        const { width, height } = menu.getBoundingClientRect()
+        let x = anchor.right + gap
+        let y = anchor.top
+        if (x + width > window.innerWidth - margin) x = anchor.left - width - gap
+        // If two columns cannot fit side by side, open below the trigger.
+        if (x < margin) {
+          x = anchor.left
+          y = anchor.bottom + gap
+        }
+        menu.style.left = `${Math.max(margin, Math.min(x, window.innerWidth - width - margin))}px`
+        menu.style.top = `${Math.max(margin, Math.min(y, window.innerHeight - height - margin))}px`
+      }
+
+      function openMenu(node, trigger, depth) {
+        if (menus[depth]?.node === node) return
+        closeMenus(depth)
+        if (!node.children?.length) return
+
+        const menu = document.createElement("div")
+        menu.className = "menu__column"
+        menu.style.zIndex = depth + 1
+        node.children.forEach((child) => {
+          const item = document.createElement("button")
+          item.className = "menu__item"
+          item.dataset.name = child.name
+          const text = document.createElement("span")
+          text.textContent = child.content
+          item.appendChild(text)
+          if (child.children?.length) {
+            item.setAttribute("aria-expanded", "false")
+            const arrow = document.createElement("span")
+            arrow.className = "menu__icon"
+            arrow.setAttribute("aria-hidden", "true")
+            arrow.textContent = "›"
+            item.appendChild(arrow)
+          }
+          item.addEventListener("pointerenter", (event) => {
+            if (event.pointerType === "mouse") openMenu(child, item, depth + 1)
+          })
+          item.addEventListener("click", () => openMenu(child, item, depth + 1))
+          item.addEventListener("keydown", (event) => {
+            const siblings = [...menu.children]
+            const index = siblings.indexOf(item)
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault()
+              const step = event.key === "ArrowDown" ? 1 : -1
+              siblings[(index + step + siblings.length) % siblings.length].focus()
+            } else if (event.key === "ArrowRight" && child.children?.length) {
+              event.preventDefault()
+              openMenu(child, item, depth + 1)
+              menus[depth + 1].element.firstElementChild.focus()
+            } else if (event.key === "ArrowLeft") {
+              event.preventDefault()
+              closeMenus(depth)
+              trigger.focus()
+            }
+          })
+          menu.appendChild(item)
+        })
+        playground.appendChild(menu)
+        menus.push({ node, element: menu, trigger })
+        trigger.classList.add("menu__item--on-path")
+        trigger.setAttribute("aria-expanded", "true")
+        positionMenu(menu, trigger)
+        // Scrolling a parent invalidates the positions of its descendants.
+        menu.addEventListener("scroll", () => closeMenus(depth + 1), { passive: true })
+      }
+
+      start.addEventListener("click", () => {
+        if (menus.length) closeMenus()
+        else openMenu(article[0], start, 0)
+      })
+      start.addEventListener("keydown", (event) => {
+        if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+          event.preventDefault()
+          openMenu(article[0], start, 0)
+          menus[0].element.firstElementChild.focus()
+        }
+      })
+      document.addEventListener("click", (event) => {
+        if (!event.target.closest(".menu__column")) closeMenus()
+      })
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && menus.length) {
+          event.preventDefault()
+          const trigger = menus.at(-1).trigger
+          closeMenus(menus.length - 1)
+          trigger.focus()
+        }
+      })
+      window.addEventListener("resize", () => {
+        const restoreFocus = menus.some(({ element }) => element.contains(document.activeElement))
+        closeMenus()
+        if (restoreFocus) start.focus()
+      })
     </script>
   </body>
 </html>
