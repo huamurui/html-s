@@ -254,6 +254,7 @@
       const playground = document.getElementById("playground")
       const start = document.getElementById("start")
       const menus = []
+      let suppressHoverUntil = 0
 
       // Each array entry is one open level; switching a branch removes all later levels.
       function closeMenus(from = 0) {
@@ -305,10 +306,11 @@
             item.appendChild(arrow)
           }
           item.addEventListener("pointerenter", (event) => {
-            if (event.pointerType === "mouse") openMenu(child, item, depth + 1)
+            if (event.pointerType === "mouse" && performance.now() >= suppressHoverUntil) openMenu(child, item, depth + 1)
           })
           item.addEventListener("click", () => openMenu(child, item, depth + 1))
           item.addEventListener("keydown", (event) => {
+            suppressHoverUntil = performance.now() + 300
             const siblings = [...menu.children]
             const index = siblings.indexOf(item)
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -353,6 +355,7 @@
       document.addEventListener("keydown", (event) => {
         if (event.key === "Escape" && menus.length) {
           event.preventDefault()
+          suppressHoverUntil = performance.now() + 300
           const trigger = menus.at(-1).trigger
           closeMenus(menus.length - 1)
           trigger.focus()
