@@ -25,6 +25,7 @@ i want to make some simple demo just through single html file.
 - [fluid2](./fluid2.html) (by Gemini)
 - [boids2](./boids2.html) (by Gemini)
 - [shadow2](./shadow2.html) (by Gemini)
+- [boids3](./boids3.html) (by Gemini)
 
 other interesting toys:  
 

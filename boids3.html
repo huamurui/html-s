@@ -1,0 +1,1715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Boids No.3 · ASCII 金鱼池</title>
+  <meta name="description" content="受 ascii-sharks 启发的单文件 ASCII 金鱼池：多节脊柱动力学大金鱼 + 空间哈希 Boids 小鱼群 + 水波焦散、投喂涟漪与可绘制礁石。" />
+  <style>
+    :root {
+      --hud-bg: rgba(244, 240, 230, 0.86);
+      --hud-bg-strong: rgba(248, 245, 237, 0.96);
+      --hud-border: rgba(24, 24, 22, 0.14);
+      --hud-border-strong: rgba(24, 24, 22, 0.30);
+      --hud-ink: #181816;
+      --hud-mute: #656055;
+      --hud-pill: rgba(24, 24, 22, 0.05);
+      --hud-pill-hover: rgba(24, 24, 22, 0.11);
+      --accent: #c93b2b;
+      --accent-ink: #faf7f0;
+      --danger: #b91c1c;
+      --shadow: 0 12px 32px rgba(28, 24, 18, 0.14);
+      --sans: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #f4f0e6;
+      font-family: var(--sans);
+      color: var(--hud-ink);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #ascii {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ---------- Top-Left Badge ---------- */
+    .hud-badge {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s ease, background 0.25s ease, border-color 0.25s ease;
+    }
+    .badge-top {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      flex: none;
+    }
+    .badge-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .badge-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--hud-mute);
+    }
+    .badge-hint {
+      font-size: 11.5px;
+      color: var(--hud-mute);
+      transition: opacity 0.6s ease;
+    }
+    .badge-hint.dimmed { opacity: 0.55; }
+
+    /* ---------- Bottom Dock ---------- */
+    .dock {
+      position: fixed;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      max-width: calc(100vw - 24px);
+      padding: 6px 8px;
+      border-radius: 16px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      scrollbar-width: none;
+      transition: opacity 0.28s ease, transform 0.28s ease, background 0.25s ease, border-color 0.25s ease;
+    }
+    .dock::-webkit-scrollbar { display: none; }
+
+    .dock-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px;
+      border-radius: 11px;
+      background: var(--hud-pill);
+      border: 1px solid var(--hud-border);
+      flex: none;
+    }
+    .dock-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--hud-border);
+      flex: none;
+    }
+    .pill-btn {
+      height: 30px;
+      padding: 0 11px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--hud-mute);
+      font-size: 12.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+    .pill-btn:hover {
+      background: var(--hud-pill-hover);
+      color: var(--hud-ink);
+    }
+    .pill-btn:active { transform: scale(0.97); }
+    .pill-btn[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    .act-btn {
+      height: 32px;
+      padding: 0 11px;
+      border-radius: 10px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-pill);
+      color: var(--hud-ink);
+      font-size: 12.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex: none;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .act-btn:hover {
+      background: var(--hud-pill-hover);
+      border-color: var(--hud-border-strong);
+    }
+    .act-btn:active { transform: scale(0.97); }
+    .act-btn[aria-pressed="true"],
+    .act-btn[aria-expanded="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    /* ---------- Right Collapsible Inspector ---------- */
+    .drawer {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      bottom: 78px;
+      width: min(312px, calc(100vw - 28px));
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      background: var(--hud-bg-strong);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateX(calc(100% + 28px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease, background 0.25s ease;
+    }
+    .drawer.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--hud-border);
+      flex: none;
+    }
+    .drawer-head h2 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-pill);
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+    }
+    .close-btn:hover { background: var(--hud-pill-hover); }
+
+    .drawer-body {
+      padding: 14px 16px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--hud-mute);
+      margin-bottom: 8px;
+    }
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+    .choice-btn {
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-pill);
+      color: var(--hud-ink);
+      font-size: 12px;
+      font-weight: 500;
+      transition: background 0.14s ease, border-color 0.14s ease;
+    }
+    .choice-btn:hover {
+      background: var(--hud-pill-hover);
+      border-color: var(--hud-border-strong);
+    }
+    .choice-btn[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    .sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .slider-head output {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--hud-mute);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 18px;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--hud-border-strong);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--hud-bg-strong);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--hud-border-strong);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--hud-bg-strong);
+    }
+
+    .switches {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+    }
+    .switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--hud-border-strong);
+      background: var(--hud-pill);
+      padding: 0;
+      transition: background 0.18s ease, border-color 0.18s ease;
+    }
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--hud-ink);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+    .switch[aria-checked="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .switch[aria-checked="true"]::after {
+      transform: translateX(16px);
+      background: var(--accent-ink);
+    }
+
+    .danger-btn {
+      width: 100%;
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid rgba(244, 63, 94, 0.35);
+      background: rgba(244, 63, 94, 0.10);
+      color: var(--danger);
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+    .danger-btn:hover { background: rgba(244, 63, 94, 0.18); }
+
+    .shortcuts {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--hud-mute);
+      line-height: 1.7;
+      border-top: 1px solid var(--hud-border);
+      padding-top: 10px;
+    }
+    kbd {
+      display: inline-block;
+      padding: 0 5px;
+      border-radius: 4px;
+      border: 1px solid var(--hud-border-strong);
+      background: var(--hud-pill);
+      color: var(--hud-ink);
+      font-size: 10.5px;
+    }
+
+    body.hud-hidden .hud-badge,
+    body.hud-hidden .dock,
+    body.hud-hidden .drawer {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(14px);
+    }
+    body.hud-hidden .dock { transform: translate(-50%, 20px); }
+  </style>
+</head>
+<body data-ui-theme="light">
+  <canvas id="ascii" aria-label="宣纸打字机 ASCII 金鱼池画布"></canvas>
+
+  <header class="hud-badge">
+    <div class="badge-top">
+      <span class="badge-dot" aria-hidden="true"></span>
+      <span class="badge-title">Boids No.3 // 宣纸打字机金鱼池</span>
+      <span class="badge-meta" id="telemetry">60 FPS · Init…</span>
+    </div>
+    <div class="badge-hint" id="badge-hint">移动光标搅动水波 · 点击投喂吸引 · 右键绘制礁石 · H 隐藏界面</div>
+  </header>
+
+  <nav class="dock" aria-label="ASCII 金鱼池控制栏">
+    <div class="dock-group" role="group" aria-label="字符集">
+      <button class="pill-btn" data-charset="classic" aria-pressed="true">ASCII</button>
+      <button class="pill-btn" data-charset="blocks" aria-pressed="false">方块</button>
+      <button class="pill-btn" data-charset="hanzi" aria-pressed="false">汉字水墨</button>
+    </div>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <div class="dock-group" role="group" aria-label="交互工具">
+      <button class="pill-btn" data-tool="feed" aria-pressed="true">投喂</button>
+      <button class="pill-btn" data-tool="splash" aria-pressed="false">惊扰</button>
+      <button class="pill-btn" data-tool="wall" aria-pressed="false">画礁石</button>
+    </div>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <button class="act-btn" id="btn-pause" aria-pressed="false" title="暂停/继续 (P)">暂停</button>
+    <button class="act-btn" id="btn-reset" title="重置金鱼池 (R)">重置</button>
+    <button class="act-btn" id="btn-drawer" aria-expanded="false" aria-controls="inspector" title="参数面板 (I)">参数</button>
+  </nav>
+
+  <aside class="drawer" id="inspector" aria-label="ASCII 金鱼池参数面板">
+    <div class="drawer-head">
+      <h2>宣纸池 · 参数</h2>
+      <button class="close-btn" id="btn-close-drawer" aria-label="关闭参数面板">×</button>
+    </div>
+    <div class="drawer-body">
+      <div>
+        <div class="section-label">字符密度 · Grid Density</div>
+        <div class="grid-3">
+          <button class="choice-btn" data-density="sparse" aria-pressed="false">疏 (大字)</button>
+          <button class="choice-btn" data-density="medium" aria-pressed="true">适中</button>
+          <button class="choice-btn" data-density="dense" aria-pressed="false">密 (细腻)</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">生态与 Boids · Ecology</div>
+        <div class="sliders">
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-hero">大金鱼数量 Goldfish</label><output id="out-hero">3</output></div>
+            <input id="sl-hero" type="range" min="1" max="10" step="1" value="3" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-school">Boids 小鱼群 School</label><output id="out-school">120</output></div>
+            <input id="sl-school" type="range" min="40" max="400" step="10" value="120" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-sep">分离权重 Separation</label><output id="out-sep">1.55</output></div>
+            <input id="sl-sep" type="range" min="0" max="3" step="0.05" value="1.55" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-ali">对齐权重 Alignment</label><output id="out-ali">1.20</output></div>
+            <input id="sl-ali" type="range" min="0" max="3" step="0.05" value="1.20" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-coh">凝聚权重 Cohesion</label><output id="out-coh">1.05</output></div>
+            <input id="sl-coh" type="range" min="0" max="3" step="0.05" value="1.05" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-caustics">水波底纹强度 Caustics</label><output id="out-caustics">0.35</output></div>
+            <input id="sl-caustics" type="range" min="0" max="1" step="0.05" value="0.35" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">显示开关 · Display</div>
+        <div class="switches">
+          <div class="switch-row">
+            <span>游动尾迹 Trails</span>
+            <button class="switch" id="sw-trails" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="switch-row">
+            <span>柔和边界转向 Soft Walls</span>
+            <button class="switch" id="sw-walls" role="switch" aria-checked="true"></button>
+          </div>
+        </div>
+      </div>
+
+      <button class="danger-btn" id="btn-clear-obs">清除全部礁石</button>
+
+      <div class="shortcuts">
+        <kbd>1</kbd>-<kbd>3</kbd> 切换字符集 · <kbd>P</kbd> 暂停<br />
+        <kbd>R</kbd> 重置 · <kbd>I</kbd> 参数 · <kbd>H</kbd> 隐藏界面<br />
+        左键按工具交互 · 右键直接画礁石
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* =========================================================
+       * Palettes & Character Sets
+       * ========================================================= */
+      // Palette indices (Xuan Paper Typewriter):
+      // 0..2: water caustics (faint -> soft ink)
+      // 3: bubble / ripple
+      // 4..6: rock (shadow, mid, highlight)
+      // 7..9: school fish (dim, mid, startled vermilion)
+      // 10..12: Ryukin vermilion (shadow, mid, bright)
+      // 13..15: Pearl-ivory / silver-ink
+      // 16..18: Imperial gold-ochre
+      // 19..21: Pine-soot ink black
+      // 22: eye
+      // 23: food pellet
+      const PAPER_PALETTE = {
+        bg: "#f4f0e6",
+        colors: [
+          "#e5dfd2", "#d7d0c0", "#c4bba8",
+          "#78716c",
+          "#78716c", "#44403c", "#1c1917",
+          "#a8a29e", "#57534e", "#c93b2b",
+          "#991b1b", "#c93b2b", "#e04838",
+          "#91887b", "#5c554c", "#2e2a25",
+          "#854d0e", "#b45309", "#d97706",
+          "#57534e", "#292524", "#0c0a09",
+          "#000000",
+          "#c93b2b"
+        ]
+      };
+
+      const CHARSETS = {
+        classic: {
+          water: [" ", "·", ".", "~", "≈"],
+          body: ["=", "+", "*", "#", "%", "@"],
+          fin: [":", "-", "~", "="],
+          rock: ["░", ":", "#", "%", "@"],
+          school: [">", "<", "^", "v", "/", "\\"],
+          trail: ["·", ":", "-"],
+          eye: "@",
+          pellet: "¤",
+          bubble: "°"
+        },
+        blocks: {
+          water: [" ", "·", "∙", "~", "≈"],
+          body: ["▒", "▒", "▓", "▓", "█", "█"],
+          fin: ["·", "░", "▒", "░"],
+          rock: ["░", "▒", "▓", "█", "█"],
+          school: ["▸", "◂", "▴", "▾", "◥", "◣"],
+          trail: ["·", "∙", "░"],
+          eye: "●",
+          pellet: "◆",
+          bubble: "○"
+        },
+        hanzi: {
+          water: [" ", "·", "、", "~", "水"],
+          body: ["波", "纹", "鳞", "锦", "鱼", "金"],
+          fin: ["丝", "羽", "影", "纹"],
+          rock: ["石", "岩", "礁", "山", "墨"],
+          school: ["鱼", "小", "鳞", "梭", "游", "跃"],
+          trail: ["·", "、", "波"],
+          eye: "●",
+          pellet: "珠",
+          bubble: "泡"
+        }
+      };
+
+      const DENSITIES = {
+        sparse: 14,
+        medium: 11,
+        dense: 8.5
+      };
+
+      /* =========================================================
+       * State & Buffers
+       * ========================================================= */
+      const state = {
+        tool: "feed",
+        density: "medium",
+        charset: "classic",
+        heroCount: 3,
+        schoolCount: 120,
+        separation: 1.55,
+        alignment: 1.20,
+        cohesion: 1.05,
+        perception: 64,
+        maxSpeed: 3.4,
+        maxForce: 0.14,
+        causticsStrength: 0.35,
+        trails: true,
+        softWalls: true,
+        paused: false,
+        hudHidden: false
+      };
+
+      const canvas = document.getElementById("ascii");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const telemetryEl = document.getElementById("telemetry");
+      const hintEl = document.getElementById("badge-hint");
+
+      let W = window.innerWidth;
+      let H = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let fontSize = 11;
+      let cellW = 7;
+      let cellH = 13;
+      let cols = 100;
+      let rows = 50;
+      let gridSize = 5000;
+
+      let charBuf = new Uint16Array(1);
+      let palBuf = new Uint8Array(1);
+      let zBuf = new Float32Array(1);
+      const buckets = Array.from({ length: 24 }, () => []);
+
+      function resizeGrid() {
+        W = Math.max(320, window.innerWidth);
+        H = Math.max(240, window.innerHeight);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(W * dpr);
+        canvas.height = Math.floor(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        fontSize = DENSITIES[state.density];
+        cellW = state.charset === "hanzi"
+          ? Math.max(8, Math.round(fontSize * 1.08))
+          : Math.max(5, Math.round(fontSize * 0.64));
+        cellH = Math.max(9, Math.round(fontSize * 1.18));
+        cols = Math.max(20, Math.ceil(W / cellW));
+        rows = Math.max(12, Math.ceil(H / cellH));
+        gridSize = cols * rows;
+
+        if (charBuf.length < gridSize) {
+          charBuf = new Uint16Array(gridSize);
+          palBuf = new Uint8Array(gridSize);
+          zBuf = new Float32Array(gridSize);
+        }
+      }
+
+      /* =========================================================
+       * School Boids (Typed Arrays + Zero-Alloc Spatial Hash)
+       * ========================================================= */
+      const MAX_SCHOOL = 400;
+      const SCHOOL_TRAIL = 4;
+      const sx = new Float32Array(MAX_SCHOOL);
+      const sy = new Float32Array(MAX_SCHOOL);
+      const svx = new Float32Array(MAX_SCHOOL);
+      const svy = new Float32Array(MAX_SCHOOL);
+      const sPhase = new Float32Array(MAX_SCHOOL);
+      const sPanic = new Float32Array(MAX_SCHOOL);
+      const sDepth = new Float32Array(MAX_SCHOOL);
+      const sTrailX = new Float32Array(MAX_SCHOOL * SCHOOL_TRAIL);
+      const sTrailY = new Float32Array(MAX_SCHOOL * SCHOOL_TRAIL);
+      let sTrailCursor = 0;
+
+      const sNext = new Int32Array(MAX_SCHOOL);
+      let sHead = new Int32Array(4096);
+
+      /* =========================================================
+       * Articulated Hero Goldfish (10-Node Spine, 5 Breeds)
+       * ========================================================= */
+      const MAX_HERO = 10;
+      const SEG_COUNT = 10;
+      const heroFish = [];
+
+      function createHeroGoldfish(idx) {
+        const angle = Math.random() * Math.PI * 2;
+        const x = W * (0.2 + Math.random() * 0.6);
+        const y = H * (0.2 + Math.random() * 0.6);
+        const scale = 0.92 + (idx % 3) * 0.14 + Math.random() * 0.08;
+        const segLen = scale * 17.5;
+        const baseX = new Float32Array(SEG_COUNT);
+        const baseY = new Float32Array(SEG_COUNT);
+        const segX = new Float32Array(SEG_COUNT);
+        const segY = new Float32Array(SEG_COUNT);
+        for (let k = 0; k < SEG_COUNT; k++) {
+          const sxp = x - Math.cos(angle) * k * segLen;
+          const syp = y - Math.sin(angle) * k * segLen;
+          baseX[k] = sxp;
+          baseY[k] = syp;
+          segX[k] = sxp;
+          segY[k] = syp;
+        }
+        return {
+          x,
+          y,
+          vx: Math.cos(angle) * 1.25,
+          vy: Math.sin(angle) * 1.25,
+          scale,
+          segLen,
+          baseX,
+          baseY,
+          segX,
+          segY,
+          phase: Math.random() * Math.PI * 2,
+          turnBias: (Math.random() - 0.5) * 0.025,
+          variant: idx % 5, // 0: Ryukin red-white, 1: Tancho, 2: Gold, 3: Ink Telescope, 4: Calico
+          seed: Math.random() * 10
+        };
+      }
+
+      /* =========================================================
+       * Obstacles, Pellets, Ripples, Ambient Bubbles
+       * ========================================================= */
+      const obstacles = [];
+      const pellets = [];
+      const ripples = [];
+      const bubbles = [];
+
+      function spawnRipple(x, y, maxR = 72, strength = 1.0) {
+        if (ripples.length > 32) ripples.shift();
+        ripples.push({ x, y, r: 6, maxR, alpha: strength });
+      }
+
+      function initPond() {
+        for (let i = 0; i < MAX_SCHOOL; i++) {
+          const x = W * (0.1 + Math.random() * 0.8);
+          const y = H * (0.1 + Math.random() * 0.8);
+          const a = Math.random() * Math.PI * 2;
+          const sp = 1.8 + Math.random() * 1.8;
+          sx[i] = x; sy[i] = y;
+          svx[i] = Math.cos(a) * sp;
+          svy[i] = Math.sin(a) * sp;
+          sPhase[i] = Math.random() * Math.PI * 2;
+          sPanic[i] = 0;
+          sDepth[i] = Math.random();
+          const base = i * SCHOOL_TRAIL;
+          for (let k = 0; k < SCHOOL_TRAIL; k++) {
+            sTrailX[base + k] = x;
+            sTrailY[base + k] = y;
+          }
+        }
+        heroFish.length = 0;
+        for (let i = 0; i < MAX_HERO; i++) {
+          heroFish.push(createHeroGoldfish(i));
+        }
+        bubbles.length = 0;
+        for (let i = 0; i < 24; i++) {
+          bubbles.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            vy: 0.4 + Math.random() * 0.7,
+            phase: Math.random() * Math.PI * 2
+          });
+        }
+        pellets.length = 0;
+        ripples.length = 0;
+      }
+
+      /* =========================================================
+       * Physics Step
+       * ========================================================= */
+      function stepSimulation(dtNorm, elapsed) {
+        const HC = state.heroCount;
+        const margin = 82;
+
+        // 1. Update Hero Goldfish
+        for (let h = 0; h < HC; h++) {
+          const g = heroFish[h];
+          let fx = Math.cos(elapsed * 0.45 + g.seed) * 0.025;
+          let fy = Math.sin(elapsed * 0.38 + g.seed * 1.3) * 0.025;
+
+          // Slight organic wandering turn
+          const spd = Math.hypot(g.vx, g.vy) || 1;
+          const dirX = g.vx / spd;
+          const dirY = g.vy / spd;
+          const wander = Math.sin(elapsed * 0.8 + g.seed) * 0.028 + g.turnBias * 0.25;
+          fx += -dirY * wander;
+          fy += dirX * wander;
+
+          // Seek food pellets
+          if (pellets.length > 0) {
+            let bestD2 = 340 * 340;
+            let bestP = null;
+            for (let p = 0; p < pellets.length; p++) {
+              const pel = pellets[p];
+              const dx = pel.x - g.x;
+              const dy = pel.y - g.y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < bestD2) { bestD2 = d2; bestP = pel; }
+            }
+            if (bestP) {
+              const d = Math.sqrt(bestD2) || 1;
+              if (d < 22 * g.scale) {
+                bestP.eaten = true;
+                spawnRipple(bestP.x, bestP.y, 64, 0.9);
+              } else {
+                fx += ((bestP.x - g.x) / d) * 0.11;
+                fy += ((bestP.y - g.y) / d) * 0.11;
+              }
+            }
+          }
+
+          // Separate gently from other Hero Goldfish
+          for (let j = 0; j < HC; j++) {
+            if (j === h) continue;
+            const o = heroFish[j];
+            const dx = g.x - o.x;
+            const dy = g.y - o.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < 95 * 95 && d2 > 0.1) {
+              const d = Math.sqrt(d2);
+              const str = (1 - d / 95) * 0.09;
+              fx += (dx / d) * str;
+              fy += (dy / d) * str;
+            }
+          }
+
+          // Cursor splash / repel
+          if (pointer.active && pointer.mode === "splash") {
+            const dx = g.x - pointer.x;
+            const dy = g.y - pointer.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < 180 * 180 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              fx += (dx / d) * (1 - d / 180) * 0.24;
+              fy += (dy / d) * (1 - d / 180) * 0.24;
+            }
+          }
+
+          // Avoid obstacles
+          for (let o = 0; o < obstacles.length; o++) {
+            const obs = obstacles[o];
+            const dx = g.x - obs.x;
+            const dy = g.y - obs.y;
+            const avoidR = obs.r + 58;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < avoidR * avoidR && d2 > 0.1) {
+              const d = Math.sqrt(d2);
+              const nx = dx / d;
+              const ny = dy / d;
+              const str = (1 - d / avoidR) * 0.38;
+              const sign = (dirX * ny - dirY * nx) >= 0 ? 1 : -1;
+              fx += nx * str - ny * sign * str * 0.5;
+              fy += ny * str + nx * sign * str * 0.5;
+            }
+          }
+
+          // Soft boundary turn
+          if (state.softWalls) {
+            if (g.x < margin) fx += ((margin - g.x) / margin) * 0.18;
+            else if (g.x > W - margin) fx -= ((g.x - (W - margin)) / margin) * 0.18;
+            if (g.y < margin) fy += ((margin - g.y) / margin) * 0.18;
+            else if (g.y > H - margin) fy -= ((g.y - (H - margin)) / margin) * 0.18;
+          }
+
+          g.vx += fx * dtNorm;
+          g.vy += fy * dtNorm;
+          const nSpd = Math.hypot(g.vx, g.vy) || 0.001;
+          const minHeroSpd = 0.85;
+          const maxHeroSpd = 1.75;
+          if (nSpd > maxHeroSpd) {
+            g.vx = (g.vx / nSpd) * maxHeroSpd;
+            g.vy = (g.vy / nSpd) * maxHeroSpd;
+          } else if (nSpd < minHeroSpd) {
+            g.vx = (g.vx / nSpd) * minHeroSpd;
+            g.vy = (g.vy / nSpd) * minHeroSpd;
+          }
+
+          g.x += g.vx * dtNorm;
+          g.y += g.vy * dtNorm;
+
+          if (!state.softWalls) {
+            let wrapped = false;
+            if (g.x < -80) { g.x += W + 160; wrapped = true; }
+            else if (g.x > W + 80) { g.x -= W + 160; wrapped = true; }
+            if (g.y < -80) { g.y += H + 160; wrapped = true; }
+            else if (g.y > H + 80) { g.y -= H + 160; wrapped = true; }
+            if (wrapped) {
+              const a = Math.atan2(g.vy, g.vx);
+              for (let k = 0; k < SEG_COUNT; k++) {
+                const sxp = g.x - Math.cos(a) * k * g.segLen;
+                const syp = g.y - Math.sin(a) * k * g.segLen;
+                g.baseX[k] = sxp;
+                g.baseY[k] = syp;
+                g.segX[k] = sxp;
+                g.segY[k] = syp;
+              }
+            }
+          }
+
+          // Serene ~0.55 Hz swimming undulation
+          g.phase += (0.026 + nSpd * 0.012) * dtNorm;
+
+          // 1) Pure follow-the-leader centerline (zero cumulative wave distortion)
+          g.baseX[0] = g.x;
+          g.baseY[0] = g.y;
+          for (let k = 1; k < SEG_COUNT; k++) {
+            const prevX = g.baseX[k - 1];
+            const prevY = g.baseY[k - 1];
+            const dx = g.baseX[k] - prevX;
+            const dy = g.baseY[k] - prevY;
+            const d = Math.hypot(dx, dy) || 0.001;
+            g.baseX[k] = prevX + (dx / d) * g.segLen;
+            g.baseY[k] = prevY + (dy / d) * g.segLen;
+          }
+
+          // 2) Non-cumulative lateral swim wave (head steady, tail sweeps gracefully)
+          g.segX[0] = g.baseX[0];
+          g.segY[0] = g.baseY[0];
+          for (let k = 1; k < SEG_COUNT; k++) {
+            const dx = g.baseX[k] - g.baseX[k - 1];
+            const dy = g.baseY[k] - g.baseY[k - 1];
+            const d = Math.hypot(dx, dy) || 1;
+            const nx = -dy / d;
+            const ny = dx / d;
+            const frac = k / (SEG_COUNT - 1);
+            const amp = Math.pow(frac, 1.75) * 14.0 * g.scale;
+            const wave = Math.sin(g.phase - k * 0.52) * amp;
+            g.segX[k] = g.baseX[k] + nx * wave;
+            g.segY[k] = g.baseY[k] + ny * wave;
+          }
+        }
+
+        // 2. Spatial Hash Grid & Boids Small School
+        const N = state.schoolCount;
+        const perc = state.perception;
+        const perc2 = perc * perc;
+        const sep2 = (perc * 0.45) * (perc * 0.45);
+        const cellSz = Math.max(32, perc);
+        const gCols = Math.max(1, Math.ceil(W / cellSz));
+        const gRows = Math.max(1, Math.ceil(H / cellSz));
+        const totalCells = gCols * gRows;
+        if (sHead.length < totalCells) sHead = new Int32Array(totalCells);
+        sHead.fill(-1, 0, totalCells);
+
+        for (let i = 0; i < N; i++) {
+          let cx = (sx[i] / cellSz) | 0;
+          let cy = (sy[i] / cellSz) | 0;
+          if (cx < 0) cx = 0; else if (cx >= gCols) cx = gCols - 1;
+          if (cy < 0) cy = 0; else if (cy >= gRows) cy = gRows - 1;
+          const cell = cy * gCols + cx;
+          sNext[i] = sHead[cell];
+          sHead[cell] = i;
+        }
+
+        const maxSpd = state.maxSpeed;
+        const maxFrc = state.maxForce;
+        const sepW = state.separation;
+        const aliW = state.alignment;
+        const cohW = state.cohesion;
+        const cosHalfFov = -0.5; // ~240 deg FOV
+
+        for (let i = 0; i < N; i++) {
+          const x = sx[i];
+          const y = sy[i];
+          const cvx = svx[i];
+          const cvy = svy[i];
+          const cSpd = Math.hypot(cvx, cvy) || 0.001;
+          const dirX = cvx / cSpd;
+          const dirY = cvy / cSpd;
+
+          let cx = (x / cellSz) | 0;
+          let cy = (y / cellSz) | 0;
+          if (cx < 0) cx = 0; else if (cx >= gCols) cx = gCols - 1;
+          if (cy < 0) cy = 0; else if (cy >= gRows) cy = gRows - 1;
+
+          let sepX = 0, sepY = 0, sepN = 0;
+          let aliX = 0, aliY = 0, aliN = 0;
+          let cohX = 0, cohY = 0, cohN = 0;
+
+          const x0 = cx > 0 ? cx - 1 : 0;
+          const x1 = cx < gCols - 1 ? cx + 1 : gCols - 1;
+          const y0 = cy > 0 ? cy - 1 : 0;
+          const y1 = cy < gRows - 1 ? cy + 1 : gRows - 1;
+
+          for (let gy = y0; gy <= y1; gy++) {
+            const rowOff = gy * gCols;
+            for (let gx = x0; gx <= x1; gx++) {
+              let j = sHead[rowOff + gx];
+              while (j !== -1) {
+                if (j !== i) {
+                  const dx = sx[j] - x;
+                  const dy = sy[j] - y;
+                  const d2 = dx * dx + dy * dy;
+                  if (d2 > 0.01 && d2 < perc2) {
+                    const invD = 1 / Math.sqrt(d2);
+                    if ((dx * invD) * dirX + (dy * invD) * dirY >= cosHalfFov) {
+                      aliX += svx[j]; aliY += svy[j]; aliN++;
+                      cohX += sx[j];  cohY += sy[j];  cohN++;
+                    }
+                    if (d2 < sep2) {
+                      sepX -= dx / d2; sepY -= dy / d2; sepN++;
+                    }
+                  }
+                }
+                j = sNext[j];
+              }
+            }
+          }
+
+          let fax = 0, fay = 0;
+          if (sepN > 0) {
+            const m = Math.hypot(sepX, sepY);
+            if (m > 0) {
+              let fx = (sepX / m) * maxSpd - cvx;
+              let fy = (sepY / m) * maxSpd - cvy;
+              const fm = Math.hypot(fx, fy);
+              if (fm > maxFrc) { fx = (fx / fm) * maxFrc; fy = (fy / fm) * maxFrc; }
+              fax += fx * sepW; fay += fy * sepW;
+            }
+          }
+          if (aliN > 0) {
+            let fx = aliX / aliN;
+            let fy = aliY / aliN;
+            const m = Math.hypot(fx, fy);
+            if (m > 0) {
+              fx = (fx / m) * maxSpd - cvx;
+              fy = (fy / m) * maxSpd - cvy;
+              const fm = Math.hypot(fx, fy);
+              if (fm > maxFrc) { fx = (fx / fm) * maxFrc; fy = (fy / fm) * maxFrc; }
+              fax += fx * aliW; fay += fy * aliW;
+            }
+          }
+          if (cohN > 0) {
+            let fx = cohX / cohN - x;
+            let fy = cohY / cohN - y;
+            const m = Math.hypot(fx, fy);
+            if (m > 0) {
+              fx = (fx / m) * maxSpd - cvx;
+              fy = (fy / m) * maxSpd - cvy;
+              const fm = Math.hypot(fx, fy);
+              if (fm > maxFrc) { fx = (fx / fm) * maxFrc; fy = (fy / fm) * maxFrc; }
+              fax += fx * cohW; fay += fy * cohW;
+            }
+          }
+
+          // Part gracefully around Hero Goldfish noses
+          for (let h = 0; h < HC; h++) {
+            const g = heroFish[h];
+            const dx = x - g.x;
+            const dy = y - g.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < 68 * 68 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const s = (1 - d / 68) * 0.42;
+              fax += (dx / d) * s;
+              fay += (dy / d) * s;
+            }
+          }
+
+          // Food pellet attraction
+          if (pellets.length > 0) {
+            let bestD2 = 240 * 240;
+            let bestP = null;
+            for (let p = 0; p < pellets.length; p++) {
+              const pel = pellets[p];
+              const dx = pel.x - x;
+              const dy = pel.y - y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < bestD2) { bestD2 = d2; bestP = pel; }
+            }
+            if (bestP) {
+              const d = Math.sqrt(bestD2) || 1;
+              if (d < 13) {
+                bestP.eaten = true;
+                spawnRipple(bestP.x, bestP.y, 44, 0.7);
+              } else {
+                fax += ((bestP.x - x) / d) * 0.24;
+                fay += ((bestP.y - y) / d) * 0.24;
+              }
+            }
+          }
+
+          // Cursor hover / splash / feed
+          if (pointer.inCanvas) {
+            const dx = x - pointer.x;
+            const dy = y - pointer.y;
+            const d2 = dx * dx + dy * dy;
+            const isSplash = pointer.active && pointer.mode === "splash";
+            if (isSplash && d2 < 170 * 170 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const s = (1 - d / 170) * 0.85;
+              fax += (dx / d) * s;
+              fay += (dy / d) * s;
+              sPanic[i] = Math.min(1, sPanic[i] + 0.22);
+            } else if (!pointer.active && d2 < 110 * 110 && d2 > 1) {
+              // Gentle scatter on hover
+              const d = Math.sqrt(d2);
+              const s = (1 - d / 110) * 0.28;
+              fax += (dx / d) * s;
+              fay += (dy / d) * s;
+              sPanic[i] = Math.min(1, sPanic[i] + 0.08);
+            }
+          }
+
+          // Obstacle avoidance
+          for (let o = 0; o < obstacles.length; o++) {
+            const obs = obstacles[o];
+            const dx = x - obs.x;
+            const dy = y - obs.y;
+            const avoidR = obs.r + 36;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < avoidR * avoidR && d2 > 0.1) {
+              const d = Math.sqrt(d2);
+              const nx = dx / d;
+              const ny = dy / d;
+              const str = (1 - d / avoidR) * 1.05;
+              const sign = (dirX * ny - dirY * nx) >= 0 ? 1 : -1;
+              fax += nx * str - ny * sign * str * 0.45;
+              fay += ny * str + nx * sign * str * 0.45;
+            }
+          }
+
+          // Soft walls
+          if (state.softWalls) {
+            if (x < margin) fax += ((margin - x) / margin) * 0.34;
+            else if (x > W - margin) fax -= ((x - (W - margin)) / margin) * 0.34;
+            if (y < margin) fay += ((margin - y) / margin) * 0.34;
+            else if (y > H - margin) fay -= ((y - (H - margin)) / margin) * 0.34;
+          }
+
+          sPanic[i] *= 0.95;
+
+          let nvx = cvx + fax * dtNorm;
+          let nvy = cvy + fay * dtNorm;
+          const localMax = maxSpd * (1 + sPanic[i] * 0.55);
+          const localMin = Math.max(1.1, maxSpd * 0.38);
+          const spd = Math.hypot(nvx, nvy) || 0.001;
+          if (spd > localMax) { nvx = (nvx / spd) * localMax; nvy = (nvy / spd) * localMax; }
+          else if (spd < localMin) { nvx = (nvx / spd) * localMin; nvy = (nvy / spd) * localMin; }
+
+          let nxPos = x + nvx * dtNorm;
+          let nyPos = y + nvy * dtNorm;
+
+          for (let o = 0; o < obstacles.length; o++) {
+            const obs = obstacles[o];
+            const dx = nxPos - obs.x;
+            const dy = nyPos - obs.y;
+            const minR = obs.r + 6;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < minR * minR && d2 > 0.01) {
+              const d = Math.sqrt(d2);
+              nxPos = obs.x + (dx / d) * minR;
+              nyPos = obs.y + (dy / d) * minR;
+            }
+          }
+
+          if (!state.softWalls) {
+            if (nxPos < 0) nxPos += W; else if (nxPos > W) nxPos -= W;
+            if (nyPos < 0) nyPos += H; else if (nyPos > H) nyPos -= H;
+          } else {
+            if (nxPos < 4) { nxPos = 4; nvx = Math.abs(nvx); }
+            else if (nxPos > W - 4) { nxPos = W - 4; nvx = -Math.abs(nvx); }
+            if (nyPos < 4) { nyPos = 4; nvy = Math.abs(nvy); }
+            else if (nyPos > H - 4) { nyPos = H - 4; nvy = -Math.abs(nvy); }
+          }
+
+          sx[i] = nxPos;
+          sy[i] = nyPos;
+          svx[i] = nvx;
+          svy[i] = nvy;
+          sPhase[i] += 0.16 * dtNorm;
+          sTrailX[i * SCHOOL_TRAIL + sTrailCursor] = nxPos;
+          sTrailY[i * SCHOOL_TRAIL + sTrailCursor] = nyPos;
+        }
+        sTrailCursor = (sTrailCursor + 1) % SCHOOL_TRAIL;
+
+        // 3. Pellets, Ripples & Bubbles
+        for (let i = pellets.length - 1; i >= 0; i--) {
+          pellets[i].life -= 0.0018 * dtNorm;
+          if (pellets[i].eaten || pellets[i].life <= 0) pellets.splice(i, 1);
+        }
+        for (let i = ripples.length - 1; i >= 0; i--) {
+          const rp = ripples[i];
+          rp.r += 2.2 * dtNorm;
+          rp.alpha *= 0.962;
+          if (rp.r >= rp.maxR || rp.alpha < 0.03) ripples.splice(i, 1);
+        }
+        for (let i = 0; i < bubbles.length; i++) {
+          const b = bubbles[i];
+          b.y -= b.vy * dtNorm;
+          b.x += Math.sin(elapsed * 2.0 + b.phase) * 0.25 * dtNorm;
+          if (b.y < -10) {
+            b.y = H + 10;
+            b.x = Math.random() * W;
+          }
+        }
+      }
+
+      /* =========================================================
+       * Unified ASCII Rasterizer + Color-Bucketed Renderer
+       * ========================================================= */
+      function setCell(c, r, chCode, palIdx, z) {
+        if (c < 0 || c >= cols || r < 0 || r >= rows) return;
+        const idx = r * cols + c;
+        if (z >= zBuf[idx]) {
+          zBuf[idx] = z;
+          charBuf[idx] = chCode;
+          palBuf[idx] = palIdx;
+        }
+      }
+
+      function rasterizeGoldfish(g, cs) {
+        const sc = g.scale;
+        const maxW = 34 * sc;
+        const pad = maxW * 1.65 + 16;
+
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (let k = 0; k < SEG_COUNT; k++) {
+          const x = g.segX[k];
+          const y = g.segY[k];
+          if (x < minX) minX = x;
+          if (x > maxX) maxX = x;
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+        const c0 = Math.max(0, Math.floor((minX - pad) / cellW));
+        const c1 = Math.min(cols - 1, Math.ceil((maxX + pad) / cellW));
+        const r0 = Math.max(0, Math.floor((minY - pad) / cellH));
+        const r1 = Math.min(rows - 1, Math.ceil((maxY + pad) / cellH));
+
+        const bodyRamp = cs.body;
+        const finRamp = cs.fin;
+        const eyeCode = cs.eye.charCodeAt(0);
+
+        for (let row = r0; row <= r1; row++) {
+          const py = (row + 0.5) * cellH;
+          for (let col = c0; col <= c1; col++) {
+            const px = (col + 0.5) * cellW;
+
+            // Find closest point on 9 spine segments + detect endpoint overshoot
+            let bestDist2 = Infinity;
+            let bestK = 0;
+            let bestU = 0;
+            let bestT = 0;
+            let bestSignedD = 0;
+            let bestAlong = 0;
+
+            for (let k = 0; k < SEG_COUNT - 1; k++) {
+              const ax = g.segX[k];
+              const ay = g.segY[k];
+              const bx = g.segX[k + 1];
+              const by = g.segY[k + 1];
+              const dx = bx - ax;
+              const dy = by - ay;
+              const len2 = dx * dx + dy * dy || 0.001;
+              const len = Math.sqrt(len2);
+              const rawU = ((px - ax) * dx + (py - ay) * dy) / len2;
+              const u = rawU < 0 ? 0 : rawU > 1 ? 1 : rawU;
+              const qx = ax + dx * u;
+              const qy = ay + dy * u;
+              const ox = px - qx;
+              const oy = py - qy;
+              const d2 = ox * ox + oy * oy;
+              if (d2 < bestDist2) {
+                bestDist2 = d2;
+                bestK = k;
+                bestU = u;
+                bestT = (k + u) / (SEG_COUNT - 1);
+                bestSignedD = (ox * (-dy) + oy * dx) / len;
+                bestAlong = (ox * dx + oy * dy) / len;
+              }
+            }
+
+            // Reject cells strictly past snout or tail tip so no rectangular artifact appears
+            if (bestK === 0 && bestU <= 0 && bestAlong < -2) continue;
+            if (bestK === SEG_COUNT - 2 && bestU >= 1 && bestAlong > 1) continue;
+
+            const t = bestT;
+            const d = bestSignedD;
+            const absD = Math.abs(d);
+
+            // 1. Head & Plump Pear Belly (t in [0, 0.54], tapering into a distinct caudal waist)
+            if (t <= 0.54) {
+              const u = t / 0.54;
+              const halfW = maxW * (0.16 * u + 0.92 * Math.sin(Math.pow(u, 0.58) * Math.PI));
+
+              // Protruding goldfish eyes near head
+              if (t >= 0.085 && t <= 0.165 && absD >= halfW * 0.60 && absD <= halfW * 1.12) {
+                setCell(col, row, eyeCode, 22, 4.6);
+                continue;
+              }
+
+              if (absD <= halfW && halfW > 0.5) {
+                const normD = d / halfW;
+                const edgeFrac = absD / halfW;
+                let lum = Math.min(0.99, Math.max(0.15, Math.sqrt(Math.max(0, 1 - normD * normD)) * 0.85 - normD * 0.12));
+                if (t >= 0.28 && t <= 0.52 && absD <= cellW * 0.55) {
+                  lum = Math.min(0.99, lum + 0.14); // Subtle dorsal ridge
+                }
+                const glyphIdx = edgeFrac > 0.78
+                  ? Math.max(bodyRamp.length - 3, 0)
+                  : Math.min(bodyRamp.length - 1, Math.floor(lum * bodyRamp.length));
+                const chCode = bodyRamp[glyphIdx].charCodeAt(0);
+
+                // Breed coloration (10: vermilion, 13: pearl-ivory, 16: gold-ochre, 19: ink black)
+                let basePal = 10;
+                if (g.variant === 0) {
+                  const patch = Math.sin(t * 14 + normD * 2.0 + g.seed);
+                  basePal = patch > 0.15 ? 13 : 10;
+                } else if (g.variant === 1) {
+                  basePal = t < 0.22 && absD < halfW * 0.72 ? 10 : 13;
+                } else if (g.variant === 2) {
+                  basePal = 16;
+                } else if (g.variant === 3) {
+                  basePal = 19;
+                } else {
+                  const p1 = Math.sin(t * 16 + normD * 2.4 + g.seed);
+                  const p2 = Math.cos(t * 12 - normD * 2.8 + g.seed * 1.7);
+                  basePal = p1 > 0.35 ? 19 : p2 > 0.2 ? 16 : 10;
+                }
+                const shadeOff = edgeFrac > 0.82 ? 2 : lum > 0.65 ? 2 : lum > 0.36 ? 1 : 0;
+                setCell(col, row, chCode, basePal + shadeOff, 4.0);
+                continue;
+              }
+
+              // Sweeping Rounded Pectoral Fins (t in [0.22, 0.42], deterministic glyphs)
+              if (t >= 0.22 && t <= 0.42) {
+                const fu = (t - 0.22) / 0.20;
+                const sway = Math.sin(g.phase * 0.85) * 2.5 * sc;
+                const finOuter = halfW + (maxW * 0.68 + sway * (d > 0 ? 1 : -1)) * Math.sin(fu * Math.PI);
+                if (absD > halfW && absD <= finOuter) {
+                  const finDepth = (absD - halfW) / Math.max(1, finOuter - halfW);
+                  const fi = Math.min(finRamp.length - 1, Math.floor((1 - finDepth) * finRamp.length));
+                  const finPal = g.variant === 3 ? 19 : g.variant === 2 ? 17 : g.variant === 1 ? 14 : 11;
+                  setCell(col, row, finRamp[fi].charCodeAt(0), finPal, 3.6);
+                }
+              }
+            } else {
+              // 2. Graceful Forked Twin Veil-Tail (t in (0.54, 1.0])
+              const tv = (t - 0.54) / 0.46;
+              const tailOuter = maxW * (0.16 + 1.08 * Math.sin(Math.pow(tv, 0.65) * Math.PI * 0.72));
+              const tailInner = tv > 0.22 ? maxW * 0.42 * Math.pow((tv - 0.22) / 0.78, 1.15) : -1;
+              if (absD <= tailOuter && absD >= tailInner) {
+                const finIdx = Math.min(finRamp.length - 1, Math.floor((1 - tv * 0.85) * finRamp.length));
+                const finPal = g.variant === 3 ? 20 : g.variant === 2 ? 17 : g.variant === 1 ? 14 : 11;
+                setCell(col, row, finRamp[finIdx].charCodeAt(0), finPal, 3.5);
+              }
+            }
+          }
+        }
+      }
+
+      function renderAsciiFrame(elapsed) {
+        const pal = PAPER_PALETTE;
+        const cs = CHARSETS[state.charset];
+        const caustics = state.causticsStrength;
+
+        // Clear depth & char buffers (Layer 0: Tranquil water caustics)
+        if (caustics > 0.02) {
+          const wChars = cs.water;
+          for (let r = 0; r < rows; r++) {
+            const rowOff = r * cols;
+            const wy = r * 0.17 - elapsed * 0.25;
+            for (let c = 0; c < cols; c++) {
+              const idx = rowOff + c;
+              zBuf[idx] = 0;
+              const v = Math.sin(c * 0.10 + elapsed * 0.35) * Math.cos(wy) +
+                        Math.sin((c + r) * 0.065 - elapsed * 0.22);
+              const norm = (v + 2) * 0.25; // 0..1
+              const thresh = 1.0 - caustics * 0.48;
+              if (norm > thresh) {
+                const k = (norm - thresh) / (1.0 - thresh + 0.001);
+                const wi = Math.min(wChars.length - 1, 1 + Math.floor(k * (wChars.length - 1)));
+                charBuf[idx] = wChars[wi].charCodeAt(0);
+                palBuf[idx] = k > 0.65 ? 2 : k > 0.32 ? 1 : 0;
+              } else {
+                charBuf[idx] = 32;
+                palBuf[idx] = 0;
+              }
+            }
+          }
+        } else {
+          charBuf.fill(32, 0, gridSize);
+          zBuf.fill(0, 0, gridSize);
+        }
+
+        // Ambient bubbles
+        const bubbleCode = cs.bubble.charCodeAt(0);
+        for (let i = 0; i < bubbles.length; i++) {
+          const b = bubbles[i];
+          setCell((b.x / cellW) | 0, (b.y / cellH) | 0, bubbleCode, 3, 0.5);
+        }
+
+        // Expanding splash ripples
+        const ripCodes = [111, 79, 126, 183]; // o, O, ~, ·
+        for (let i = 0; i < ripples.length; i++) {
+          const rp = ripples[i];
+          const steps = Math.max(12, Math.floor(rp.r * 0.65));
+          const ch = rp.alpha > 0.55 ? ripCodes[0] : rp.alpha > 0.3 ? ripCodes[2] : ripCodes[3];
+          for (let s = 0; s < steps; s++) {
+            const a = (Math.PI * 2 * s) / steps;
+            const rx = rp.x + Math.cos(a) * rp.r;
+            const ry = rp.y + Math.sin(a) * rp.r;
+            setCell((rx / cellW) | 0, (ry / cellH) | 0, ch, 3, 0.8);
+          }
+        }
+
+        // Layer 1: Drawable ASCII Pond Rocks
+        const rockChars = cs.rock;
+        for (let o = 0; o < obstacles.length; o++) {
+          const obs = obstacles[o];
+          const c0 = Math.max(0, Math.floor((obs.x - obs.r) / cellW));
+          const c1 = Math.min(cols - 1, Math.ceil((obs.x + obs.r) / cellW));
+          const r0 = Math.max(0, Math.floor((obs.y - obs.r) / cellH));
+          const r1 = Math.min(rows - 1, Math.ceil((obs.y + obs.r) / cellH));
+          for (let r = r0; r <= r1; r++) {
+            const py = (r + 0.5) * cellH;
+            for (let c = c0; c <= c1; c++) {
+              const px = (c + 0.5) * cellW;
+              const d = Math.hypot(px - obs.x, py - obs.y);
+              if (d <= obs.r) {
+                const edge = 1 - d / obs.r;
+                const rk = Math.min(rockChars.length - 1, Math.floor(edge * rockChars.length));
+                const pIdx = edge > 0.6 ? 6 : edge > 0.25 ? 5 : 4;
+                setCell(c, r, rockChars[rk].charCodeAt(0), pIdx, 2.0);
+              }
+            }
+          }
+        }
+
+        // Layer 2: Boids Small Goldfish School + Trails
+        const N = state.schoolCount;
+        const scChars = cs.school; // [>, <, ^, v, /, \]
+        const trChars = cs.trail;
+        for (let i = 0; i < N; i++) {
+          if (state.trails) {
+            const base = i * SCHOOL_TRAIL;
+            for (let k = 0; k < SCHOOL_TRAIL - 1; k++) {
+              const idxT = (sTrailCursor + k) % SCHOOL_TRAIL;
+              const tc = (sTrailX[base + idxT] / cellW) | 0;
+              const tr = (sTrailY[base + idxT] / cellH) | 0;
+              const tChar = trChars[Math.min(trChars.length - 1, k)].charCodeAt(0);
+              setCell(tc, tr, tChar, 7, 1.2 + k * 0.05);
+            }
+          }
+
+          const c = (sx[i] / cellW) | 0;
+          const r = (sy[i] / cellH) | 0;
+          const vx = svx[i];
+          const vy = svy[i];
+          const ang = Math.atan2(vy, vx);
+          let chStr = scChars[0];
+          const deg = (ang * 180) / Math.PI;
+          if (deg >= -25 && deg <= 25) chStr = scChars[0];
+          else if (deg >= 155 || deg <= -155) chStr = scChars[1];
+          else if (deg > 25 && deg < 65) chStr = scChars[5];
+          else if (deg >= 65 && deg <= 115) chStr = scChars[3];
+          else if (deg > 115 && deg < 155) chStr = scChars[4];
+          else if (deg < -25 && deg > -65) chStr = scChars[4];
+          else if (deg <= -65 && deg >= -115) chStr = scChars[2];
+          else chStr = scChars[5];
+
+          const palIdx = sPanic[i] > 0.3 ? 9 : sDepth[i] > 0.55 ? 9 : sDepth[i] > 0.2 ? 8 : 7;
+          setCell(c, r, chStr.charCodeAt(0), palIdx, 2.5 + sDepth[i] * 0.5);
+        }
+
+        // Layer 2.5: Food Pellets
+        const pelCode = cs.pellet.charCodeAt(0);
+        for (let i = 0; i < pellets.length; i++) {
+          const p = pellets[i];
+          setCell((p.x / cellW) | 0, (p.y / cellH) | 0, pelCode, 23, 3.2);
+        }
+
+        // Layer 3: Articulated Hero Goldfish
+        for (let h = 0; h < state.heroCount; h++) {
+          rasterizeGoldfish(heroFish[h], cs);
+        }
+
+        // Paint Canvas via Color-Bucketed Batches
+        ctx.fillStyle = pal.bg;
+        ctx.fillRect(0, 0, W, H);
+
+        for (let p = 0; p < 24; p++) buckets[p].length = 0;
+        for (let idx = 0; idx < gridSize; idx++) {
+          if (charBuf[idx] !== 32) {
+            buckets[palBuf[idx]].push(idx);
+          }
+        }
+
+        ctx.font = `600 ${fontSize}px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "PingFang SC", monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const halfCW = cellW * 0.5;
+        const halfCH = cellH * 0.5;
+
+        for (let p = 0; p < 24; p++) {
+          const list = buckets[p];
+          if (list.length === 0) continue;
+          ctx.fillStyle = pal.colors[p];
+          for (let k = 0; k < list.length; k++) {
+            const idx = list[k];
+            const r = (idx / cols) | 0;
+            const c = idx - r * cols;
+            ctx.fillText(String.fromCharCode(charBuf[idx]), c * cellW + halfCW, r * cellH + halfCH);
+          }
+        }
+      }
+
+      /* =========================================================
+       * Pointer Interaction
+       * ========================================================= */
+      const pointer = { active: false, inCanvas: false, x: 0, y: 0, mode: "feed", lastWallX: 0, lastWallY: 0 };
+      let hasInteracted = false;
+
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      canvas.addEventListener("pointerdown", (e) => {
+        canvas.setPointerCapture(e.pointerId);
+        if (!hasInteracted) {
+          hasInteracted = true;
+          hintEl.classList.add("dimmed");
+        }
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        pointer.active = true;
+        pointer.inCanvas = true;
+        pointer.x = x;
+        pointer.y = y;
+        pointer.mode = (e.button === 2 || (e.buttons & 2)) ? "wall" : state.tool;
+
+        if (pointer.mode === "wall") {
+          obstacles.push({ x, y, r: 24 });
+          pointer.lastWallX = x;
+          pointer.lastWallY = y;
+        } else if (pointer.mode === "feed") {
+          if (pellets.length > 22) pellets.shift();
+          pellets.push({ x, y, life: 1.0, eaten: false });
+          spawnRipple(x, y, 68, 0.95);
+        } else {
+          spawnRipple(x, y, 88, 1.0);
+        }
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        pointer.inCanvas = true;
+        pointer.x = x;
+        pointer.y = y;
+        if (!pointer.active) return;
+
+        if (pointer.mode === "wall") {
+          if (Math.hypot(x - pointer.lastWallX, y - pointer.lastWallY) > 28) {
+            obstacles.push({ x, y, r: 22 });
+            pointer.lastWallX = x;
+            pointer.lastWallY = y;
+          }
+        } else if (pointer.mode === "feed" && Math.random() < 0.14) {
+          if (pellets.length > 22) pellets.shift();
+          pellets.push({ x, y, life: 1.0, eaten: false });
+          spawnRipple(x, y, 54, 0.8);
+        } else if (pointer.mode === "splash" && Math.random() < 0.25) {
+          spawnRipple(x, y, 76, 0.9);
+        }
+      });
+
+      const endPointer = () => { pointer.active = false; };
+      canvas.addEventListener("pointerup", endPointer);
+      canvas.addEventListener("pointercancel", endPointer);
+      canvas.addEventListener("pointerleave", () => { pointer.inCanvas = false; pointer.active = false; });
+
+      /* =========================================================
+       * UI Controls
+       * ========================================================= */
+      function setCharset(name) {
+        state.charset = name;
+        document.querySelectorAll("[data-charset]").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.charset === name));
+        });
+        resizeGrid();
+      }
+
+      document.querySelectorAll("[data-tool]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.tool = btn.dataset.tool;
+          document.querySelectorAll("[data-tool]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+          canvas.style.cursor = state.tool === "wall" ? "cell" : "crosshair";
+        });
+      });
+
+      document.querySelectorAll("[data-density]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.density = btn.dataset.density;
+          document.querySelectorAll("[data-density]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+          resizeGrid();
+        });
+      });
+      document.querySelectorAll("[data-charset]").forEach((btn) => {
+        btn.addEventListener("click", () => setCharset(btn.dataset.charset));
+      });
+
+      function bindSlider(id, outId, key, digits = 0) {
+        const el = document.getElementById(id);
+        const out = document.getElementById(outId);
+        el.addEventListener("input", () => {
+          state[key] = Number(el.value);
+          out.textContent = digits > 0 ? state[key].toFixed(digits) : String(state[key]);
+        });
+      }
+      bindSlider("sl-hero", "out-hero", "heroCount", 0);
+      bindSlider("sl-school", "out-school", "schoolCount", 0);
+      bindSlider("sl-sep", "out-sep", "separation", 2);
+      bindSlider("sl-ali", "out-ali", "alignment", 2);
+      bindSlider("sl-coh", "out-coh", "cohesion", 2);
+      bindSlider("sl-caustics", "out-caustics", "causticsStrength", 2);
+
+      function bindSwitch(id, key) {
+        const el = document.getElementById(id);
+        el.addEventListener("click", () => {
+          state[key] = !state[key];
+          el.setAttribute("aria-checked", String(state[key]));
+        });
+      }
+      bindSwitch("sw-trails", "trails");
+      bindSwitch("sw-walls", "softWalls");
+
+      const btnPause = document.getElementById("btn-pause");
+      function togglePause() {
+        state.paused = !state.paused;
+        btnPause.setAttribute("aria-pressed", String(state.paused));
+        btnPause.textContent = state.paused ? "继续" : "暂停";
+      }
+      btnPause.addEventListener("click", togglePause);
+      document.getElementById("btn-reset").addEventListener("click", initPond);
+      document.getElementById("btn-clear-obs").addEventListener("click", () => { obstacles.length = 0; });
+
+      const drawer = document.getElementById("inspector");
+      const btnDrawer = document.getElementById("btn-drawer");
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !drawer.classList.contains("open");
+        drawer.classList.toggle("open", open);
+        btnDrawer.setAttribute("aria-expanded", String(open));
+      }
+      btnDrawer.addEventListener("click", () => toggleDrawer());
+      document.getElementById("btn-close-drawer").addEventListener("click", () => toggleDrawer(false));
+
+      window.addEventListener("keydown", (e) => {
+        if (e.target && e.target.tagName === "INPUT") return;
+        if (e.key === "1") setCharset("classic");
+        else if (e.key === "2") setCharset("blocks");
+        else if (e.key === "3") setCharset("hanzi");
+        else if (e.key === "p" || e.key === "P") togglePause();
+        else if (e.key === "r" || e.key === "R") initPond();
+        else if (e.key === "i" || e.key === "I") toggleDrawer();
+        else if (e.key === "h" || e.key === "H") {
+          state.hudHidden = !state.hudHidden;
+          document.body.classList.toggle("hud-hidden", state.hudHidden);
+        }
+      });
+
+      window.addEventListener("resize", resizeGrid);
+
+      /* =========================================================
+       * Boot & Main Loop
+       * ========================================================= */
+      resizeGrid();
+      initPond();
+
+      let last = performance.now();
+      let elapsed = 0;
+      let frames = 0;
+      let fpsTime = 0;
+
+      function loop(now) {
+        requestAnimationFrame(loop);
+        const dtSec = Math.min(0.033, Math.max(0.001, (now - last) / 1000));
+        last = now;
+        const dtNorm = dtSec * 60;
+
+        if (!state.paused) {
+          elapsed += dtSec;
+          stepSimulation(dtNorm, elapsed);
+        }
+        renderAsciiFrame(elapsed);
+
+        frames++;
+        fpsTime += dtSec;
+        if (fpsTime >= 0.45) {
+          const fps = Math.round(frames / fpsTime);
+          telemetryEl.textContent = `${fps} FPS · ${cols}×${rows} · ${state.heroCount} 金鱼 + ${state.schoolCount} 鱼群`;
+          frames = 0;
+          fpsTime = 0;
+        }
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
