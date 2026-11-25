@@ -1,4 +1,9 @@
 <!DOCTYPE html>
+<!--
+  Boids No.3 · 宣纸打字机 ASCII 金鱼池
+  灵感来源 / Inspired by: https://github.com/stackedlol/ascii-sharks
+  在原作 ASCII 海洋与 Boids 鱼群的基础上，将鲨鱼替换为多节脊柱俯视金鱼，并融合宣纸打字机质感。
+-->
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
@@ -438,8 +443,8 @@
 
   <nav class="dock" aria-label="ASCII 金鱼池控制栏">
     <div class="dock-group" role="group" aria-label="字符集">
-      <button class="pill-btn" data-charset="classic" aria-pressed="true">ASCII</button>
-      <button class="pill-btn" data-charset="blocks" aria-pressed="false">方块</button>
+      <button class="pill-btn" data-charset="classic" aria-pressed="false">ASCII</button>
+      <button class="pill-btn" data-charset="blocks" aria-pressed="true">方块</button>
       <button class="pill-btn" data-charset="hanzi" aria-pressed="false">汉字水墨</button>
     </div>
 
@@ -609,7 +614,7 @@
       const state = {
         tool: "feed",
         density: "medium",
-        charset: "classic",
+        charset: "blocks",
         heroCount: 3,
         schoolCount: 120,
         separation: 1.55,
