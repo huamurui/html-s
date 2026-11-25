@@ -1,0 +1,1466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Shadow No.2 · 推荐引擎与信息茧房沙盒</title>
+  <meta name="description" content="单文件可解释推荐算法沙盒：2D 语义向量空间、实时用户轨迹、信息茧房熵指数监控，以及 Cosine / MMR 多样性重排与 ε-greedy 破茧对比。" />
+  <style>
+    :root {
+      --paper: #f4f1ea;
+      --surface: #faf8f3;
+      --surface-2: #efebe0;
+      --ink: #161616;
+      --ink-2: #3d3a34;
+      --mute: #6b665c;
+      --line: #d8d3c8;
+      --line-strong: #9f998d;
+      --accent: #c93b2b;
+      --accent-soft: #f6dfd9;
+      --teal: #0f766e;
+      --teal-soft: #d9f2ee;
+      --amber: #b45309;
+      --amber-soft: #fae8cc;
+      --green: #15803d;
+      --green-soft: #dcfce7;
+      --sans: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      font-size: 13.5px;
+    }
+
+    body {
+      height: 100dvh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      overflow: hidden;
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ---------- Top Header ---------- */
+    header {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--ink);
+      background: var(--surface);
+    }
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-right: auto;
+    }
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .brand .tag-no {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .persona-bar {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .bar-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--mute);
+      margin-right: 2px;
+    }
+    .btn {
+      height: 28px;
+      padding: 0 10px;
+      border: 1px solid var(--line-strong);
+      border-radius: 5px;
+      background: var(--surface);
+      font-size: 12px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.14s ease, border-color 0.14s ease, color 0.14s ease;
+    }
+    .btn:hover { background: var(--surface-2); border-color: var(--ink); }
+    .btn[aria-pressed="true"] {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: var(--surface);
+    }
+
+    .metrics-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .bubble-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: var(--green-soft);
+      color: var(--green);
+      font-family: var(--mono);
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+    .bubble-pill[data-level="mid"] {
+      background: var(--amber-soft);
+      color: var(--amber);
+      border-color: rgba(180, 83, 9, 0.35);
+    }
+    .bubble-pill[data-level="high"] {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: rgba(201, 59, 43, 0.45);
+    }
+    .step-badge {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--mute);
+    }
+
+    /* ---------- Main 2-Column Workspace ---------- */
+    .workspace {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.28fr) minmax(350px, 440px);
+    }
+
+    .left-pane {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      border-right: 1px solid var(--ink);
+    }
+
+    .canvas-wrap {
+      position: relative;
+      min-height: 260px;
+      background: var(--paper);
+      overflow: hidden;
+    }
+    #space {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: grab;
+    }
+    .map-legend {
+      position: absolute;
+      top: 12px;
+      left: 14px;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: rgba(250, 248, 243, 0.86);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 7px 10px;
+      font-size: 11.5px;
+      color: var(--ink-2);
+    }
+    .map-legend .mono {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--mute);
+    }
+
+    .tooltip {
+      position: absolute;
+      pointer-events: none;
+      z-index: 15;
+      min-width: 180px;
+      max-width: 240px;
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: rgba(22, 22, 22, 0.92);
+      color: #f4f1ea;
+      font-size: 11.5px;
+      line-height: 1.45;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.12s ease, transform 0.12s ease;
+    }
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .tooltip .tt-title { font-weight: 600; font-size: 12.5px; margin-bottom: 3px; }
+    .tooltip .tt-meta { font-family: var(--mono); font-size: 10.5px; color: #cbd5e1; }
+
+    /* ---------- Bottom Telemetry Strip ---------- */
+    .telemetry-strip {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 14px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--line);
+      background: var(--surface);
+      align-items: center;
+    }
+    .spark-box {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .spark-head {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      color: var(--mute);
+    }
+    #spark {
+      width: 100%;
+      height: 58px;
+      display: block;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 5px;
+    }
+
+    .weights-box {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .weights-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 4px 10px;
+    }
+    .w-item {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 4px;
+      border-radius: 4px;
+      border: 0;
+      background: transparent;
+      text-align: left;
+      font-size: 11px;
+    }
+    .w-item:hover { background: var(--surface-2); }
+    .w-name {
+      width: 48px;
+      flex: none;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--ink-2);
+    }
+    .w-track {
+      flex: 1;
+      height: 5px;
+      background: var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .w-fill {
+      height: 100%;
+      background: var(--ink);
+      transition: width 0.2s ease, background 0.2s ease;
+    }
+    .w-fill.neg { background: var(--accent); }
+
+    /* ---------- Right Column: Algorithm Lab & Feed ---------- */
+    .right-pane {
+      min-width: 0;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      background: var(--surface);
+    }
+
+    .algo-panel {
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--ink);
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+    }
+    .seg {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+    .seg .btn { border-radius: 0; }
+    .seg .btn + .btn { border-left: 0; }
+    .seg .btn:first-child { border-radius: 5px 0 0 5px; }
+    .seg .btn:last-child { border-radius: 0 5px 5px 0; }
+
+    .slider-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px 14px;
+    }
+    .sl-row {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .sl-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11.5px;
+    }
+    .sl-head output {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--mute);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 16px;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 3px;
+      background: var(--line-strong);
+      border-radius: 999px;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      margin-top: -4.5px;
+      border-radius: 50%;
+      background: var(--ink);
+    }
+
+    .exp-actions {
+      display: grid;
+      grid-template-columns: 1.25fr 1fr;
+      gap: 8px;
+    }
+    .btn-primary {
+      height: 30px;
+      border-radius: 5px;
+      border: 1px solid var(--ink);
+      background: var(--ink);
+      color: var(--surface);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-primary:hover { background: var(--ink-2); }
+    .btn-primary.running {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .btn-pop {
+      height: 30px;
+      border-radius: 5px;
+      border: 1px solid var(--teal);
+      background: var(--teal-soft);
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .btn-pop:hover { background: #c2ebe5; }
+
+    .feed-wrap {
+      min-height: 0;
+      overflow-y: auto;
+      padding: 12px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .feed-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--mute);
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--paper);
+      padding: 10px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      transition: border-color 0.15s ease, transform 0.12s ease;
+    }
+    .card:hover { border-color: var(--ink); }
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .rank {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      background: var(--surface);
+      border: 1px solid var(--line-strong);
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+    .card-name {
+      font-weight: 600;
+      font-size: 13.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex: 1;
+      min-width: 0;
+    }
+    .cluster-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex: none;
+    }
+    .badge-reason {
+      font-family: var(--mono);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 999px;
+      background: var(--teal-soft);
+      color: var(--teal);
+      border: 1px solid rgba(15, 118, 110, 0.25);
+      flex: none;
+    }
+    .score-num {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--ink-2);
+      flex: none;
+    }
+
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .tag-chip {
+      font-size: 10.5px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      color: var(--mute);
+    }
+
+    .card-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 0.85fr;
+      gap: 6px;
+    }
+    .act {
+      height: 26px;
+      border-radius: 5px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      font-size: 11.5px;
+      font-weight: 500;
+      transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+    }
+    .act.like:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .act.dislike:hover { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .act.skip:hover { background: var(--surface-2); border-color: var(--ink); }
+
+    @media (max-width: 920px) {
+      body { height: auto; overflow-y: auto; }
+      .workspace { grid-template-columns: 1fr; }
+      .left-pane { border-right: 0; border-bottom: 1px solid var(--ink); }
+      .canvas-wrap { height: 420px; }
+      .telemetry-strip { grid-template-columns: 1fr; }
+      .weights-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Shadow No.2</h1>
+      <span class="tag-no">推荐引擎 &amp; 信息茧房沙盒</span>
+    </div>
+
+    <div class="persona-bar" role="group" aria-label="用户初始画像">
+      <span class="bar-label">画像</span>
+      <button class="btn" data-persona="cold" aria-pressed="true">冷启动</button>
+      <button class="btn" data-persona="dio" aria-pressed="false">ko no dio da</button>
+      <button class="btn" data-persona="spicy" aria-pressed="false">川湘嗜辣</button>
+      <button class="btn" data-persona="sweet" aria-pressed="false">法式甜品控</button>
+      <button class="btn" data-persona="light" aria-pressed="false">清淡养生</button>
+    </div>
+
+    <div class="metrics-bar">
+      <div class="bubble-pill" id="bubble-pill" data-level="low" title="基于当前 Top-8 推荐类目分布的香农熵计算">
+        <span>信息茧房指数</span>
+        <span id="bubble-val">24%</span>
+      </div>
+      <span class="step-badge" id="step-count">步数 0</span>
+      <button class="btn" id="btn-reset">重置画像</button>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="left-pane">
+      <div class="canvas-wrap">
+        <canvas id="space" aria-label="二维语义风味向量空间"></canvas>
+        <div class="map-legend">
+          <div><strong>2D 语义风味空间</strong> · <span class="mono">★ 我</span> 实时漂移轨迹</div>
+          <div class="mono">左键点击菜品=喜欢 · 右键=不喜欢 · 实线=相关匹配 · 虚线=破茧探索</div>
+        </div>
+        <div class="tooltip" id="tooltip"></div>
+      </div>
+
+      <div class="telemetry-strip">
+        <div class="spark-box">
+          <div class="spark-head">
+            <span>茧房演化趋势 (近 30 步)</span>
+            <span id="spark-status">健康多样</span>
+          </div>
+          <canvas id="spark"></canvas>
+        </div>
+
+        <div class="weights-box">
+          <div class="spark-head">
+            <span>16 维实时兴趣权重 (点击标签可微调)</span>
+            <span id="top-tags">Top: —</span>
+          </div>
+          <div class="weights-grid" id="weights-grid"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="right-pane">
+      <div class="algo-panel">
+        <div>
+          <div class="bar-label" style="margin-bottom:6px;">排序策略 · Ranking Strategy</div>
+          <div class="seg" role="group" aria-label="推荐排序算法">
+            <button class="btn" data-algo="cosine" aria-pressed="true">余弦 Cosine</button>
+            <button class="btn" data-algo="mmr" aria-pressed="false">MMR 破茧重排</button>
+            <button class="btn" data-algo="dot" aria-pressed="false">原版点积 Dot</button>
+          </div>
+        </div>
+
+        <div class="slider-grid">
+          <div class="sl-row">
+            <div class="sl-head"><label for="sl-eps">探索率 ε-Greedy</label><output id="out-eps">0%</output></div>
+            <input id="sl-eps" type="range" min="0" max="40" step="5" value="0" />
+          </div>
+          <div class="sl-row">
+            <div class="sl-head"><label for="sl-div">多样性权重 (1-λ)</label><output id="out-div">0.45</output></div>
+            <input id="sl-div" type="range" min="0" max="0.85" step="0.05" value="0.45" />
+          </div>
+          <div class="sl-row">
+            <div class="sl-head"><label for="sl-lr">学习率 η</label><output id="out-lr">0.18</output></div>
+            <input id="sl-lr" type="range" min="0.05" max="0.40" step="0.01" value="0.18" />
+          </div>
+          <div class="sl-row">
+            <div class="sl-head"><label for="sl-decay">已看疲劳衰减</label><output id="out-decay">0.45</output></div>
+            <input id="sl-decay" type="range" min="0" max="1" step="0.05" value="0.45" />
+          </div>
+        </div>
+
+        <div class="exp-actions">
+          <button class="btn-primary" id="btn-sim">▶ 模拟 15 步点击（观察茧房）</button>
+          <button class="btn-pop" id="btn-pop">⚡ 一键破茧配置</button>
+        </div>
+      </div>
+
+      <div class="feed-wrap">
+        <div class="feed-title">
+          <span>实时 Top-8 推荐流</span>
+          <span id="feed-summary">6 类覆盖 6/6</span>
+        </div>
+        <div id="feed-list" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* =========================================================
+       * Domain: 16 Flavor Tags, 6 Clusters, 48 Dishes
+       * ========================================================= */
+      const CLUSTERS = {
+        spicy: { name: "辛辣热炒", color: "#d94832", angle: -Math.PI * 0.80 },
+        grill: { name: "焦香炸烤", color: "#b45309", angle: -Math.PI * 0.45 },
+        sweet: { name: "甜品烘焙", color: "#c88a1e", angle: -Math.PI * 0.10 },
+        drink: { name: "茶饮特调", color: "#7c3aed", angle: Math.PI * 0.25 },
+        light: { name: "清淡蔬果", color: "#2a7f62", angle: Math.PI * 0.60 },
+        soup:  { name: "汤面主食", color: "#2b5bb8", angle: Math.PI * 0.92 }
+      };
+
+      const TAGS = [
+        { id: "spicy",     zh: "辛辣", angle: -Math.PI * 0.84 },
+        { id: "savory",    zh: "醇厚", angle: -Math.PI * 0.68 },
+        { id: "fried",     zh: "焦香", angle: -Math.PI * 0.50 },
+        { id: "meat",      zh: "肉食", angle: -Math.PI * 0.36 },
+        { id: "baked",     zh: "烘焙", angle: -Math.PI * 0.18 },
+        { id: "dessert",   zh: "甜点", angle: -Math.PI * 0.08 },
+        { id: "sweet",     zh: "甘甜", angle: Math.PI * 0.06 },
+        { id: "drink",     zh: "饮品", angle: Math.PI * 0.22 },
+        { id: "bitter",    zh: "苦韵", angle: Math.PI * 0.34 },
+        { id: "sour",      zh: "酸爽", angle: Math.PI * 0.47 },
+        { id: "fruit",     zh: "果香", angle: Math.PI * 0.58 },
+        { id: "vegetable", zh: "蔬食", angle: Math.PI * 0.68 },
+        { id: "steamed",   zh: "清蒸", angle: Math.PI * 0.78 },
+        { id: "soup",      zh: "汤羹", angle: Math.PI * 0.89 },
+        { id: "staple",    zh: "主食", angle: Math.PI * 0.98 },
+        { id: "salty",     zh: "咸鲜", angle: -Math.PI * 0.94 }
+      ];
+      const TAG_INDEX = Object.fromEntries(TAGS.map((t, i) => [t.id, i]));
+      const TAG_ANCHORS = TAGS.map((t) => ({ x: Math.cos(t.angle), y: Math.sin(t.angle) }));
+
+      const RAW_ITEMS = [
+        // spicy (8)
+        ["麻婆豆腐", "🌶️", "spicy", ["spicy", "savory", "salty", "staple"]],
+        ["水煮牛肉", "🥩", "spicy", ["spicy", "meat", "savory", "soup"]],
+        ["辣子鸡丁", "🍗", "spicy", ["spicy", "meat", "fried", "salty"]],
+        ["毛血旺", "🍲", "spicy", ["spicy", "meat", "soup", "savory"]],
+        ["口水鸡", "🐔", "spicy", ["spicy", "meat", "sour", "savory"]],
+        ["酸辣粉", "🍜", "spicy", ["spicy", "sour", "staple", "soup"]],
+        ["剁椒鱼头", "🐟", "spicy", ["spicy", "steamed", "salty", "meat"]],
+        ["麻辣香锅", "🥘", "spicy", ["spicy", "meat", "vegetable", "fried"]],
+
+        // grill (8)
+        ["脆皮炸鸡", "🍗", "grill", ["fried", "meat", "salty", "savory"]],
+        ["炭烤羊排", "🍖", "grill", ["meat", "fried", "salty", "savory"]],
+        ["蜜汁叉烧", "🥓", "grill", ["meat", "sweet", "baked", "savory"]],
+        ["香煎牛排", "🥩", "grill", ["meat", "savory", "salty"]],
+        ["蒜蓉烤生蚝", "🦪", "grill", ["meat", "baked", "salty", "savory"]],
+        ["天妇罗拼盘", "🍤", "grill", ["fried", "salty", "vegetable"]],
+        ["焦糖培根卷", "🥓", "grill", ["meat", "fried", "sweet", "savory"]],
+        ["脆皮猪肘", "🍖", "grill", ["meat", "baked", "fried", "salty"]],
+
+        // sweet (8)
+        ["苹果派", "🥧", "sweet", ["dessert", "sweet", "baked", "fruit"]],
+        ["提拉米苏", "🍰", "sweet", ["dessert", "sweet", "bitter", "baked"]],
+        ["抹茶千层", "🍵", "sweet", ["dessert", "sweet", "bitter"]],
+        ["焦糖布丁", "🍮", "sweet", ["dessert", "sweet", "baked"]],
+        ["巴斯克芝士", "🧀", "sweet", ["dessert", "sweet", "baked", "savory"]],
+        ["香蕉华夫饼", "🧇", "sweet", ["dessert", "sweet", "baked", "fruit"]],
+        ["黑巧熔岩蛋糕", "🍫", "sweet", ["dessert", "sweet", "bitter", "baked"]],
+        ["草莓奶油泡芙", "🥐", "sweet", ["dessert", "sweet", "fruit", "baked"]],
+
+        // drink (8)
+        ["冰美式咖啡", "☕", "drink", ["drink", "bitter"]],
+        ["生椰拿铁", "🥥", "drink", ["drink", "sweet", "bitter"]],
+        ["手打柠檬茶", "🍋", "drink", ["drink", "sour", "fruit", "sweet"]],
+        ["鲜榨橙汁", "🍊", "drink", ["drink", "fruit", "sweet", "sour"]],
+        ["杨枝甘露", "🥭", "drink", ["drink", "fruit", "sweet", "dessert"]],
+        ["青梅气泡饮", "🫧", "drink", ["drink", "sour", "fruit"]],
+        ["冷萃乌龙茶", "🍵", "drink", ["drink", "bitter"]],
+        ["苹果肉桂茶", "🍎", "drink", ["drink", "fruit", "sweet"]],
+
+        // light (8)
+        ["清蒸鲈鱼", "🐟", "light", ["steamed", "meat", "salty", "savory"]],
+        ["白灼芥兰", "🥬", "light", ["vegetable", "steamed", "salty"]],
+        ["牛油果鲜虾沙拉", "🥗", "light", ["vegetable", "fruit", "sour", "meat"]],
+        ["清炒芦笋百合", "🥦", "light", ["vegetable", "steamed"]],
+        ["鲜果酸奶碗", "🫐", "light", ["fruit", "sour", "sweet", "dessert"]],
+        ["蒸蛋羹", "🥚", "light", ["steamed", "salty", "savory"]],
+        ["凉拌木耳黄瓜", "🥒", "light", ["vegetable", "sour", "salty"]],
+        ["翡翠虾仁饺", "🥟", "light", ["steamed", "staple", "meat", "vegetable"]],
+
+        // soup (8)
+        ["海南鸡饭", "🍚", "soup", ["meat", "staple", "savory", "steamed"]],
+        ["红烧牛肉面", "🍜", "soup", ["meat", "staple", "savory", "soup"]],
+        ["豚骨拉面", "🍜", "soup", ["meat", "staple", "soup", "salty"]],
+        ["菌菇鸡汤", "🍲", "soup", ["meat", "soup", "savory", "steamed"]],
+        ["番茄牛腩汤", "🍅", "soup", ["meat", "soup", "sour", "savory"]],
+        ["海鲜乌冬面", "🍤", "soup", ["staple", "soup", "salty", "meat"]],
+        ["皮蛋瘦肉粥", "🥣", "soup", ["staple", "soup", "salty", "meat"]],
+        ["冬阴功海鲜汤", "🦐", "soup", ["soup", "spicy", "sour", "meat"]]
+      ];
+
+      // Build deterministic 16D vector + 2D semantic projection with overlap repulsion
+      const ITEMS = RAW_ITEMS.map(([name, emoji, cluster, tags], id) => {
+        const vec = new Float32Array(TAGS.length);
+        let sx = 0, sy = 0;
+        for (const t of tags) {
+          const idx = TAG_INDEX[t];
+          vec[idx] = 1;
+          sx += TAG_ANCHORS[idx].x;
+          sy += TAG_ANCHORS[idx].y;
+        }
+        const cAng = CLUSTERS[cluster].angle;
+        const len = tags.length || 1;
+        // Blend tag centroid with cluster sector anchor for clean visual separation
+        let x = (sx / len) * 0.58 + Math.cos(cAng) * 0.42 + ((id % 5) - 2) * 0.03;
+        let y = (sy / len) * 0.58 + Math.sin(cAng) * 0.42 + (((id * 3) % 5) - 2) * 0.03;
+        return { id, name, emoji, cluster, tags, vec, x, y, norm: Math.sqrt(len) };
+      });
+
+      // Deterministic force-directed relaxation to prevent node overlap
+      for (let iter = 0; iter < 55; iter++) {
+        for (let i = 0; i < ITEMS.length; i++) {
+          for (let j = i + 1; j < ITEMS.length; j++) {
+            const dx = ITEMS[j].x - ITEMS[i].x;
+            const dy = ITEMS[j].y - ITEMS[i].y;
+            const d2 = dx * dx + dy * dy;
+            const minD = 0.145;
+            if (d2 < minD * minD && d2 > 1e-6) {
+              const d = Math.sqrt(d2);
+              const push = (minD - d) * 0.35;
+              const ux = dx / d;
+              const uy = dy / d;
+              ITEMS[i].x -= ux * push;
+              ITEMS[i].y -= uy * push;
+              ITEMS[j].x += ux * push;
+              ITEMS[j].y += uy * push;
+            }
+          }
+        }
+        for (let i = 0; i < ITEMS.length; i++) {
+          const r = Math.hypot(ITEMS[i].x, ITEMS[i].y);
+          if (r > 0.92) {
+            ITEMS[i].x *= 0.92 / r;
+            ITEMS[i].y *= 0.92 / r;
+          }
+        }
+      }
+
+      /* =========================================================
+       * State & Recommendation Engine
+       * ========================================================= */
+      const PERSONAS = {
+        cold:  () => new Float32Array(TAGS.length).fill(0.25),
+        dio:   () => new Float32Array(TAGS.length).fill(0.50),
+        spicy: () => {
+          const w = new Float32Array(TAGS.length).fill(0.10);
+          w[TAG_INDEX.spicy] = 0.92; w[TAG_INDEX.savory] = 0.62; w[TAG_INDEX.meat] = 0.55; w[TAG_INDEX.salty] = 0.45;
+          return w;
+        },
+        sweet: () => {
+          const w = new Float32Array(TAGS.length).fill(0.10);
+          w[TAG_INDEX.dessert] = 0.95; w[TAG_INDEX.sweet] = 0.88; w[TAG_INDEX.baked] = 0.72; w[TAG_INDEX.fruit] = 0.45;
+          return w;
+        },
+        light: () => {
+          const w = new Float32Array(TAGS.length).fill(0.10);
+          w[TAG_INDEX.vegetable] = 0.85; w[TAG_INDEX.steamed] = 0.85; w[TAG_INDEX.soup] = 0.55; w[TAG_INDEX.fruit] = 0.50;
+          return w;
+        }
+      };
+
+      const state = {
+        persona: "cold",
+        algo: "cosine", // cosine | mmr | dot
+        epsilon: 0,     // 0..40 (%)
+        diversity: 0.45,
+        lr: 0.18,
+        decay: 0.45,
+        steps: 0,
+        weights: PERSONAS.cold(),
+        cooldown: new Float32Array(ITEMS.length), // 0..1 recently seen penalty
+        userPos: { x: 0, y: 0 },
+        targetPos: { x: 0, y: 0 },
+        trajectory: [],
+        bubbleHistory: [],
+        currentFeed: [],
+        hoveredId: -1,
+        simRunning: false
+      };
+
+      function computeUser2DPosition() {
+        let sx = 0, sy = 0, total = 0;
+        for (let i = 0; i < TAGS.length; i++) {
+          const w = Math.max(0, state.weights[i]);
+          sx += TAG_ANCHORS[i].x * w;
+          sy += TAG_ANCHORS[i].y * w;
+          total += w;
+        }
+        if (total < 1e-4) return { x: 0, y: 0 };
+        // Amplify displacement slightly so preference drift is vivid on the map
+        const x = (sx / total) * 1.45;
+        const y = (sy / total) * 1.45;
+        const r = Math.hypot(x, y);
+        return r > 0.88 ? { x: (x / r) * 0.88, y: (y / r) * 0.88 } : { x, y };
+      }
+
+      function itemCosine(a, b) {
+        let dot = 0;
+        for (let i = 0; i < TAGS.length; i++) dot += a.vec[i] * b.vec[i];
+        return dot / (a.norm * b.norm);
+      }
+
+      function scoreRelevance(item) {
+        let dot = 0;
+        let wNorm2 = 0;
+        for (let i = 0; i < TAGS.length; i++) {
+          const w = state.weights[i];
+          dot += item.vec[i] * w;
+          wNorm2 += w * w;
+        }
+        let raw;
+        if (state.algo === "dot") {
+          raw = dot / item.tags.length;
+        } else {
+          const denom = Math.sqrt(wNorm2) * item.norm;
+          raw = denom > 1e-5 ? dot / denom : 0;
+        }
+        const penalty = 1 - state.decay * state.cooldown[item.id];
+        return raw * Math.max(0.15, penalty);
+      }
+
+      function computeFeed() {
+        const candidates = ITEMS.map((item) => ({
+          item,
+          rel: scoreRelevance(item),
+          score: 0,
+          reason: ""
+        }));
+
+        for (const c of candidates) c.score = c.rel;
+
+        let selected = [];
+        if (state.algo === "mmr") {
+          const pool = candidates.slice();
+          const lambda = 1 - state.diversity;
+          while (selected.length < 8 && pool.length > 0) {
+            let bestIdx = 0;
+            let bestMMR = -Infinity;
+            let bestDivShift = 0;
+            for (let i = 0; i < pool.length; i++) {
+              const cand = pool[i];
+              let maxSim = 0;
+              for (const s of selected) {
+                const sim = itemCosine(cand.item, s.item);
+                if (sim > maxSim) maxSim = sim;
+              }
+              const mmr = lambda * cand.rel - (1 - lambda) * maxSim;
+              if (mmr > bestMMR) {
+                bestMMR = mmr;
+                bestIdx = i;
+                bestDivShift = (1 - lambda) * maxSim;
+              }
+            }
+            const picked = pool.splice(bestIdx, 1)[0];
+            picked.score = Math.max(0, bestMMR);
+            if (selected.length > 0 && bestDivShift < 0.14 && picked.rel < candidates[0].rel * 0.78) {
+              picked.reason = "MMR 破茧";
+            }
+            selected.push(picked);
+          }
+        } else {
+          candidates.sort((a, b) => b.score - a.score);
+          selected = candidates.slice(0, 8);
+        }
+
+        // Epsilon-greedy exploration injection
+        const epsProb = state.epsilon / 100;
+        if (epsProb > 0) {
+          const selectedIds = new Set(selected.map((s) => s.item.id));
+          const outside = candidates.filter((c) => !selectedIds.has(c.item.id));
+          const numExplore = Math.min(3, Math.round(epsProb * 7));
+          for (let k = 0; k < numExplore && outside.length > 0; k++) {
+            const slot = Math.max(2, 7 - k * 2);
+            const rIdx = Math.floor(Math.random() * outside.length);
+            const pick = outside.splice(rIdx, 1)[0];
+            pick.reason = "ε-探索";
+            selected[slot] = pick;
+          }
+        }
+
+        state.currentFeed = selected;
+        updateMetricsAndUI();
+      }
+
+      function computeBubbleIndex(feed) {
+        const counts = {};
+        for (const entry of feed) {
+          counts[entry.item.cluster] = (counts[entry.item.cluster] || 0) + 1;
+        }
+        const total = feed.length || 1;
+        const maxEnt = Math.log(Object.keys(CLUSTERS).length);
+        let ent = 0;
+        for (const k in counts) {
+          const p = counts[k] / total;
+          ent -= p * Math.log(p);
+        }
+        return Math.round((1 - ent / maxEnt) * 100);
+      }
+
+      function interactWithItem(itemId, action) {
+        const item = ITEMS[itemId];
+        if (!item) return;
+
+        // Decay existing cooldowns
+        for (let i = 0; i < state.cooldown.length; i++) {
+          state.cooldown[i] *= 0.84;
+        }
+        state.cooldown[itemId] = 1.0;
+
+        if (action === "like") {
+          for (const t of item.tags) {
+            const idx = TAG_INDEX[t];
+            state.weights[idx] = Math.min(1.8, state.weights[idx] + state.lr);
+          }
+          // Subtle competition decay on unpicked tags to sharpen specialization
+          for (let i = 0; i < TAGS.length; i++) {
+            if (!item.tags.includes(TAGS[i].id)) {
+              state.weights[i] = Math.max(-0.4, state.weights[i] - state.lr * 0.08);
+            }
+          }
+        } else if (action === "dislike") {
+          for (const t of item.tags) {
+            const idx = TAG_INDEX[t];
+            state.weights[idx] = Math.max(-0.6, state.weights[idx] - state.lr * 0.9);
+          }
+        } else {
+          // Skip: very gentle negative drift
+          for (const t of item.tags) {
+            const idx = TAG_INDEX[t];
+            state.weights[idx] = Math.max(-0.4, state.weights[idx] - state.lr * 0.12);
+          }
+        }
+
+        state.steps++;
+        state.targetPos = computeUser2DPosition();
+        state.trajectory.push({ x: state.targetPos.x, y: state.targetPos.y });
+        if (state.trajectory.length > 40) state.trajectory.shift();
+
+        computeFeed();
+      }
+
+      /* =========================================================
+       * UI Rendering (Weights, Feed, Sparkline, Bubble Pill)
+       * ========================================================= */
+      const weightsGrid = document.getElementById("weights-grid");
+      const feedList = document.getElementById("feed-list");
+      const bubblePill = document.getElementById("bubble-pill");
+      const bubbleVal = document.getElementById("bubble-val");
+      const stepCountEl = document.getElementById("step-count");
+      const feedSummaryEl = document.getElementById("feed-summary");
+      const sparkStatusEl = document.getElementById("spark-status");
+      const topTagsEl = document.getElementById("top-tags");
+
+      function renderWeights() {
+        weightsGrid.innerHTML = "";
+        const sorted = TAGS.map((t, i) => ({ tag: t, w: state.weights[i] }))
+          .sort((a, b) => b.w - a.w);
+        topTagsEl.textContent = "Top: " + sorted.slice(0, 3).map((x) => x.tag.zh).join(" · ");
+
+        TAGS.forEach((tag, i) => {
+          const w = state.weights[i];
+          const btn = document.createElement("button");
+          btn.className = "w-item";
+          btn.title = `${tag.zh} (${tag.id}): ${w.toFixed(2)} — 点击 +0.12`;
+
+          const name = document.createElement("span");
+          name.className = "w-name";
+          name.textContent = tag.zh;
+
+          const track = document.createElement("span");
+          track.className = "w-track";
+
+          const fill = document.createElement("span");
+          fill.className = "w-fill" + (w < 0 ? " neg" : "");
+          const pct = Math.min(100, Math.abs(w) / 1.4 * 100);
+          fill.style.width = `${pct.toFixed(0)}%`;
+
+          track.appendChild(fill);
+          btn.appendChild(name);
+          btn.appendChild(track);
+          btn.addEventListener("click", () => {
+            state.weights[i] = Math.min(1.8, state.weights[i] + 0.12);
+            state.targetPos = computeUser2DPosition();
+            state.trajectory.push({ x: state.targetPos.x, y: state.targetPos.y });
+            if (state.trajectory.length > 40) state.trajectory.shift();
+            computeFeed();
+          });
+          weightsGrid.appendChild(btn);
+        });
+      }
+
+      function renderFeed() {
+        feedList.innerHTML = "";
+        const clustersInFeed = new Set();
+        state.currentFeed.forEach((entry, idx) => {
+          const { item, score, reason } = entry;
+          clustersInFeed.add(item.cluster);
+          const cl = CLUSTERS[item.cluster];
+
+          const card = document.createElement("article");
+          card.className = "card";
+          card.addEventListener("mouseenter", () => { state.hoveredId = item.id; });
+          card.addEventListener("mouseleave", () => { state.hoveredId = -1; });
+
+          const top = document.createElement("div");
+          top.className = "card-top";
+
+          const rank = document.createElement("span");
+          rank.className = "rank";
+          rank.textContent = String(idx + 1);
+
+          const name = document.createElement("span");
+          name.className = "card-name";
+          const dot = document.createElement("span");
+          dot.className = "cluster-dot";
+          dot.style.background = cl.color;
+          name.appendChild(dot);
+          name.appendChild(document.createTextNode(`${item.emoji} ${item.name}`));
+
+          top.appendChild(rank);
+          top.appendChild(name);
+
+          if (reason) {
+            const rb = document.createElement("span");
+            rb.className = "badge-reason";
+            rb.textContent = reason;
+            top.appendChild(rb);
+          }
+
+          const sc = document.createElement("span");
+          sc.className = "score-num";
+          sc.textContent = `${Math.round(Math.max(0, Math.min(1, score)) * 100)}%`;
+          top.appendChild(sc);
+
+          const tagsRow = document.createElement("div");
+          tagsRow.className = "card-tags";
+          item.tags.forEach((t) => {
+            const chip = document.createElement("span");
+            chip.className = "tag-chip";
+            chip.textContent = TAGS[TAG_INDEX[t]].zh;
+            tagsRow.appendChild(chip);
+          });
+
+          const actions = document.createElement("div");
+          actions.className = "card-actions";
+          const mkBtn = (cls, label, act) => {
+            const b = document.createElement("button");
+            b.className = `act ${cls}`;
+            b.textContent = label;
+            b.addEventListener("click", () => interactWithItem(item.id, act));
+            return b;
+          };
+          actions.appendChild(mkBtn("like", "♥ 喜欢", "like"));
+          actions.appendChild(mkBtn("dislike", "✕ 不喜欢", "dislike"));
+          actions.appendChild(mkBtn("skip", "⏭ 划过", "skip"));
+
+          card.appendChild(top);
+          card.appendChild(tagsRow);
+          card.appendChild(actions);
+          feedList.appendChild(card);
+        });
+
+        feedSummaryEl.textContent = `6 类覆盖 ${clustersInFeed.size}/6`;
+      }
+
+      const sparkCanvas = document.getElementById("spark");
+      const sctx = sparkCanvas.getContext("2d");
+      function renderSparkline() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = sparkCanvas.clientWidth || 200;
+        const h = sparkCanvas.clientHeight || 58;
+        sparkCanvas.width = Math.floor(w * dpr);
+        sparkCanvas.height = Math.floor(h * dpr);
+        sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        sctx.clearRect(0, 0, w, h);
+
+        // 40% and 70% reference lines
+        const y70 = h * (1 - 0.70);
+        const y40 = h * (1 - 0.40);
+        sctx.strokeStyle = "rgba(201, 59, 43, 0.25)";
+        sctx.setLineDash([3, 3]);
+        sctx.beginPath(); sctx.moveTo(0, y70); sctx.lineTo(w, y70); sctx.stroke();
+        sctx.strokeStyle = "rgba(21, 128, 61, 0.25)";
+        sctx.beginPath(); sctx.moveTo(0, y40); sctx.lineTo(w, y40); sctx.stroke();
+        sctx.setLineDash([]);
+
+        const hist = state.bubbleHistory;
+        if (hist.length < 2) return;
+        sctx.beginPath();
+        for (let i = 0; i < hist.length; i++) {
+          const x = (i / Math.max(1, hist.length - 1)) * (w - 8) + 4;
+          const y = h - 4 - (hist[i] / 100) * (h - 8);
+          if (i === 0) sctx.moveTo(x, y);
+          else sctx.lineTo(x, y);
+        }
+        const latest = hist[hist.length - 1];
+        sctx.strokeStyle = latest >= 70 ? "#c93b2b" : latest >= 40 ? "#b45309" : "#15803d";
+        sctx.lineWidth = 2;
+        sctx.stroke();
+      }
+
+      function updateMetricsAndUI() {
+        const bubble = computeBubbleIndex(state.currentFeed);
+        state.bubbleHistory.push(bubble);
+        if (state.bubbleHistory.length > 30) state.bubbleHistory.shift();
+
+        bubbleVal.textContent = `${bubble}%`;
+        const level = bubble >= 70 ? "high" : bubble >= 40 ? "mid" : "low";
+        bubblePill.setAttribute("data-level", level);
+        sparkStatusEl.textContent = level === "high" ? "高度茧房化" : level === "mid" ? "正在收敛" : "健康多样";
+        stepCountEl.textContent = `步数 ${state.steps}`;
+
+        renderWeights();
+        renderFeed();
+        renderSparkline();
+      }
+
+      /* =========================================================
+       * 2D Semantic Flavor Map Rendering & Interaction
+       * ========================================================= */
+      const spaceCanvas = document.getElementById("space");
+      const ctx = spaceCanvas.getContext("2d");
+      const tooltipEl = document.getElementById("tooltip");
+      let SW = 600, SH = 500;
+
+      function resizeSpace() {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        SW = Math.max(240, spaceCanvas.clientWidth);
+        SH = Math.max(240, spaceCanvas.clientHeight);
+        spaceCanvas.width = Math.floor(SW * dpr);
+        spaceCanvas.height = Math.floor(SH * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      function worldToScreen(wx, wy) {
+        const scale = Math.min(SW, SH) * 0.41;
+        return { x: SW * 0.5 + wx * scale, y: SH * 0.52 + wy * scale };
+      }
+
+      function drawSpace(now) {
+        requestAnimationFrame(drawSpace);
+
+        // Smooth spring interpolation of user vector
+        state.userPos.x += (state.targetPos.x - state.userPos.x) * 0.14;
+        state.userPos.y += (state.targetPos.y - state.userPos.y) * 0.14;
+
+        ctx.clearRect(0, 0, SW, SH);
+        const cx = SW * 0.5;
+        const cy = SH * 0.52;
+        const radius = Math.min(SW, SH) * 0.41;
+
+        // Polar coordinate rings
+        ctx.strokeStyle = "rgba(22, 22, 22, 0.08)";
+        ctx.lineWidth = 1;
+        for (const frac of [0.33, 0.66, 1.0]) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, radius * frac, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // Cluster territory labels on outer ring
+        ctx.font = "600 11.5px system-ui, -apple-system, 'PingFang SC', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        for (const key in CLUSTERS) {
+          const cl = CLUSTERS[key];
+          const lx = cx + Math.cos(cl.angle) * (radius * 1.06);
+          const ly = cy + Math.sin(cl.angle) * (radius * 1.06);
+          ctx.fillStyle = cl.color;
+          ctx.fillText(cl.name, lx, ly);
+        }
+
+        // User historical drift trajectory
+        if (state.trajectory.length > 1) {
+          ctx.beginPath();
+          state.trajectory.forEach((pt, idx) => {
+            const p = worldToScreen(pt.x, pt.y);
+            if (idx === 0) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          });
+          ctx.strokeStyle = "rgba(201, 59, 43, 0.35)";
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.6;
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        const uScr = worldToScreen(state.userPos.x, state.userPos.y);
+
+        // User radar pulse ring
+        const pulse = 18 + Math.sin(now * 0.004) * 3;
+        ctx.beginPath();
+        ctx.arc(uScr.x, uScr.y, pulse * 2.2, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(201, 59, 43, 0.14)";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Top-8 lookup
+        const topMap = new Map();
+        state.currentFeed.forEach((entry, idx) => {
+          topMap.set(entry.item.id, { rank: idx + 1, reason: entry.reason });
+        });
+
+        // Recommendation connection beams
+        state.currentFeed.forEach((entry) => {
+          const p = worldToScreen(entry.item.x, entry.item.y);
+          ctx.beginPath();
+          ctx.moveTo(uScr.x, uScr.y);
+          ctx.lineTo(p.x, p.y);
+          if (entry.reason) {
+            ctx.strokeStyle = "rgba(15, 118, 110, 0.55)";
+            ctx.setLineDash([5, 4]);
+            ctx.lineWidth = 1.6;
+          } else {
+            ctx.strokeStyle = "rgba(22, 22, 22, 0.22)";
+            ctx.setLineDash([]);
+            ctx.lineWidth = 1.3;
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+
+        // Dish nodes
+        for (const item of ITEMS) {
+          const p = worldToScreen(item.x, item.y);
+          const cl = CLUSTERS[item.cluster];
+          const topInfo = topMap.get(item.id);
+          const isHover = state.hoveredId === item.id;
+          const r = topInfo ? 10 : isHover ? 9 : 6;
+
+          if (state.cooldown[item.id] > 0.25) {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, r + 4, 0, Math.PI * 2);
+            ctx.strokeStyle = "rgba(22, 22, 22, 0.20)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+          }
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+          ctx.fillStyle = topInfo || isHover ? cl.color : `${cl.color}99`;
+          ctx.fill();
+          ctx.strokeStyle = isHover ? "#161616" : "#faf8f3";
+          ctx.lineWidth = isHover ? 2.2 : 1.5;
+          ctx.stroke();
+
+          if (topInfo) {
+            ctx.fillStyle = "#ffffff";
+            ctx.font = "700 10px ui-monospace, monospace";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(String(topInfo.rank), p.x, p.y + 0.5);
+
+            ctx.fillStyle = "#161616";
+            ctx.font = "600 11px system-ui, -apple-system, 'PingFang SC', sans-serif";
+            ctx.fillText(item.name, p.x, p.y + 18);
+          } else if (isHover) {
+            ctx.fillStyle = "#161616";
+            ctx.font = "600 11px system-ui, -apple-system, 'PingFang SC', sans-serif";
+            ctx.fillText(item.name, p.x, p.y + 16);
+          }
+        }
+
+        // User marker (★ 我)
+        ctx.beginPath();
+        ctx.arc(uScr.x, uScr.y, 13, 0, Math.PI * 2);
+        ctx.fillStyle = "#c93b2b";
+        ctx.fill();
+        ctx.strokeStyle = "#faf8f3";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "#faf8f3";
+        ctx.font = "700 11px system-ui, -apple-system, 'PingFang SC', sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("我", uScr.x, uScr.y + 0.5);
+      }
+
+      function findHoveredItem(clientX, clientY) {
+        const rect = spaceCanvas.getBoundingClientRect();
+        const mx = clientX - rect.left;
+        const my = clientY - rect.top;
+        let bestId = -1;
+        let bestD2 = 18 * 18;
+        for (const item of ITEMS) {
+          const p = worldToScreen(item.x, item.y);
+          const d2 = (p.x - mx) * (p.x - mx) + (p.y - my) * (p.y - my);
+          if (d2 < bestD2) {
+            bestD2 = d2;
+            bestId = item.id;
+          }
+        }
+        return { id: bestId, mx, my };
+      }
+
+      spaceCanvas.addEventListener("contextmenu", (e) => e.preventDefault());
+      spaceCanvas.addEventListener("mousemove", (e) => {
+        const hit = findHoveredItem(e.clientX, e.clientY);
+        state.hoveredId = hit.id;
+        spaceCanvas.style.cursor = hit.id !== -1 ? "pointer" : "default";
+        if (hit.id !== -1) {
+          const item = ITEMS[hit.id];
+          const rel = scoreRelevance(item);
+          tooltipEl.innerHTML = `
+            <div class="tt-title">${item.emoji} ${item.name}</div>
+            <div class="tt-meta">${CLUSTERS[item.cluster].name} · 匹配度 ${Math.round(Math.max(0, rel) * 100)}%</div>
+            <div class="tt-meta">标签: ${item.tags.map((t) => TAGS[TAG_INDEX[t]].zh).join(" / ")}</div>
+            <div class="tt-meta" style="margin-top:3px;color:#fbbf24;">左键喜欢 ♥ · 右键不喜欢 ✕</div>
+          `;
+          tooltipEl.style.left = `${Math.min(SW - 230, hit.mx + 14)}px`;
+          tooltipEl.style.top = `${Math.max(10, hit.my - 20)}px`;
+          tooltipEl.classList.add("visible");
+        } else {
+          tooltipEl.classList.remove("visible");
+        }
+      });
+      spaceCanvas.addEventListener("mouseleave", () => {
+        state.hoveredId = -1;
+        tooltipEl.classList.remove("visible");
+      });
+      spaceCanvas.addEventListener("mousedown", (e) => {
+        const hit = findHoveredItem(e.clientX, e.clientY);
+        if (hit.id === -1) return;
+        interactWithItem(hit.id, e.button === 2 ? "dislike" : "like");
+      });
+
+      /* =========================================================
+       * Personas, Controls & Auto-Simulation Experiment
+       * ========================================================= */
+      function resetPersona(name) {
+        stopSimulation();
+        state.persona = name;
+        state.weights = PERSONAS[name]();
+        state.cooldown.fill(0);
+        state.steps = 0;
+        state.bubbleHistory = [];
+        state.targetPos = computeUser2DPosition();
+        state.userPos = { ...state.targetPos };
+        state.trajectory = [{ ...state.targetPos }];
+        document.querySelectorAll("[data-persona]").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.persona === name));
+        });
+        computeFeed();
+      }
+
+      document.querySelectorAll("[data-persona]").forEach((btn) => {
+        btn.addEventListener("click", () => resetPersona(btn.dataset.persona));
+      });
+      document.getElementById("btn-reset").addEventListener("click", () => resetPersona(state.persona));
+
+      document.querySelectorAll("[data-algo]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.algo = btn.dataset.algo;
+          document.querySelectorAll("[data-algo]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+          computeFeed();
+        });
+      });
+
+      function bindSlider(id, outId, key, suffix = "", digits = 2) {
+        const el = document.getElementById(id);
+        const out = document.getElementById(outId);
+        el.addEventListener("input", () => {
+          state[key] = Number(el.value);
+          out.textContent = (digits > 0 ? state[key].toFixed(digits) : String(state[key])) + suffix;
+          computeFeed();
+        });
+      }
+      bindSlider("sl-eps", "out-eps", "epsilon", "%", 0);
+      bindSlider("sl-div", "out-div", "diversity", "", 2);
+      bindSlider("sl-lr", "out-lr", "lr", "", 2);
+      bindSlider("sl-decay", "out-decay", "decay", "", 2);
+
+      // Automated 15-step click simulation to demonstrate filter bubble convergence
+      const btnSim = document.getElementById("btn-sim");
+      let simTimer = null;
+      let simRemaining = 0;
+
+      function stopSimulation() {
+        clearInterval(simTimer);
+        simTimer = null;
+        state.simRunning = false;
+        btnSim.classList.remove("running");
+        btnSim.textContent = "▶ 模拟 15 步点击（观察茧房）";
+      }
+
+      btnSim.addEventListener("click", () => {
+        if (state.simRunning) {
+          stopSimulation();
+          return;
+        }
+        state.simRunning = true;
+        simRemaining = 15;
+        btnSim.classList.add("running");
+        btnSim.textContent = `■ 模拟中 (${simRemaining})`;
+        simTimer = setInterval(() => {
+          if (simRemaining <= 0 || state.currentFeed.length === 0) {
+            stopSimulation();
+            return;
+          }
+          // Realistic user picks mostly Top-1 or Top-2
+          const pickIdx = Math.random() < 0.72 ? 0 : Math.min(1, state.currentFeed.length - 1);
+          interactWithItem(state.currentFeed[pickIdx].item.id, "like");
+          simRemaining--;
+          btnSim.textContent = `■ 模拟中 (${simRemaining})`;
+          if (simRemaining <= 0) stopSimulation();
+        }, 280);
+      });
+
+      // One-click pop-the-bubble preset
+      document.getElementById("btn-pop").addEventListener("click", () => {
+        state.algo = "mmr";
+        state.diversity = 0.55;
+        state.epsilon = 15;
+        document.querySelectorAll("[data-algo]").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.algo === "mmr"));
+        });
+        document.getElementById("sl-div").value = "0.55";
+        document.getElementById("out-div").textContent = "0.55";
+        document.getElementById("sl-eps").value = "15";
+        document.getElementById("out-eps").textContent = "15%";
+        computeFeed();
+      });
+
+      window.addEventListener("resize", () => {
+        resizeSpace();
+        renderSparkline();
+      });
+
+      /* =========================================================
+       * Boot
+       * ========================================================= */
+      resizeSpace();
+      resetPersona("cold");
+      requestAnimationFrame(drawSpace);
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Boids No.2 · 群舞生态</title>
+  <meta name="description" content="单文件高性能群体生态模拟：空间哈希网格支持 1500+ 个体 60fps 运行，包含水墨锦鲤、黄昏椋鸟、深海萤火三种生态皮肤与算法透视。" />
+  <style>
+    :root {
+      --hud-bg: rgba(14, 17, 24, 0.74);
+      --hud-bg-strong: rgba(16, 20, 29, 0.90);
+      --hud-border: rgba(255, 255, 255, 0.14);
+      --hud-border-strong: rgba(255, 255, 255, 0.25);
+      --hud-ink: #eef2f7;
+      --hud-mute: #9aa6b8;
+      --hud-pill: rgba(255, 255, 255, 0.06);
+      --hud-pill-hover: rgba(255, 255, 255, 0.14);
+      --accent: #38bdf8;
+      --accent-ink: #07131d;
+      --danger: #f43f5e;
+      --shadow: 0 14px 40px rgba(0, 0, 0, 0.42);
+      --sans: system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      color-scheme: dark;
+    }
+
+    body[data-ui-theme="light"] {
+      --hud-bg: rgba(242, 237, 226, 0.80);
+      --hud-bg-strong: rgba(246, 241, 231, 0.94);
+      --hud-border: rgba(28, 25, 20, 0.14);
+      --hud-border-strong: rgba(28, 25, 20, 0.30);
+      --hud-ink: #1a1917;
+      --hud-mute: #645e53;
+      --hud-pill: rgba(28, 25, 20, 0.05);
+      --hud-pill-hover: rgba(28, 25, 20, 0.11);
+      --accent: #c93b2b;
+      --accent-ink: #faf7f0;
+      --danger: #b91c1c;
+      --shadow: 0 12px 32px rgba(28, 24, 18, 0.14);
+      color-scheme: light;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #ede8dc;
+      font-family: var(--sans);
+      color: var(--hud-ink);
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+
+    #canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      display: block;
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    button, input { font: inherit; color: inherit; }
+    button { cursor: pointer; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    /* ---------- Top-Left Badge ---------- */
+    .hud-badge {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      left: max(14px, env(safe-area-inset-left));
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: var(--shadow);
+      pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s ease, background 0.25s ease, border-color 0.25s ease;
+    }
+    .badge-top {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px var(--accent);
+      flex: none;
+    }
+    .badge-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+    .badge-meta {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--hud-mute);
+    }
+    .badge-hint {
+      font-size: 11.5px;
+      color: var(--hud-mute);
+      transition: opacity 0.6s ease;
+    }
+    .badge-hint.dimmed { opacity: 0.55; }
+
+    /* ---------- Bottom Floating Dock ---------- */
+    .dock {
+      position: fixed;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 25;
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      max-width: calc(100vw - 24px);
+      padding: 6px 8px;
+      border-radius: 16px;
+      background: var(--hud-bg);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      overflow-x: auto;
+      scrollbar-width: none;
+      transition: opacity 0.28s ease, transform 0.28s ease, background 0.25s ease, border-color 0.25s ease;
+    }
+    .dock::-webkit-scrollbar { display: none; }
+
+    .dock-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px;
+      border-radius: 11px;
+      background: var(--hud-pill);
+      border: 1px solid var(--hud-border);
+      flex: none;
+    }
+    .dock-sep {
+      width: 1px;
+      height: 20px;
+      background: var(--hud-border);
+      flex: none;
+    }
+    .pill-btn {
+      height: 30px;
+      padding: 0 11px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: var(--hud-mute);
+      font-size: 12.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+    }
+    .pill-btn:hover {
+      background: var(--hud-pill-hover);
+      color: var(--hud-ink);
+    }
+    .pill-btn:active { transform: scale(0.97); }
+    .pill-btn[aria-pressed="true"] {
+      background: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    .act-btn {
+      height: 32px;
+      padding: 0 11px;
+      border-radius: 10px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-pill);
+      color: var(--hud-ink);
+      font-size: 12.5px;
+      font-weight: 500;
+      white-space: nowrap;
+      flex: none;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+    .act-btn:hover {
+      background: var(--hud-pill-hover);
+      border-color: var(--hud-border-strong);
+    }
+    .act-btn:active { transform: scale(0.97); }
+    .act-btn[aria-pressed="true"],
+    .act-btn[aria-expanded="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+      font-weight: 600;
+    }
+
+    /* ---------- Right Collapsible Inspector ---------- */
+    .drawer {
+      position: fixed;
+      top: max(14px, env(safe-area-inset-top));
+      right: max(14px, env(safe-area-inset-right));
+      bottom: 78px;
+      width: min(310px, calc(100vw - 28px));
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      background: var(--hud-bg-strong);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transform: translateX(calc(100% + 28px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.22s ease, background 0.25s ease;
+    }
+    .drawer.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 13px 16px;
+      border-bottom: 1px solid var(--hud-border);
+      flex: none;
+    }
+    .drawer-head h2 {
+      margin: 0;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-pill);
+      display: grid;
+      place-items: center;
+      font-size: 15px;
+    }
+    .close-btn:hover { background: var(--hud-pill-hover); }
+
+    .drawer-body {
+      padding: 14px 16px 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10.5px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--hud-mute);
+      margin-bottom: 8px;
+    }
+    .sliders {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .slider-row {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .slider-head {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+    .slider-head output {
+      font-family: var(--mono);
+      font-size: 11.5px;
+      color: var(--hud-mute);
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 18px;
+      background: transparent;
+      margin: 0;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--hud-border-strong);
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--hud-bg-strong);
+    }
+    input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: var(--hud-border-strong);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--hud-bg-strong);
+    }
+
+    .switches {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .switch-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12.5px;
+    }
+    .switch {
+      position: relative;
+      width: 38px;
+      height: 22px;
+      border-radius: 999px;
+      border: 1px solid var(--hud-border-strong);
+      background: var(--hud-pill);
+      padding: 0;
+      transition: background 0.18s ease, border-color 0.18s ease;
+    }
+    .switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--hud-ink);
+      transition: transform 0.18s ease, background 0.18s ease;
+    }
+    .switch[aria-checked="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .switch[aria-checked="true"]::after {
+      transform: translateX(16px);
+      background: var(--accent-ink);
+    }
+
+    .danger-btn {
+      width: 100%;
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid rgba(201, 59, 43, 0.35);
+      background: rgba(201, 59, 43, 0.10);
+      color: var(--danger);
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+    .danger-btn:hover { background: rgba(201, 59, 43, 0.18); }
+
+    .shortcuts {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--hud-mute);
+      line-height: 1.7;
+      border-top: 1px solid var(--hud-border);
+      padding-top: 10px;
+    }
+    kbd {
+      display: inline-block;
+      padding: 0 5px;
+      border-radius: 4px;
+      border: 1px solid var(--hud-border-strong);
+      background: var(--hud-pill);
+      color: var(--hud-ink);
+      font-size: 10.5px;
+    }
+
+    body.hud-hidden .hud-badge,
+    body.hud-hidden .dock,
+    body.hud-hidden .drawer {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      transform: translateY(14px);
+    }
+    body.hud-hidden .dock { transform: translate(-50%, 20px); }
+  </style>
+</head>
+<body data-ui-theme="light">
+  <canvas id="canvas" aria-label="群舞生态画布"></canvas>
+
+  <header class="hud-badge">
+    <div class="badge-top">
+      <span class="badge-dot" aria-hidden="true"></span>
+      <span class="badge-title">Boids No.2</span>
+      <span class="badge-meta" id="telemetry">60 FPS · 260 个体 · 空间哈希</span>
+    </div>
+    <div class="badge-hint" id="badge-hint">点击/拖拽投喂与交互 · 右键绘制礁石障碍 · D 算法透视 · H 隐藏界面</div>
+  </header>
+
+  <nav class="dock" aria-label="群舞控制栏">
+    <div class="dock-group" role="group" aria-label="生态皮肤">
+      <button class="pill-btn" data-theme="koi" aria-pressed="true">水墨锦鲤</button>
+      <button class="pill-btn" data-theme="starling" aria-pressed="false">黄昏椋鸟</button>
+      <button class="pill-btn" data-theme="abyss" aria-pressed="false">深海萤火</button>
+    </div>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <div class="dock-group" role="group" aria-label="交互工具">
+      <button class="pill-btn" data-tool="feed" aria-pressed="true">投喂</button>
+      <button class="pill-btn" data-tool="repel" aria-pressed="false">惊扰</button>
+      <button class="pill-btn" data-tool="wall" aria-pressed="false">画障碍</button>
+    </div>
+
+    <div class="dock-sep" aria-hidden="true"></div>
+
+    <button class="act-btn" id="btn-predator" aria-pressed="false">捕食者</button>
+    <button class="act-btn" id="btn-debug" aria-pressed="false" title="显示空间哈希与受力矢量 (D)">算法透视</button>
+    <button class="act-btn" id="btn-pause" aria-pressed="false" title="暂停/继续 (P)">暂停</button>
+    <button class="act-btn" id="btn-reset" title="重置群体 (R)">重置</button>
+    <button class="act-btn" id="btn-drawer" aria-expanded="false" aria-controls="inspector" title="参数面板 (I)">参数</button>
+  </nav>
+
+  <aside class="drawer" id="inspector" aria-label="群体动力学参数面板">
+    <div class="drawer-head">
+      <h2>Ecology · 参数</h2>
+      <button class="close-btn" id="btn-close-drawer" aria-label="关闭参数面板">×</button>
+    </div>
+    <div class="drawer-body">
+      <div>
+        <div class="section-label">群体参数 · Flocking</div>
+        <div class="sliders">
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-count">个体数量 Count</label><output id="out-count">260</output></div>
+            <input id="sl-count" type="range" min="80" max="1500" step="20" value="260" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-sep">分离权重 Separation</label><output id="out-sep">1.65</output></div>
+            <input id="sl-sep" type="range" min="0" max="3" step="0.05" value="1.65" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-ali">对齐权重 Alignment</label><output id="out-ali">1.15</output></div>
+            <input id="sl-ali" type="range" min="0" max="3" step="0.05" value="1.15" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-coh">凝聚权重 Cohesion</label><output id="out-coh">0.95</output></div>
+            <input id="sl-coh" type="range" min="0" max="3" step="0.05" value="0.95" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-perc">感知半径 Perception</label><output id="out-perc">68</output></div>
+            <input id="sl-perc" type="range" min="30" max="140" step="2" value="68" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-speed">最大速度 Max Speed</label><output id="out-speed">3.6</output></div>
+            <input id="sl-speed" type="range" min="2" max="10" step="0.2" value="3.6" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-fov">视野角度 FOV (°)</label><output id="out-fov">250</output></div>
+            <input id="sl-fov" type="range" min="90" max="360" step="10" value="250" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-wind">风场 / 水流 Wind</label><output id="out-wind">0.35</output></div>
+            <input id="sl-wind" type="range" min="0" max="2" step="0.05" value="0.35" />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="section-label">环境开关 · Environment</div>
+        <div class="switches">
+          <div class="switch-row">
+            <span>柔和边界转向 Soft Walls</span>
+            <button class="switch" id="sw-walls" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="switch-row">
+            <span>自主捕食者 Predator</span>
+            <button class="switch" id="sw-predator" role="switch" aria-checked="false"></button>
+          </div>
+          <div class="switch-row">
+            <span>算法透视 Debug Overlay</span>
+            <button class="switch" id="sw-debug" role="switch" aria-checked="false"></button>
+          </div>
+          <div class="switch-row">
+            <span>投喂水滴声效 Sound</span>
+            <button class="switch" id="sw-sound" role="switch" aria-checked="false"></button>
+          </div>
+        </div>
+      </div>
+
+      <button class="danger-btn" id="btn-clear-obs">清除全部障碍物</button>
+
+      <div class="shortcuts">
+        <kbd>1</kbd>-<kbd>3</kbd> 切换皮肤 · <kbd>D</kbd> 算法透视<br />
+        <kbd>P</kbd> 暂停 · <kbd>R</kbd> 重置 · <kbd>I</kbd> 参数 · <kbd>H</kbd> 隐藏 HUD<br />
+        左键按当前工具交互 · 右键直接画障碍
+      </div>
+    </div>
+  </aside>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* =========================================================
+       * Configuration & Typed-Array Pools (Up to 1500 Boids)
+       * ========================================================= */
+      const MAX_BOIDS = 1500;
+      const TRAIL_LEN = 8;
+
+      const THEME_PRESETS = {
+        koi: {
+          ui: "light",
+          count: 260,
+          separation: 1.65,
+          alignment: 1.15,
+          cohesion: 0.95,
+          perception: 68,
+          maxSpeed: 3.6,
+          fov: 250,
+          wind: 0.35,
+          softWalls: true
+        },
+        starling: {
+          ui: "dark",
+          count: 1100,
+          separation: 1.35,
+          alignment: 1.55,
+          cohesion: 1.35,
+          perception: 64,
+          maxSpeed: 5.4,
+          fov: 260,
+          wind: 0.65,
+          softWalls: true
+        },
+        abyss: {
+          ui: "dark",
+          count: 700,
+          separation: 1.45,
+          alignment: 1.30,
+          cohesion: 1.15,
+          perception: 66,
+          maxSpeed: 4.8,
+          fov: 250,
+          wind: 0.40,
+          softWalls: true
+        }
+      };
+
+      const state = {
+        theme: "koi",
+        tool: "feed", // feed | repel | wall
+        count: 260,
+        separation: 1.65,
+        alignment: 1.15,
+        cohesion: 0.95,
+        perception: 68,
+        maxSpeed: 3.6,
+        maxForce: 0.14,
+        fov: 250,
+        wind: 0.35,
+        softWalls: true,
+        predatorEnabled: false,
+        debug: false,
+        sound: false,
+        paused: false,
+        hudHidden: false
+      };
+
+      const px = new Float32Array(MAX_BOIDS);
+      const py = new Float32Array(MAX_BOIDS);
+      const vx = new Float32Array(MAX_BOIDS);
+      const vy = new Float32Array(MAX_BOIDS);
+      const ax = new Float32Array(MAX_BOIDS);
+      const ay = new Float32Array(MAX_BOIDS);
+      const bSize = new Float32Array(MAX_BOIDS);
+      const bPhase = new Float32Array(MAX_BOIDS);
+      const bVariant = new Uint8Array(MAX_BOIDS);
+      const bPanic = new Float32Array(MAX_BOIDS);
+      const trailX = new Float32Array(MAX_BOIDS * TRAIL_LEN);
+      const trailY = new Float32Array(MAX_BOIDS * TRAIL_LEN);
+      let trailCursor = 0;
+
+      // Zero-allocation spatial hash grid
+      const next = new Int32Array(MAX_BOIDS);
+      let head = new Int32Array(4096);
+      let gridCols = 1;
+      let gridRows = 1;
+      let gridCellSize = 68;
+
+      // Debug telemetry for focal boid #0
+      const debugVectors = {
+        sepX: 0, sepY: 0,
+        aliX: 0, aliY: 0,
+        cohX: 0, cohY: 0,
+        neighbors: 0
+      };
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d", { alpha: false });
+      const telemetryEl = document.getElementById("telemetry");
+      const hintEl = document.getElementById("badge-hint");
+
+      let W = window.innerWidth;
+      let H = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+      // Offscreen paper grain tile for Koi Pond
+      const paperTile = document.createElement("canvas");
+      paperTile.width = 160;
+      paperTile.height = 160;
+      (() => {
+        const pctx = paperTile.getContext("2d");
+        pctx.fillStyle = "#ede8dc";
+        pctx.fillRect(0, 0, 160, 160);
+        for (let i = 0; i < 1100; i++) {
+          const x = Math.random() * 160;
+          const y = Math.random() * 160;
+          const a = 0.015 + Math.random() * 0.025;
+          pctx.fillStyle = Math.random() > 0.5 ? `rgba(110,98,78,${a})` : `rgba(255,255,255,${a})`;
+          pctx.fillRect(x, y, 1 + Math.random() * 2, 1);
+        }
+      })();
+      let paperPattern = null;
+
+      // Lotus pads for Koi Pond
+      let lotusPads = [];
+      function buildLotusPads() {
+        lotusPads = [
+          { x: W * 0.11, y: H * 0.16, r: Math.min(W, H) * 0.085, notch: 0.5, rot: 0.4 },
+          { x: W * 0.17, y: H * 0.22, r: Math.min(W, H) * 0.052, notch: 0.45, rot: 2.1 },
+          { x: W * 0.88, y: H * 0.80, r: Math.min(W, H) * 0.095, notch: 0.5, rot: -1.1 },
+          { x: W * 0.81, y: H * 0.86, r: Math.min(W, H) * 0.056, notch: 0.45, rot: 1.3 },
+          { x: W * 0.86, y: H * 0.17, r: Math.min(W, H) * 0.062, notch: 0.48, rot: 3.6 }
+        ];
+      }
+
+      function resize() {
+        W = Math.max(320, window.innerWidth);
+        H = Math.max(240, window.innerHeight);
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(W * dpr);
+        canvas.height = Math.floor(H * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        paperPattern = ctx.createPattern(paperTile, "repeat");
+        buildLotusPads();
+      }
+
+      /* =========================================================
+       * Entities: Obstacles, Pellets, Ripples, Predator
+       * ========================================================= */
+      const obstacles = [];
+      const pellets = [];
+      const ripples = [];
+      const predator = {
+        x: 0,
+        y: 0,
+        vx: 3.5,
+        vy: 1.5,
+        trail: []
+      };
+
+      let audioCtx = null;
+      function playPlop() {
+        if (!state.sound) return;
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          const now = audioCtx.currentTime;
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(520 + Math.random() * 140, now);
+          osc.frequency.exponentialRampToValueAtTime(190, now + 0.09);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.11);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.12);
+        } catch (_) {}
+      }
+
+      function spawnRipple(x, y, maxR = 44, alpha = 0.35) {
+        if (ripples.length > 45) ripples.shift();
+        ripples.push({ x, y, r: 4, maxR, alpha });
+      }
+
+      function initBoids() {
+        const cx = W * 0.5;
+        const cy = H * 0.5;
+        for (let i = 0; i < MAX_BOIDS; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const rad = Math.sqrt(Math.random()) * Math.min(W, H) * 0.38;
+          const x = cx + Math.cos(angle) * rad;
+          const y = cy + Math.sin(angle) * rad;
+          px[i] = x;
+          py[i] = y;
+          const dir = angle + Math.PI * 0.5 + (Math.random() - 0.5) * 0.7;
+          const spd = 2.0 + Math.random() * 2.0;
+          vx[i] = Math.cos(dir) * spd;
+          vy[i] = Math.sin(dir) * spd;
+          ax[i] = 0;
+          ay[i] = 0;
+          bSize[i] = 0.78 + Math.random() * 0.52;
+          bPhase[i] = Math.random() * Math.PI * 2;
+          const r = Math.random();
+          bVariant[i] = r < 0.42 ? 0 : r < 0.72 ? 1 : r < 0.90 ? 2 : 3;
+          bPanic[i] = 0;
+          const base = i * TRAIL_LEN;
+          for (let k = 0; k < TRAIL_LEN; k++) {
+            trailX[base + k] = x;
+            trailY[base + k] = y;
+          }
+        }
+        predator.x = W * 0.18;
+        predator.y = H * 0.5;
+        predator.vx = 4.2;
+        predator.vy = -1.6;
+        predator.trail = [];
+        pellets.length = 0;
+        ripples.length = 0;
+      }
+
+      /* =========================================================
+       * Spatial Hash & Flocking Physics Step
+       * ========================================================= */
+      function stepPhysics(dtNorm, elapsed) {
+        const N = state.count;
+        const perc = state.perception;
+        const perc2 = perc * perc;
+        const sepDist2 = (perc * 0.48) * (perc * 0.48);
+        const cosHalfFov = state.fov >= 359 ? -1.0 : Math.cos((state.fov * Math.PI) / 360);
+
+        gridCellSize = Math.max(32, perc);
+        gridCols = Math.max(1, Math.ceil(W / gridCellSize));
+        gridRows = Math.max(1, Math.ceil(H / gridCellSize));
+        const totalCells = gridCols * gridRows;
+        if (head.length < totalCells) {
+          head = new Int32Array(totalCells);
+        }
+        head.fill(-1, 0, totalCells);
+
+        for (let i = 0; i < N; i++) {
+          let cx = (px[i] / gridCellSize) | 0;
+          let cy = (py[i] / gridCellSize) | 0;
+          if (cx < 0) cx = 0; else if (cx >= gridCols) cx = gridCols - 1;
+          if (cy < 0) cy = 0; else if (cy >= gridRows) cy = gridRows - 1;
+          const cell = cy * gridCols + cx;
+          next[i] = head[cell];
+          head[cell] = i;
+        }
+
+        const sepW = state.separation;
+        const aliW = state.alignment;
+        const cohW = state.cohesion;
+        const maxSpd = state.maxSpeed;
+        const maxFrc = state.maxForce;
+
+        const windAngle = Math.sin(elapsed * 0.22) * 0.55;
+        const windX = Math.cos(windAngle) * state.wind * 0.045;
+        const windY = Math.sin(windAngle) * state.wind * 0.035;
+
+        const margin = 78;
+        const turnFactor = 0.34;
+        const activePointer = pointerState.down && pointerState.mode !== "wall";
+
+        for (let i = 0; i < N; i++) {
+          const x = px[i];
+          const y = py[i];
+          const cvx = vx[i];
+          const cvy = vy[i];
+          const cSpd = Math.hypot(cvx, cvy) || 0.001;
+          const dirX = cvx / cSpd;
+          const dirY = cvy / cSpd;
+
+          let cx = (x / gridCellSize) | 0;
+          let cy = (y / gridCellSize) | 0;
+          if (cx < 0) cx = 0; else if (cx >= gridCols) cx = gridCols - 1;
+          if (cy < 0) cy = 0; else if (cy >= gridRows) cy = gridRows - 1;
+
+          let sepX = 0, sepY = 0, sepCount = 0;
+          let aliX = 0, aliY = 0, aliCount = 0;
+          let cohX = 0, cohY = 0, cohCount = 0;
+
+          const x0 = cx > 0 ? cx - 1 : 0;
+          const x1 = cx < gridCols - 1 ? cx + 1 : gridCols - 1;
+          const y0 = cy > 0 ? cy - 1 : 0;
+          const y1 = cy < gridRows - 1 ? cy + 1 : gridRows - 1;
+
+          for (let gy = y0; gy <= y1; gy++) {
+            const rowOff = gy * gridCols;
+            for (let gx = x0; gx <= x1; gx++) {
+              let j = head[rowOff + gx];
+              while (j !== -1) {
+                if (j !== i) {
+                  const dx = px[j] - x;
+                  const dy = py[j] - y;
+                  const d2 = dx * dx + dy * dy;
+                  if (d2 > 0.0001 && d2 < perc2) {
+                    const invD = 1 / Math.sqrt(d2);
+                    const dot = (dx * invD) * dirX + (dy * invD) * dirY;
+                    if (dot >= cosHalfFov) {
+                      aliX += vx[j];
+                      aliY += vy[j];
+                      aliCount++;
+                      cohX += px[j];
+                      cohY += py[j];
+                      cohCount++;
+                    }
+                    if (d2 < sepDist2) {
+                      sepX -= dx / d2;
+                      sepY -= dy / d2;
+                      sepCount++;
+                    }
+                  }
+                }
+                j = next[j];
+              }
+            }
+          }
+
+          let fax = 0, fay = 0;
+
+          if (sepCount > 0) {
+            const mag = Math.hypot(sepX, sepY);
+            if (mag > 0) {
+              let sx = (sepX / mag) * maxSpd - cvx;
+              let sy = (sepY / mag) * maxSpd - cvy;
+              const sm = Math.hypot(sx, sy);
+              if (sm > maxFrc) { sx = (sx / sm) * maxFrc; sy = (sy / sm) * maxFrc; }
+              fax += sx * sepW;
+              fay += sy * sepW;
+              if (i === 0) { debugVectors.sepX = sx * sepW; debugVectors.sepY = sy * sepW; }
+            }
+          } else if (i === 0) {
+            debugVectors.sepX = 0; debugVectors.sepY = 0;
+          }
+
+          if (aliCount > 0) {
+            let axv = aliX / aliCount;
+            let ayv = aliY / aliCount;
+            const am = Math.hypot(axv, ayv);
+            if (am > 0) {
+              axv = (axv / am) * maxSpd - cvx;
+              ayv = (ayv / am) * maxSpd - cvy;
+              const fm = Math.hypot(axv, ayv);
+              if (fm > maxFrc) { axv = (axv / fm) * maxFrc; ayv = (ayv / fm) * maxFrc; }
+              fax += axv * aliW;
+              fay += ayv * aliW;
+              if (i === 0) { debugVectors.aliX = axv * aliW; debugVectors.aliY = ayv * aliW; }
+            }
+          } else if (i === 0) {
+            debugVectors.aliX = 0; debugVectors.aliY = 0;
+          }
+
+          if (cohCount > 0) {
+            let cxv = (cohX / cohCount) - x;
+            let cyv = (cohY / cohCount) - y;
+            const cm = Math.hypot(cxv, cyv);
+            if (cm > 0) {
+              cxv = (cxv / cm) * maxSpd - cvx;
+              cyv = (cyv / cm) * maxSpd - cvy;
+              const fm = Math.hypot(cxv, cyv);
+              if (fm > maxFrc) { cxv = (cxv / fm) * maxFrc; cyv = (cyv / fm) * maxFrc; }
+              fax += cxv * cohW;
+              fay += cyv * cohW;
+              if (i === 0) { debugVectors.cohX = cxv * cohW; debugVectors.cohY = cyv * cohW; }
+            }
+          } else if (i === 0) {
+            debugVectors.cohX = 0; debugVectors.cohY = 0;
+          }
+
+          if (i === 0) debugVectors.neighbors = aliCount;
+
+          // Food pellet attraction
+          if (pellets.length > 0) {
+            let bestD2 = 250 * 250;
+            let bestP = null;
+            for (let p = 0; p < pellets.length; p++) {
+              const pel = pellets[p];
+              const dx = pel.x - x;
+              const dy = pel.y - y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < bestD2) {
+                bestD2 = d2;
+                bestP = pel;
+              }
+            }
+            if (bestP) {
+              const d = Math.sqrt(bestD2) || 1;
+              if (d < 13) {
+                bestP.eaten = true;
+                spawnRipple(bestP.x, bestP.y, 32, 0.42);
+              } else {
+                fax += ((bestP.x - x) / d) * 0.28;
+                fay += ((bestP.y - y) / d) * 0.28;
+              }
+            }
+          }
+
+          // Pointer repel / feed attraction
+          if (activePointer) {
+            const dx = x - pointerState.x;
+            const dy = y - pointerState.y;
+            const d2 = dx * dx + dy * dy;
+            if (pointerState.mode === "repel" && d2 < 170 * 170 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const s = (1 - d / 170) * 0.72;
+              fax += (dx / d) * s;
+              fay += (dy / d) * s;
+              bPanic[i] = Math.min(1, bPanic[i] + 0.16);
+            } else if (pointerState.mode === "feed" && d2 < 210 * 210 && d2 > 100) {
+              const d = Math.sqrt(d2);
+              fax -= (dx / d) * 0.16;
+              fay -= (dy / d) * 0.16;
+            }
+          }
+
+          // Predator evasion
+          if (state.predatorEnabled) {
+            const dx = x - predator.x;
+            const dy = y - predator.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < 175 * 175 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const flee = (1 - d / 175) * 0.92;
+              fax += (dx / d) * flee;
+              fay += (dy / d) * flee;
+              bPanic[i] = Math.min(1, bPanic[i] + 0.25);
+            }
+          }
+
+          // Obstacle avoidance
+          for (let o = 0; o < obstacles.length; o++) {
+            const obs = obstacles[o];
+            const dx = x - obs.x;
+            const dy = y - obs.y;
+            const avoidR = obs.r + 42;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < avoidR * avoidR && d2 > 0.001) {
+              const d = Math.sqrt(d2);
+              const nx = dx / d;
+              const ny = dy / d;
+              const str = (1 - d / avoidR) * 1.15;
+              // Radial push + slight tangential slide so boids glide smoothly around rocks
+              const cross = dirX * ny - dirY * nx;
+              const tangentSign = cross >= 0 ? 1 : -1;
+              fax += nx * str - ny * tangentSign * str * 0.45;
+              fay += ny * str + nx * tangentSign * str * 0.45;
+            }
+          }
+
+          // Soft boundary steering
+          if (state.softWalls) {
+            if (x < margin) fax += ((margin - x) / margin) * turnFactor;
+            else if (x > W - margin) fax -= ((x - (W - margin)) / margin) * turnFactor;
+            if (y < margin) fay += ((margin - y) / margin) * turnFactor;
+            else if (y > H - margin) fay -= ((y - (H - margin)) / margin) * turnFactor;
+          }
+
+          fax += windX;
+          fay += windY;
+
+          bPanic[i] *= 0.96;
+
+          // Integrate velocity
+          let nvx = cvx + fax * dtNorm;
+          let nvy = cvy + fay * dtNorm;
+          const localMax = maxSpd * (1 + bPanic[i] * 0.55);
+          const localMin = Math.max(0.9, maxSpd * 0.36);
+          const spd = Math.hypot(nvx, nvy) || 0.001;
+          if (spd > localMax) {
+            nvx = (nvx / spd) * localMax;
+            nvy = (nvy / spd) * localMax;
+          } else if (spd < localMin) {
+            nvx = (nvx / spd) * localMin;
+            nvy = (nvy / spd) * localMin;
+          }
+
+          let nxPos = x + nvx * dtNorm;
+          let nyPos = y + nvy * dtNorm;
+
+          // Hard push-out from solid obstacles
+          for (let o = 0; o < obstacles.length; o++) {
+            const obs = obstacles[o];
+            const dx = nxPos - obs.x;
+            const dy = nyPos - obs.y;
+            const minR = obs.r + 5;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < minR * minR && d2 > 0.0001) {
+              const d = Math.sqrt(d2);
+              const ux = dx / d;
+              const uy = dy / d;
+              nxPos = obs.x + ux * minR;
+              nyPos = obs.y + uy * minR;
+              const vn = nvx * ux + nvy * uy;
+              if (vn < 0) {
+                nvx -= 1.6 * vn * ux;
+                nvy -= 1.6 * vn * uy;
+              }
+            }
+          }
+
+          if (!state.softWalls) {
+            if (nxPos < 0) nxPos += W;
+            else if (nxPos > W) nxPos -= W;
+            if (nyPos < 0) nyPos += H;
+            else if (nyPos > H) nyPos -= H;
+          } else {
+            if (nxPos < 4) { nxPos = 4; nvx = Math.abs(nvx); }
+            else if (nxPos > W - 4) { nxPos = W - 4; nvx = -Math.abs(nvx); }
+            if (nyPos < 4) { nyPos = 4; nvy = Math.abs(nvy); }
+            else if (nyPos > H - 4) { nyPos = H - 4; nvy = -Math.abs(nvy); }
+          }
+
+          px[i] = nxPos;
+          py[i] = nyPos;
+          vx[i] = nvx;
+          vy[i] = nvy;
+          bPhase[i] += (0.14 + spd * 0.055) * dtNorm;
+          trailX[i * TRAIL_LEN + trailCursor] = nxPos;
+          trailY[i * TRAIL_LEN + trailCursor] = nyPos;
+        }
+        trailCursor = (trailCursor + 1) % TRAIL_LEN;
+
+        // Clean eaten / expired pellets
+        for (let i = pellets.length - 1; i >= 0; i--) {
+          pellets[i].life -= 0.002 * dtNorm;
+          if (pellets[i].eaten || pellets[i].life <= 0) {
+            pellets.splice(i, 1);
+          }
+        }
+
+        // Update ripples
+        for (let i = ripples.length - 1; i >= 0; i--) {
+          const rp = ripples[i];
+          rp.r += 1.35 * dtNorm;
+          rp.alpha *= 0.965;
+          if (rp.r >= rp.maxR || rp.alpha < 0.02) ripples.splice(i, 1);
+        }
+
+        // Update Predator
+        if (state.predatorEnabled) {
+          let tx = 0, ty = 0, tCount = 0;
+          for (let i = 0; i < N; i += 4) {
+            const dx = px[i] - predator.x;
+            const dy = py[i] - predator.y;
+            if (dx * dx + dy * dy < 320 * 320) {
+              tx += px[i];
+              ty += py[i];
+              tCount++;
+            }
+          }
+          if (tCount === 0 && N > 0) {
+            tx = px[0]; ty = py[0]; tCount = 1;
+          }
+          if (tCount > 0) {
+            tx /= tCount; ty /= tCount;
+            const dx = tx - predator.x;
+            const dy = ty - predator.y;
+            const d = Math.hypot(dx, dy) || 1;
+            predator.vx += (dx / d) * 0.24 * dtNorm;
+            predator.vy += (dy / d) * 0.24 * dtNorm;
+          }
+          if (predator.x < margin) predator.vx += 0.4 * dtNorm;
+          else if (predator.x > W - margin) predator.vx -= 0.4 * dtNorm;
+          if (predator.y < margin) predator.vy += 0.4 * dtNorm;
+          else if (predator.y > H - margin) predator.vy -= 0.4 * dtNorm;
+
+          const pMax = maxSpd * 1.28;
+          const pSpd = Math.hypot(predator.vx, predator.vy) || 1;
+          if (pSpd > pMax) {
+            predator.vx = (predator.vx / pSpd) * pMax;
+            predator.vy = (predator.vy / pSpd) * pMax;
+          }
+          predator.x += predator.vx * dtNorm;
+          predator.y += predator.vy * dtNorm;
+          if (state.theme === "koi" && Math.random() < 0.16) {
+            spawnRipple(predator.x, predator.y, 38, 0.24);
+          }
+          predator.trail.push({ x: predator.x, y: predator.y });
+          if (predator.trail.length > 16) predator.trail.shift();
+        }
+      }
+
+      /* =========================================================
+       * Rendering: 3 Ecosystems + Debug Overlay
+       * ========================================================= */
+      function drawBackground() {
+        if (state.theme === "koi") {
+          ctx.fillStyle = paperPattern || "#ede8dc";
+          ctx.fillRect(0, 0, W, H);
+          // Soft celadon radial pond vignette
+          const grad = ctx.createRadialGradient(W * 0.5, H * 0.5, Math.min(W, H) * 0.12, W * 0.5, H * 0.5, Math.max(W, H) * 0.72);
+          grad.addColorStop(0, "rgba(176, 198, 190, 0.08)");
+          grad.addColorStop(1, "rgba(128, 148, 140, 0.20)");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+        } else if (state.theme === "starling") {
+          const grad = ctx.createLinearGradient(0, 0, 0, H);
+          grad.addColorStop(0, "#0b1124");
+          grad.addColorStop(0.52, "#241936");
+          grad.addColorStop(0.84, "#6f3c42");
+          grad.addColorStop(1, "#c47c4c");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+        } else {
+          const grad = ctx.createRadialGradient(W * 0.5, H * 0.5, 20, W * 0.5, H * 0.5, Math.max(W, H) * 0.75);
+          grad.addColorStop(0, "#091528");
+          grad.addColorStop(1, "#030710");
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 0, W, H);
+        }
+      }
+
+      function drawKoiPelletsAndRipples() {
+        for (let i = 0; i < ripples.length; i++) {
+          const rp = ripples[i];
+          ctx.beginPath();
+          ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+          ctx.strokeStyle = state.theme === "koi"
+            ? `rgba(62, 82, 78, ${rp.alpha.toFixed(3)})`
+            : `rgba(125, 211, 252, ${rp.alpha.toFixed(3)})`;
+          ctx.lineWidth = 1.2;
+          ctx.stroke();
+        }
+        for (let i = 0; i < pellets.length; i++) {
+          const pel = pellets[i];
+          ctx.beginPath();
+          ctx.arc(pel.x, pel.y, 4.2, 0, Math.PI * 2);
+          ctx.fillStyle = state.theme === "koi" ? "#c93b2b" : state.theme === "starling" ? "#fbbf24" : "#5eead4";
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(pel.x, pel.y, 7.5, 0, Math.PI * 2);
+          ctx.strokeStyle = state.theme === "koi" ? "rgba(201,59,43,0.28)" : "rgba(255,255,255,0.25)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
+      }
+
+      function drawObstacles() {
+        for (let i = 0; i < obstacles.length; i++) {
+          const o = obstacles[i];
+          if (state.theme === "koi") {
+            ctx.beginPath();
+            ctx.arc(o.x + 4, o.y + 5, o.r, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(40, 44, 42, 0.16)";
+            ctx.fill();
+
+            const g = ctx.createRadialGradient(o.x - o.r * 0.25, o.y - o.r * 0.25, o.r * 0.1, o.x, o.y, o.r);
+            g.addColorStop(0, "#64635d");
+            g.addColorStop(1, "#373733");
+            ctx.beginPath();
+            ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+            ctx.fillStyle = g;
+            ctx.fill();
+            ctx.strokeStyle = "rgba(24, 24, 22, 0.65)";
+            ctx.lineWidth = 1.4;
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(18, 24, 36, 0.78)";
+            ctx.fill();
+            ctx.strokeStyle = state.theme === "abyss" ? "rgba(56, 189, 248, 0.55)" : "rgba(255, 214, 170, 0.45)";
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+          }
+        }
+      }
+
+      function drawLotusPads() {
+        if (state.theme !== "koi") return;
+        for (let i = 0; i < lotusPads.length; i++) {
+          const pad = lotusPads[i];
+          ctx.save();
+          ctx.translate(pad.x, pad.y);
+          ctx.rotate(pad.rot);
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.arc(0, 0, pad.r, pad.notch * 0.5, Math.PI * 2 - pad.notch * 0.5);
+          ctx.closePath();
+          ctx.fillStyle = "rgba(96, 134, 98, 0.28)";
+          ctx.fill();
+          ctx.strokeStyle = "rgba(62, 92, 64, 0.32)";
+          ctx.lineWidth = 1.1;
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      const KOI_PALETTE = [
+        { body: "#c93b2b", fin: "rgba(224, 112, 96, 0.52)", accent: "#f8f4eb" },  // Kohaku vermilion
+        { body: "#1d2024", fin: "rgba(70, 74, 80, 0.44)", accent: "#c93b2b" },    // Showa ink
+        { body: "#d4962a", fin: "rgba(228, 180, 82, 0.48)", accent: "#fbf6e8" },  // Yamabuki gold
+        { body: "#596366", fin: "rgba(120, 132, 136, 0.42)", accent: "#222628" }  // Ink slate
+      ];
+
+      function drawKoiBoids() {
+        const N = state.count;
+        for (let i = 0; i < N; i++) {
+          const x = px[i];
+          const y = py[i];
+          const angle = Math.atan2(vy[i], vx[i]);
+          const sc = bSize[i];
+          const wag = Math.sin(bPhase[i]) * 2.7;
+          const wagTail = Math.sin(bPhase[i] - 1.3) * 4.4;
+          const pal = KOI_PALETTE[bVariant[i]];
+
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(angle);
+          ctx.scale(sc, sc);
+
+          // Soft underwater shadow
+          ctx.fillStyle = "rgba(38, 46, 44, 0.13)";
+          ctx.beginPath();
+          ctx.ellipse(3, 5, 11, 3.6, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pectoral fins
+          ctx.fillStyle = pal.fin;
+          ctx.beginPath();
+          ctx.moveTo(2, 2.5);
+          ctx.quadraticCurveTo(-2, 8.5 + wag * 0.25, -6, 6.5 + wag * 0.2);
+          ctx.quadraticCurveTo(-2, 3, 2, 2.5);
+          ctx.moveTo(2, -2.5);
+          ctx.quadraticCurveTo(-2, -8.5 + wag * 0.25, -6, -6.5 + wag * 0.2);
+          ctx.quadraticCurveTo(-2, -3, 2, -2.5);
+          ctx.fill();
+
+          // Tail fin
+          ctx.beginPath();
+          ctx.moveTo(-10, wag * 0.6);
+          ctx.quadraticCurveTo(-17, -4.8 + wagTail, -20, -4.0 + wagTail);
+          ctx.quadraticCurveTo(-15, wagTail * 0.6, -20, 4.0 + wagTail);
+          ctx.quadraticCurveTo(-17, 4.8 + wagTail, -10, wag * 0.6);
+          ctx.fill();
+
+          // Articulated koi body
+          ctx.fillStyle = pal.body;
+          ctx.beginPath();
+          ctx.moveTo(10, 0);
+          ctx.bezierCurveTo(8, 4.4, 1, 4.5, -5, 2.3 + wag * 0.35);
+          ctx.quadraticCurveTo(-10, 1.0 + wag * 0.65, -13, wag * 0.78);
+          ctx.quadraticCurveTo(-10, -1.0 + wag * 0.65, -5, -2.3 + wag * 0.35);
+          ctx.bezierCurveTo(1, -4.5, 8, -4.4, 10, 0);
+          ctx.fill();
+
+          // Pattern spot
+          ctx.fillStyle = pal.accent;
+          ctx.beginPath();
+          ctx.ellipse(2.5, -0.4, 3.6, 1.9, 0.15, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+      }
+
+      function drawStarlingBoids() {
+        const N = state.count;
+        // Ribbons
+        ctx.lineWidth = 1.1;
+        for (let i = 0; i < N; i++) {
+          const base = i * TRAIL_LEN;
+          const tailIdx = trailCursor;
+          const x0 = trailX[base + tailIdx];
+          const y0 = trailY[base + tailIdx];
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(px[i], py[i]);
+          ctx.strokeStyle = bPanic[i] > 0.25 ? "rgba(251, 146, 60, 0.28)" : "rgba(20, 14, 30, 0.18)";
+          ctx.stroke();
+        }
+        // Silhouettes
+        ctx.fillStyle = "#110d1b";
+        for (let i = 0; i < N; i++) {
+          const x = px[i];
+          const y = py[i];
+          const ang = Math.atan2(vy[i], vx[i]);
+          const flap = Math.sin(bPhase[i] * 1.4) * 3.4;
+          const s = bSize[i];
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(ang);
+          ctx.scale(s, s);
+          ctx.beginPath();
+          ctx.moveTo(5.5, 0);
+          ctx.lineTo(-2.5, 4.5 + flap);
+          ctx.lineTo(-1.2, 0);
+          ctx.lineTo(-2.5, -4.5 - flap);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+
+      function drawAbyssBoids() {
+        const N = state.count;
+        ctx.save();
+        ctx.globalCompositeOperation = "lighter";
+        for (let i = 0; i < N; i++) {
+          const base = i * TRAIL_LEN;
+          const tailIdx = trailCursor;
+          const x0 = trailX[base + tailIdx];
+          const y0 = trailY[base + tailIdx];
+          const v = bVariant[i];
+          const panic = bPanic[i];
+          let col;
+          if (panic > 0.3) col = "rgba(244, 114, 182, 0.65)";
+          else if (v === 0) col = "rgba(45, 212, 191, 0.45)";
+          else if (v === 1) col = "rgba(56, 189, 248, 0.45)";
+          else if (v === 2) col = "rgba(129, 140, 248, 0.42)";
+          else col = "rgba(52, 211, 153, 0.42)";
+
+          ctx.beginPath();
+          ctx.moveTo(x0, y0);
+          ctx.lineTo(px[i], py[i]);
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 1.6 * bSize[i];
+          ctx.stroke();
+
+          ctx.fillStyle = panic > 0.3 ? "#fbcfe8" : "#ccfbf1";
+          ctx.beginPath();
+          ctx.arc(px[i], py[i], 1.7 * bSize[i], 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      function drawPredator() {
+        if (!state.predatorEnabled) return;
+        const t = predator.trail;
+        if (t.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(t[0].x, t[0].y);
+          for (let i = 1; i < t.length; i++) ctx.lineTo(t[i].x, t[i].y);
+          ctx.strokeStyle = state.theme === "koi" ? "rgba(180, 42, 32, 0.22)" : "rgba(244, 63, 94, 0.38)";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+        const ang = Math.atan2(predator.vy, predator.vx);
+        ctx.save();
+        ctx.translate(predator.x, predator.y);
+        ctx.rotate(ang);
+        ctx.fillStyle = state.theme === "koi" ? "#8c1d18" : "#f43f5e";
+        ctx.beginPath();
+        ctx.moveTo(16, 0);
+        ctx.lineTo(-9, 8.5);
+        ctx.lineTo(-4, 0);
+        ctx.lineTo(-9, -8.5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawArrow(x1, y1, x2, y2, color) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        if (len < 2) return;
+        const ang = Math.atan2(dy, dx);
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - Math.cos(ang - 0.45) * 7, y2 - Math.sin(ang - 0.45) * 7);
+        ctx.lineTo(x2 - Math.cos(ang + 0.45) * 7, y2 - Math.sin(ang + 0.45) * 7);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      function drawDebugOverlay() {
+        if (!state.debug || state.count === 0) return;
+        const x = px[0];
+        const y = py[0];
+        const ang = Math.atan2(vy[0], vx[0]);
+        const halfFov = (state.fov * Math.PI) / 360;
+        const cx = (x / gridCellSize) | 0;
+        const cy = (y / gridCellSize) | 0;
+
+        // 3x3 Spatial Hash Grid highlight
+        ctx.save();
+        ctx.strokeStyle = state.theme === "koi" ? "rgba(28, 25, 20, 0.16)" : "rgba(148, 163, 184, 0.22)";
+        ctx.lineWidth = 1;
+        for (let gy = Math.max(0, cy - 1); gy <= Math.min(gridRows - 1, cy + 1); gy++) {
+          for (let gx = Math.max(0, cx - 1); gx <= Math.min(gridCols - 1, cx + 1); gx++) {
+            ctx.strokeRect(gx * gridCellSize, gy * gridCellSize, gridCellSize, gridCellSize);
+          }
+        }
+
+        // Perception FOV cone
+        ctx.beginPath();
+        if (state.fov >= 359) {
+          ctx.arc(x, y, state.perception, 0, Math.PI * 2);
+        } else {
+          ctx.moveTo(x, y);
+          ctx.arc(x, y, state.perception, ang - halfFov, ang + halfFov);
+          ctx.closePath();
+        }
+        ctx.fillStyle = state.theme === "koi" ? "rgba(201, 59, 43, 0.08)" : "rgba(56, 189, 248, 0.10)";
+        ctx.fill();
+        ctx.strokeStyle = state.theme === "koi" ? "rgba(201, 59, 43, 0.45)" : "rgba(56, 189, 248, 0.55)";
+        ctx.stroke();
+
+        // Focal ring
+        ctx.beginPath();
+        ctx.arc(x, y, 10, 0, Math.PI * 2);
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Force arrows (scaled for readability)
+        drawArrow(x, y, x + debugVectors.sepX * 190, y + debugVectors.sepY * 190, "#ef4444");
+        drawArrow(x, y, x + debugVectors.aliX * 190, y + debugVectors.aliY * 190, "#3b82f6");
+        drawArrow(x, y, x + debugVectors.cohX * 190, y + debugVectors.cohY * 190, "#10b981");
+        drawArrow(x, y, x + vx[0] * 11, y + vy[0] * 11, "#f59e0b");
+        ctx.restore();
+      }
+
+      function render() {
+        drawBackground();
+        drawKoiPelletsAndRipples();
+        drawObstacles();
+
+        if (state.theme === "koi") drawKoiBoids();
+        else if (state.theme === "starling") drawStarlingBoids();
+        else drawAbyssBoids();
+
+        drawLotusPads();
+        drawPredator();
+        drawDebugOverlay();
+      }
+
+      /* =========================================================
+       * Pointer Interaction
+       * ========================================================= */
+      const pointerState = { down: false, x: 0, y: 0, mode: "feed", lastWallX: 0, lastWallY: 0 };
+      let hasInteracted = false;
+
+      canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+
+      canvas.addEventListener("pointerdown", (e) => {
+        canvas.setPointerCapture(e.pointerId);
+        if (!hasInteracted) {
+          hasInteracted = true;
+          hintEl.classList.add("dimmed");
+        }
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        pointerState.down = true;
+        pointerState.x = x;
+        pointerState.y = y;
+        pointerState.mode = (e.button === 2 || (e.buttons & 2)) ? "wall" : state.tool;
+
+        if (pointerState.mode === "wall") {
+          obstacles.push({ x, y, r: 22 });
+          pointerState.lastWallX = x;
+          pointerState.lastWallY = y;
+        } else if (pointerState.mode === "feed") {
+          if (pellets.length > 26) pellets.shift();
+          pellets.push({ x, y, life: 1.0, eaten: false });
+          spawnRipple(x, y, 48, 0.36);
+          playPlop();
+        } else {
+          spawnRipple(x, y, 56, 0.32);
+        }
+      });
+
+      canvas.addEventListener("pointermove", (e) => {
+        if (!pointerState.down) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        pointerState.x = x;
+        pointerState.y = y;
+
+        if (pointerState.mode === "wall") {
+          if (Math.hypot(x - pointerState.lastWallX, y - pointerState.lastWallY) > 28) {
+            obstacles.push({ x, y, r: 20 });
+            pointerState.lastWallX = x;
+            pointerState.lastWallY = y;
+          }
+        } else if (pointerState.mode === "feed" && Math.random() < 0.14) {
+          if (pellets.length > 26) pellets.shift();
+          pellets.push({ x, y, life: 1.0, eaten: false });
+          spawnRipple(x, y, 36, 0.25);
+        }
+      });
+
+      const endPointer = () => { pointerState.down = false; };
+      canvas.addEventListener("pointerup", endPointer);
+      canvas.addEventListener("pointercancel", endPointer);
+
+      /* =========================================================
+       * UI Controls & Sync
+       * ========================================================= */
+      function syncUI() {
+        const setSlider = (id, outId, val, digits = 0) => {
+          document.getElementById(id).value = String(val);
+          document.getElementById(outId).textContent = digits > 0 ? Number(val).toFixed(digits) : String(val);
+        };
+        setSlider("sl-count", "out-count", state.count, 0);
+        setSlider("sl-sep", "out-sep", state.separation, 2);
+        setSlider("sl-ali", "out-ali", state.alignment, 2);
+        setSlider("sl-coh", "out-coh", state.cohesion, 2);
+        setSlider("sl-perc", "out-perc", state.perception, 0);
+        setSlider("sl-speed", "out-speed", state.maxSpeed, 1);
+        setSlider("sl-fov", "out-fov", state.fov, 0);
+        setSlider("sl-wind", "out-wind", state.wind, 2);
+
+        document.getElementById("sw-walls").setAttribute("aria-checked", String(state.softWalls));
+        document.getElementById("sw-predator").setAttribute("aria-checked", String(state.predatorEnabled));
+        document.getElementById("btn-predator").setAttribute("aria-pressed", String(state.predatorEnabled));
+        document.getElementById("sw-debug").setAttribute("aria-checked", String(state.debug));
+        document.getElementById("btn-debug").setAttribute("aria-pressed", String(state.debug));
+        document.getElementById("sw-sound").setAttribute("aria-checked", String(state.sound));
+      }
+
+      function applyTheme(name) {
+        const p = THEME_PRESETS[name];
+        state.theme = name;
+        document.body.setAttribute("data-ui-theme", p.ui);
+        document.querySelectorAll("[data-theme]").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.theme === name));
+        });
+        state.count = p.count;
+        state.separation = p.separation;
+        state.alignment = p.alignment;
+        state.cohesion = p.cohesion;
+        state.perception = p.perception;
+        state.maxSpeed = p.maxSpeed;
+        state.fov = p.fov;
+        state.wind = p.wind;
+        state.softWalls = p.softWalls;
+        syncUI();
+      }
+
+      document.querySelectorAll("[data-theme]").forEach((btn) => {
+        btn.addEventListener("click", () => applyTheme(btn.dataset.theme));
+      });
+      document.querySelectorAll("[data-tool]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          state.tool = btn.dataset.tool;
+          document.querySelectorAll("[data-tool]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+          canvas.style.cursor = state.tool === "wall" ? "cell" : "crosshair";
+        });
+      });
+
+      function bindSlider(id, outId, key, digits = 0) {
+        const el = document.getElementById(id);
+        const out = document.getElementById(outId);
+        el.addEventListener("input", () => {
+          state[key] = Number(el.value);
+          out.textContent = digits > 0 ? state[key].toFixed(digits) : String(state[key]);
+        });
+      }
+      bindSlider("sl-count", "out-count", "count", 0);
+      bindSlider("sl-sep", "out-sep", "separation", 2);
+      bindSlider("sl-ali", "out-ali", "alignment", 2);
+      bindSlider("sl-coh", "out-coh", "cohesion", 2);
+      bindSlider("sl-perc", "out-perc", "perception", 0);
+      bindSlider("sl-speed", "out-speed", "maxSpeed", 1);
+      bindSlider("sl-fov", "out-fov", "fov", 0);
+      bindSlider("sl-wind", "out-wind", "wind", 2);
+
+      function togglePredator() {
+        state.predatorEnabled = !state.predatorEnabled;
+        syncUI();
+      }
+      function toggleDebug() {
+        state.debug = !state.debug;
+        syncUI();
+      }
+      function togglePause() {
+        state.paused = !state.paused;
+        const btn = document.getElementById("btn-pause");
+        btn.setAttribute("aria-pressed", String(state.paused));
+        btn.textContent = state.paused ? "继续" : "暂停";
+      }
+
+      document.getElementById("btn-predator").addEventListener("click", togglePredator);
+      document.getElementById("sw-predator").addEventListener("click", togglePredator);
+      document.getElementById("btn-debug").addEventListener("click", toggleDebug);
+      document.getElementById("sw-debug").addEventListener("click", toggleDebug);
+      document.getElementById("sw-walls").addEventListener("click", () => {
+        state.softWalls = !state.softWalls;
+        syncUI();
+      });
+      document.getElementById("sw-sound").addEventListener("click", () => {
+        state.sound = !state.sound;
+        syncUI();
+      });
+
+      document.getElementById("btn-pause").addEventListener("click", togglePause);
+      document.getElementById("btn-reset").addEventListener("click", initBoids);
+      document.getElementById("btn-clear-obs").addEventListener("click", () => { obstacles.length = 0; });
+
+      const drawer = document.getElementById("inspector");
+      const btnDrawer = document.getElementById("btn-drawer");
+      function toggleDrawer(force) {
+        const open = typeof force === "boolean" ? force : !drawer.classList.contains("open");
+        drawer.classList.toggle("open", open);
+        btnDrawer.setAttribute("aria-expanded", String(open));
+      }
+      btnDrawer.addEventListener("click", () => toggleDrawer());
+      document.getElementById("btn-close-drawer").addEventListener("click", () => toggleDrawer(false));
+
+      window.addEventListener("keydown", (e) => {
+        if (e.target && e.target.tagName === "INPUT") return;
+        if (e.key === "1") applyTheme("koi");
+        else if (e.key === "2") applyTheme("starling");
+        else if (e.key === "3") applyTheme("abyss");
+        else if (e.key === "d" || e.key === "D") toggleDebug();
+        else if (e.key === "p" || e.key === "P") togglePause();
+        else if (e.key === "r" || e.key === "R") initBoids();
+        else if (e.key === "i" || e.key === "I") toggleDrawer();
+        else if (e.key === "h" || e.key === "H") {
+          state.hudHidden = !state.hudHidden;
+          document.body.classList.toggle("hud-hidden", state.hudHidden);
+        }
+      });
+
+      window.addEventListener("resize", resize);
+
+      /* =========================================================
+       * Boot & Main Loop
+       * ========================================================= */
+      resize();
+      initBoids();
+      applyTheme("koi");
+
+      let last = performance.now();
+      let elapsed = 0;
+      let frames = 0;
+      let fpsTimer = 0;
+
+      function loop(now) {
+        requestAnimationFrame(loop);
+        const dtSec = Math.min(0.033, Math.max(0.001, (now - last) / 1000));
+        last = now;
+        const dtNorm = dtSec * 60;
+
+        if (!state.paused) {
+          elapsed += dtSec;
+          stepPhysics(dtNorm, elapsed);
+        }
+        render();
+
+        frames++;
+        fpsTimer += dtSec;
+        if (fpsTimer >= 0.45) {
+          const fps = Math.round(frames / fpsTimer);
+          const extra = state.debug ? ` · 邻居 ${debugVectors.neighbors}` : "";
+          telemetryEl.textContent = `${fps} FPS · ${state.count} 个体 · 空间哈希${extra}`;
+          frames = 0;
+          fpsTimer = 0;
+        }
+      }
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>

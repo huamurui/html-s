@@ -18,10 +18,13 @@ i want to make some simple demo just through single html file.
 - [jelly-mario](./jelly-mario.html)
 - [virtual-waterfall](./virtual-waterfall.html)
 - [b-page](./b-page.html)
-- [piano3](./piano3.html)
+- [piano3](./piano3.html) (by Claude)
 - [shadow](./shadow.html)
 - [boids](./boids.html)
 - [rain](./rain-demo.html)
+- [fluid2](./fluid2.html) (by Gemini)
+- [boids2](./boids2.html) (by Gemini)
+- [shadow2](./shadow2.html) (by Gemini)
 
 other interesting toys:  
 
