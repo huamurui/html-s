@@ -568,8 +568,8 @@
         <div class="section-label">字符密度 · Grid Density</div>
         <div class="grid-3">
           <button class="choice-btn" data-density="sparse" aria-pressed="false">疏 (大字)</button>
-          <button class="choice-btn" data-density="medium" aria-pressed="true">适中</button>
-          <button class="choice-btn" data-density="dense" aria-pressed="false">密 (细腻)</button>
+          <button class="choice-btn" data-density="medium" aria-pressed="false">适中</button>
+          <button class="choice-btn" data-density="dense" aria-pressed="true">密 (细腻)</button>
         </div>
       </div>
 
@@ -770,8 +770,8 @@
       };
 
       const DENSITIES = {
-        sparse: 14,
-        medium: 11,
+        sparse: 13.5,
+        medium: 10.5,
         dense: 8.5
       };
 
@@ -780,7 +780,7 @@
        * ========================================================= */
       const state = {
         tool: "feed",
-        density: "medium",
+        density: "dense",
         charset: "mixed",
         heroCount: 3,
         schoolCount: 120,
@@ -844,11 +844,13 @@
         canvas.height = Math.floor(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        fontSize = DENSITIES[state.density];
+        fontSize = (state.charset === "hanzi" && state.density === "dense") ? 9.5 : DENSITIES[state.density];
         cellW = state.charset === "hanzi"
-          ? Math.max(8, Math.round(fontSize * 1.08))
+          ? Math.max(9, Math.round(fontSize * 1.04))
           : Math.max(5, Math.round(fontSize * 0.64));
-        cellH = Math.max(9, Math.round(fontSize * 1.18));
+        cellH = state.charset === "hanzi"
+          ? Math.max(10, Math.round(fontSize * 1.10))
+          : Math.max(9, Math.round(fontSize * 1.18));
         cols = Math.max(20, Math.ceil(W / cellW));
         rows = Math.max(12, Math.ceil(H / cellH));
         gridSize = cols * rows;
@@ -894,14 +896,28 @@
       }
 
       const BREED_NAMES = ["琉金红白", "鹤顶红", "黄金琉金", "墨龙睛", "五花朱文金"];
+      const BREED_PROFILES = [
+        // 0: 琉金红白 — 胖头圆肚
+        { segLenMul: 17.2, maxWMul: 35, bodyEnd: 0.55, headPow: 0.50, headBias: 0.17, headAmp: 0.94, finMul: 0.66, eyeAlong: 0.88, eyeSpread: 0.66, tailOuterMul: 1.06, tailInnerMul: 0.42 },
+        // 1: 鹤顶红 — 饱满高头肉瘤
+        { segLenMul: 17.6, maxWMul: 33, bodyEnd: 0.54, headPow: 0.48, headBias: 0.16, headAmp: 0.93, finMul: 0.64, eyeAlong: 0.86, eyeSpread: 0.66, tailOuterMul: 1.08, tailInnerMul: 0.44 },
+        // 2: 黄金琉金 — 修长飘逸纱尾
+        { segLenMul: 19.2, maxWMul: 27, bodyEnd: 0.52, headPow: 0.60, headBias: 0.13, headAmp: 0.90, finMul: 0.58, eyeAlong: 0.95, eyeSpread: 0.62, tailOuterMul: 1.18, tailInnerMul: 0.48 },
+        // 3: 墨龙睛 — 圆头鼓眼
+        { segLenMul: 17.5, maxWMul: 33, bodyEnd: 0.54, headPow: 0.52, headBias: 0.16, headAmp: 0.92, finMul: 0.65, eyeAlong: 0.88, eyeSpread: 0.78, tailOuterMul: 1.10, tailInnerMul: 0.44 },
+        // 4: 五花朱文金 — 修长五花朱文金
+        { segLenMul: 19.5, maxWMul: 26, bodyEnd: 0.52, headPow: 0.60, headBias: 0.13, headAmp: 0.90, finMul: 0.56, eyeAlong: 0.95, eyeSpread: 0.62, tailOuterMul: 1.20, tailInnerMul: 0.48 }
+      ];
 
       function createHeroGoldfish(idx) {
+        const variant = idx % 5;
+        const profile = BREED_PROFILES[variant];
         const angle = Math.random() * Math.PI * 2;
         const speed = 1.25;
         const x = W * (0.24 + Math.random() * 0.52);
         const y = H * (0.24 + Math.random() * 0.52);
         const scale = 0.92 + (idx % 3) * 0.14 + Math.random() * 0.08;
-        const segLen = scale * 17.5;
+        const segLen = scale * profile.segLenMul;
         const baseX = new Float32Array(SEG_COUNT);
         const baseY = new Float32Array(SEG_COUNT);
         const segX = new Float32Array(SEG_COUNT);
@@ -925,14 +941,14 @@
           scale,
           segLen,
           eatenCount: 0,
-          breedName: BREED_NAMES[idx % 5],
+          breedName: BREED_NAMES[variant],
           baseX,
           baseY,
           segX,
           segY,
           phase: Math.random() * Math.PI * 2,
           turnBias: (Math.random() - 0.5) * 0.025,
-          variant: idx % 5, // 0: Ryukin red-white, 1: Tancho, 2: Gold, 3: Ink Telescope, 4: Calico
+          variant, // 0: Ryukin red-white, 1: Tancho, 2: Gold, 3: Ink Telescope, 4: Calico
           seed: Math.random() * 10
         };
       }
@@ -1123,7 +1139,7 @@
                 bestP.eaten = true;
                 g.eatenCount++;
                 g.scale = Math.min(g.baseScale * 1.38, g.scale + 0.035);
-                g.segLen = g.scale * 17.5;
+                g.segLen = g.scale * BREED_PROFILES[g.variant].segLenMul;
                 spawnRipple(bestP.x, bestP.y, 64, 0.9);
                 playDropNote(false);
               } else {
@@ -1705,8 +1721,9 @@
       }
 
       function rasterizeGoldfish(g, cs) {
+        const profile = BREED_PROFILES[g.variant] || BREED_PROFILES[0];
         const sc = g.scale;
-        const maxW = 34 * sc;
+        const maxW = profile.maxWMul * sc;
         const pad = maxW * 1.65 + 16;
 
         let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -1778,17 +1795,10 @@
             const absD = euclidD;
             const isMixed = state.charset === "mixed";
 
-            // 1. Head & Plump Pear Belly (t in [0, 0.54], tapering into a distinct caudal waist)
-            if (t <= 0.54) {
-              const u = t / 0.54;
-              const halfW = maxW * (0.16 * u + 0.92 * Math.sin(Math.pow(u, 0.58) * Math.PI));
-
-              // Protruding goldfish eyes near head
-              if (t >= 0.085 && t <= 0.165 && absD >= halfW * 0.60 && absD <= halfW * 1.12) {
-                if (useBg) setCell(col, row, 176, 27, 4.6, 17); // Black eye tile + white glint °
-                else setCell(col, row, eyeCode, 22, 4.6, 0);
-                continue;
-              }
+            // 1. Head & Belly (plump or sleek per breed profile)
+            if (t <= profile.bodyEnd) {
+              const u = t / profile.bodyEnd;
+              const halfW = maxW * (profile.headBias * u + profile.headAmp * Math.sin(Math.pow(u, profile.headPow) * Math.PI));
 
               if (absD <= halfW && halfW > 0.5) {
                 const normD = d / halfW;
@@ -1845,8 +1855,8 @@
               // Sweeping Rounded Pectoral Fins (t in [0.22, 0.42])
               if (t >= 0.22 && t <= 0.42) {
                 const fu = (t - 0.22) / 0.20;
-                const sway = Math.sin(g.phase * 0.85) * 2.5 * sc;
-                const finOuter = halfW + (maxW * 0.68 + sway * (d > 0 ? 1 : -1)) * Math.sin(fu * Math.PI);
+                const sway = Math.sin(g.phase * 0.85) * 2.2 * sc;
+                const finOuter = halfW + (maxW * profile.finMul + sway * (d > 0 ? 1 : -1)) * Math.sin(fu * Math.PI);
                 if (absD > halfW && absD <= finOuter) {
                   const finDepth = (absD - halfW) / Math.max(1, finOuter - halfW);
                   const fi = Math.min(finRamp.length - 1, Math.floor((1 - finDepth) * finRamp.length));
@@ -1858,10 +1868,10 @@
                 }
               }
             } else {
-              // 2. Graceful Forked Twin Veil-Tail (t in (0.54, 1.0])
-              const tv = (t - 0.54) / 0.46;
-              const tailOuter = maxW * (0.16 + 1.08 * Math.sin(Math.pow(tv, 0.65) * Math.PI * 0.72));
-              const tailInner = tv > 0.22 ? maxW * 0.42 * Math.pow((tv - 0.22) / 0.78, 1.15) : -1;
+              // 2. Graceful Forked Twin Veil-Tail (t in (profile.bodyEnd, 1.0])
+              const tv = (t - profile.bodyEnd) / (1 - profile.bodyEnd);
+              const tailOuter = maxW * (0.14 + profile.tailOuterMul * Math.sin(Math.pow(tv, 0.72) * Math.PI * 0.78));
+              const tailInner = tv > 0.24 ? maxW * profile.tailInnerMul * Math.pow((tv - 0.24) / 0.76, 1.1) : -1;
               if (absD <= tailOuter && absD >= tailInner) {
                 const finIdx = Math.min(finRamp.length - 1, Math.floor((1 - tv * 0.85) * finRamp.length));
                 const baseFin = g.variant === 3 ? 19 : g.variant === 2 ? 16 : g.variant === 1 ? 13 : 10;
@@ -1872,6 +1882,24 @@
               }
             }
           }
+        }
+
+        // Exact 2 single-cell goldfish eyes positioned analytically on head sides
+        let tx = g.segX[1] - g.segX[0];
+        let ty = g.segY[1] - g.segY[0];
+        const tLen = Math.hypot(tx, ty) || 1;
+        tx /= tLen;
+        ty /= tLen;
+        const nx = -ty;
+        const ny = tx;
+        const ex = g.segX[0] + tx * (g.segLen * profile.eyeAlong);
+        const ey = g.segY[0] + ty * (g.segLen * profile.eyeAlong);
+        const spread = maxW * profile.eyeSpread;
+        for (const side of [-1, 1]) {
+          const ec = Math.floor((ex + nx * spread * side) / cellW);
+          const er = Math.floor((ey + ny * spread * side) / cellH);
+          if (useBg) setCell(ec, er, 176, 27, 4.7, 17);
+          else setCell(ec, er, eyeCode, 22, 4.7, 0);
         }
       }
 
@@ -1924,7 +1952,11 @@
         const ripCodes = [111, 79, 126, 183]; // o, O, ~, ·
         for (let i = 0; i < ripples.length; i++) {
           const rp = ripples[i];
-          const steps = Math.max(12, Math.floor(rp.r * 0.65));
+          if (rp.r < cellW * 1.4) {
+            setCell((rp.x / cellW) | 0, (rp.y / cellH) | 0, ripCodes[3], 3, 0.8, 0);
+            continue;
+          }
+          const steps = Math.max(8, Math.floor(rp.r * 0.48));
           const ch = rp.alpha > 0.55 ? ripCodes[0] : rp.alpha > 0.3 ? ripCodes[2] : ripCodes[3];
           for (let s = 0; s < steps; s++) {
             const a = (Math.PI * 2 * s) / steps;
@@ -2066,17 +2098,18 @@
           }
         }
 
-        // Layer 6: Top-Right Corner Vermilion ASCII Seal ("戏墨")
+        // Layer 6: Top-Right Corner Vertical Vermilion ASCII Seal ("戏墨")
         if (state.seal && cols >= 12 && rows >= 8) {
-          const sc0 = cols - 5;
+          const sc0 = cols - 4;
           const sr0 = 1;
           const sealGrid = [
-            ["┌", "─", "─", "┐"],
-            ["│", "戏", "墨", "│"],
-            ["└", "─", "─", "┘"]
+            ["┌", "─", "┐"],
+            ["│", "戏", "│"],
+            ["│", "墨", "│"],
+            ["└", "─", "┘"]
           ];
-          for (let dr = 0; dr < 3; dr++) {
-            for (let dc = 0; dc < 4; dc++) {
+          for (let dr = 0; dr < 4; dr++) {
+            for (let dc = 0; dc < 3; dc++) {
               const ch = sealGrid[dr][dc].charCodeAt(0);
               if (useBg) setCell(sc0 + dc, sr0 + dr, ch, 24, 6.0, 7);
               else setCell(sc0 + dc, sr0 + dr, ch, 11, 6.0, 0);
