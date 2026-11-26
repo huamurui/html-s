@@ -419,14 +419,92 @@
       font-size: 10.5px;
     }
 
+    .toast {
+      position: fixed;
+      top: max(16px, env(safe-area-inset-top));
+      left: 50%;
+      transform: translate(-50%, -12px);
+      z-index: 40;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: var(--hud-bg-strong);
+      border: 1px solid var(--hud-border);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: var(--shadow);
+      font-size: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .type-bar {
+      position: fixed;
+      bottom: calc(max(16px, env(safe-area-inset-bottom)) + 56px);
+      left: 50%;
+      transform: translate(-50%, 10px);
+      z-index: 28;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-width: calc(100vw - 24px);
+      padding: 7px 10px;
+      border-radius: 14px;
+      background: var(--hud-bg-strong);
+      border: 1px solid var(--hud-border-strong);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .type-bar.open {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translate(-50%, 0);
+    }
+    .type-input {
+      width: min(230px, 48vw);
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 8px;
+      border: 1px solid var(--hud-border-strong);
+      background: rgba(255, 255, 255, 0.55);
+      color: var(--hud-ink);
+      font-size: 12.5px;
+      user-select: text;
+    }
+    .chip-btn {
+      height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      border: 1px solid var(--hud-border);
+      background: var(--hud-pill);
+      color: var(--hud-mute);
+      font-size: 11.5px;
+      white-space: nowrap;
+    }
+    .chip-btn:hover {
+      background: var(--hud-pill-hover);
+      color: var(--hud-ink);
+    }
+
     body.hud-hidden .hud-badge,
     body.hud-hidden .dock,
-    body.hud-hidden .drawer {
+    body.hud-hidden .drawer,
+    body.hud-hidden .type-bar {
       opacity: 0 !important;
       pointer-events: none !important;
       transform: translateY(14px);
     }
-    body.hud-hidden .dock { transform: translate(-50%, 20px); }
+    body.hud-hidden .dock,
+    body.hud-hidden .type-bar { transform: translate(-50%, 20px); }
   </style>
 </head>
 <body data-ui-theme="light">
@@ -438,28 +516,45 @@
       <span class="badge-title">Boids No.3 // 宣纸打字机金鱼池</span>
       <span class="badge-meta" id="telemetry">60 FPS · Init…</span>
     </div>
-    <div class="badge-hint" id="badge-hint">移动光标搅动水波 · 点击投喂吸引 · 右键绘制礁石 · H 隐藏界面</div>
+    <div class="badge-hint" id="badge-hint">移动光标搅动水波 · 点金鱼查品种 · T 敲字入水 · 右键画礁石 · H 隐藏</div>
   </header>
 
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <div class="type-bar" id="type-bar" aria-label="敲字入水">
+    <input class="type-input" id="type-input" type="text" maxlength="24" placeholder="输入文字或诗句，回车入水…" />
+    <button class="act-btn" id="btn-type-send" style="height:30px;">入水</button>
+    <button class="chip-btn" data-phrase="鱼戏莲叶间">鱼戏莲叶间</button>
+    <button class="chip-btn" data-phrase="半亩方塘">半亩方塘</button>
+    <button class="chip-btn" data-phrase="吹皱一池春水">吹皱一池春水</button>
+  </div>
+
   <nav class="dock" aria-label="ASCII 金鱼池控制栏">
-    <div class="dock-group" role="group" aria-label="字符集">
+    <div class="dock-group" role="group" aria-label="字符质感">
+      <button class="pill-btn" data-charset="mixed" aria-pressed="true">混排</button>
+      <button class="pill-btn" data-charset="blocks" aria-pressed="false">方块</button>
       <button class="pill-btn" data-charset="classic" aria-pressed="false">ASCII</button>
-      <button class="pill-btn" data-charset="blocks" aria-pressed="true">方块</button>
-      <button class="pill-btn" data-charset="hanzi" aria-pressed="false">汉字水墨</button>
+      <button class="pill-btn" data-charset="hanzi" aria-pressed="false">汉字</button>
     </div>
 
     <div class="dock-sep" aria-hidden="true"></div>
 
     <div class="dock-group" role="group" aria-label="交互工具">
       <button class="pill-btn" data-tool="feed" aria-pressed="true">投喂</button>
+      <button class="pill-btn" data-tool="vortex" aria-pressed="false">漩涡</button>
       <button class="pill-btn" data-tool="splash" aria-pressed="false">惊扰</button>
       <button class="pill-btn" data-tool="wall" aria-pressed="false">画礁石</button>
     </div>
 
     <div class="dock-sep" aria-hidden="true"></div>
 
+    <button class="act-btn" id="btn-scatter" title="全池撒食 (F)">撒食</button>
+    <button class="act-btn" id="btn-type" aria-expanded="false" aria-controls="type-bar" title="敲字入水 (T)">题字</button>
+    <button class="act-btn" id="btn-rain" aria-pressed="false" title="细雨打池 (E)">细雨</button>
+    <button class="act-btn" id="btn-cell-bg" aria-pressed="true" title="色块底+字符叠印 (B)">色块底</button>
+    <button class="act-btn" id="btn-copy" title="复制当前帧纯文本 ASCII 画 (C)">复制</button>
+    <button class="act-btn" id="btn-shot" title="导出 PNG 截图 (S)">截图</button>
     <button class="act-btn" id="btn-pause" aria-pressed="false" title="暂停/继续 (P)">暂停</button>
-    <button class="act-btn" id="btn-reset" title="重置金鱼池 (R)">重置</button>
     <button class="act-btn" id="btn-drawer" aria-expanded="false" aria-controls="inspector" title="参数面板 (I)">参数</button>
   </nav>
 
@@ -490,6 +585,14 @@
             <input id="sl-school" type="range" min="40" max="400" step="10" value="120" />
           </div>
           <div class="slider-row">
+            <div class="slider-head"><label for="sl-tail-speed">摆尾节奏 Tail Speed</label><output id="out-tail-speed">1.00</output></div>
+            <input id="sl-tail-speed" type="range" min="0.3" max="2.0" step="0.05" value="1.0" />
+          </div>
+          <div class="slider-row">
+            <div class="slider-head"><label for="sl-tail-amp">摆尾幅度 Tail Wave</label><output id="out-tail-amp">10.0</output></div>
+            <input id="sl-tail-amp" type="range" min="0" max="18" step="0.5" value="10.0" />
+          </div>
+          <div class="slider-row">
             <div class="slider-head"><label for="sl-sep">分离权重 Separation</label><output id="out-sep">1.55</output></div>
             <input id="sl-sep" type="range" min="0" max="3" step="0.05" value="1.55" />
           </div>
@@ -512,6 +615,22 @@
         <div class="section-label">显示开关 · Display</div>
         <div class="switches">
           <div class="switch-row">
+            <span>色块底+字符 Cell BG</span>
+            <button class="switch" id="sw-cell-bg" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="switch-row">
+            <span>浮水荷叶 Lotus Pads</span>
+            <button class="switch" id="sw-lotus" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="switch-row">
+            <span>朱砂印章 Seal Stamp</span>
+            <button class="switch" id="sw-seal" role="switch" aria-checked="true"></button>
+          </div>
+          <div class="switch-row">
+            <span>细雨打池 Rain</span>
+            <button class="switch" id="sw-rain" role="switch" aria-checked="false"></button>
+          </div>
+          <div class="switch-row">
             <span>游动尾迹 Trails</span>
             <button class="switch" id="sw-trails" role="switch" aria-checked="true"></button>
           </div>
@@ -519,15 +638,23 @@
             <span>柔和边界转向 Soft Walls</span>
             <button class="switch" id="sw-walls" role="switch" aria-checked="true"></button>
           </div>
+          <div class="switch-row">
+            <span>水滴与打字声效 Sound</span>
+            <button class="switch" id="sw-sound" role="switch" aria-checked="false"></button>
+          </div>
         </div>
       </div>
 
-      <button class="danger-btn" id="btn-clear-obs">清除全部礁石</button>
+      <div class="grid-3" style="grid-template-columns:1fr 1fr;">
+        <button class="choice-btn" id="btn-reset" title="重置金鱼池 (R)">重置池塘</button>
+        <button class="danger-btn" id="btn-clear-obs">清除礁石</button>
+      </div>
 
       <div class="shortcuts">
-        <kbd>1</kbd>-<kbd>3</kbd> 切换字符集 · <kbd>P</kbd> 暂停<br />
-        <kbd>R</kbd> 重置 · <kbd>I</kbd> 参数 · <kbd>H</kbd> 隐藏界面<br />
-        左键按工具交互 · 右键直接画礁石
+        <kbd>1</kbd>-<kbd>4</kbd> 质感 · <kbd>T</kbd> 题字 · <kbd>E</kbd> 细雨 · <kbd>F</kbd> 撒食<br />
+        <kbd>B</kbd> 色块底 · <kbd>G</kbd> 密度 · <kbd>W</kbd> 水波 · <kbd>M</kbd> 声效<br />
+        <kbd>C</kbd> 复制文本 · <kbd>S</kbd> 截图 · <kbd>P</kbd> 暂停 · <kbd>R</kbd> 重置<br />
+        <kbd>I</kbd> 参数 · <kbd>H</kbd> 隐藏 · 右键画礁石
       </div>
     </div>
   </aside>
@@ -544,12 +671,19 @@
       // 3: bubble / ripple
       // 4..6: rock (shadow, mid, highlight)
       // 7..9: school fish (dim, mid, startled vermilion)
-      // 10..12: Ryukin vermilion (shadow, mid, bright)
+      // For goldfish breeds: [0]=translucent fin tip, [1]=rich midtone, [2]=deep core/rim
+      // 10..12: Ryukin vermilion
       // 13..15: Pearl-ivory / silver-ink
       // 16..18: Imperial gold-ochre
       // 19..21: Pine-soot ink black
-      // 22: eye
+      // 22: eye (no bg)
       // 23: food pellet
+      // 24: warm ivory fg inside dark tiles
+      // 25: soft gold fg inside vermilion/gold tiles
+      // 26: soft coral fg inside vermilion tiles
+      // 27: white pupil glint inside black eye tile
+      // 28..29: lotus pad dark vein / highlight
+      // 30..31: floating ink text (fresh charcoal / faded grey)
       const PAPER_PALETTE = {
         bg: "#f4f0e6",
         colors: [
@@ -557,16 +691,49 @@
           "#78716c",
           "#78716c", "#44403c", "#1c1917",
           "#a8a29e", "#57534e", "#c93b2b",
-          "#991b1b", "#c93b2b", "#e04838",
-          "#91887b", "#5c554c", "#2e2a25",
-          "#854d0e", "#b45309", "#d97706",
-          "#57534e", "#292524", "#0c0a09",
+          "#e57a6b", "#c93b2b", "#8c1d13",
+          "#a89f91", "#6b6358", "#2d2924",
+          "#e4a84b", "#c26d0a", "#854508",
+          "#8a8278", "#44403c", "#141210",
           "#000000",
-          "#c93b2b"
+          "#c93b2b",
+          "#faf6ee",
+          "#fde68a",
+          "#fecaca",
+          "#ffffff",
+          "#3f634c",
+          "#edf5eb",
+          "#1f1c18",
+          "#7a7267"
+        ],
+        bgColors: [
+          null,
+          "#eae4d6",
+          "#dfd7c6", "#4a453f", "#26231f",
+          "#f2d5cd", "#d95342", "#b92c1e",
+          "#ebe4d7", "#d7cebd", "#575148",
+          "#f4e1b9", "#e0982e", "#b8630a",
+          "#dad4c8", "#3d3934", "#1a1816",
+          "#12100e",
+          "#f5d0c5",
+          "#d7e3d4", "#8fb396", "#567c63",
+          "#f4c7c0"
         ]
       };
 
       const CHARSETS = {
+        mixed: {
+          water: [" ", "·", ".", "~", "≈"],
+          body: [":", "-", "=", "+", "*", "#", "%", "~"],
+          bodyNoBg: ["░", "+", "*", "#", "%", "▒", "▓", "█"],
+          fin: [":", "~", "-", "=", "░", "▒"],
+          rock: ["░", ":", "#", "▒", "▓"],
+          school: [">", "<", "^", "v", "▸", "◂"],
+          trail: ["·", ":", "-"],
+          eye: "●",
+          pellet: "◆",
+          bubble: "°"
+        },
         classic: {
           water: [" ", "·", ".", "~", "≈"],
           body: ["=", "+", "*", "#", "%", "@"],
@@ -614,9 +781,11 @@
       const state = {
         tool: "feed",
         density: "medium",
-        charset: "blocks",
+        charset: "mixed",
         heroCount: 3,
         schoolCount: 120,
+        tailSpeed: 1.0,
+        tailAmp: 10.0,
         separation: 1.55,
         alignment: 1.20,
         cohesion: 1.05,
@@ -624,6 +793,12 @@
         maxSpeed: 3.4,
         maxForce: 0.14,
         causticsStrength: 0.35,
+        prevCaustics: 0.35,
+        cellBg: true,
+        lotus: true,
+        seal: true,
+        rain: false,
+        sound: false,
         trails: true,
         softWalls: true,
         paused: false,
@@ -634,6 +809,15 @@
       const ctx = canvas.getContext("2d", { alpha: false });
       const telemetryEl = document.getElementById("telemetry");
       const hintEl = document.getElementById("badge-hint");
+      const toastEl = document.getElementById("toast");
+
+      let toastTimer = null;
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), 2200);
+      }
 
       let W = window.innerWidth;
       let H = window.innerHeight;
@@ -647,8 +831,10 @@
 
       let charBuf = new Uint16Array(1);
       let palBuf = new Uint8Array(1);
+      let bgBuf = new Uint8Array(1);
       let zBuf = new Float32Array(1);
-      const buckets = Array.from({ length: 24 }, () => []);
+      const buckets = Array.from({ length: 32 }, () => []);
+      const bgBuckets = Array.from({ length: 23 }, () => []);
 
       function resizeGrid() {
         W = Math.max(320, window.innerWidth);
@@ -670,6 +856,7 @@
         if (charBuf.length < gridSize) {
           charBuf = new Uint16Array(gridSize);
           palBuf = new Uint8Array(gridSize);
+          bgBuf = new Uint8Array(gridSize);
           zBuf = new Float32Array(gridSize);
         }
       }
@@ -700,10 +887,19 @@
       const SEG_COUNT = 10;
       const heroFish = [];
 
+      function wrapAngle(a) {
+        while (a > Math.PI) a -= Math.PI * 2;
+        while (a < -Math.PI) a += Math.PI * 2;
+        return a;
+      }
+
+      const BREED_NAMES = ["琉金红白", "鹤顶红", "黄金琉金", "墨龙睛", "五花朱文金"];
+
       function createHeroGoldfish(idx) {
         const angle = Math.random() * Math.PI * 2;
-        const x = W * (0.2 + Math.random() * 0.6);
-        const y = H * (0.2 + Math.random() * 0.6);
+        const speed = 1.25;
+        const x = W * (0.24 + Math.random() * 0.52);
+        const y = H * (0.24 + Math.random() * 0.52);
         const scale = 0.92 + (idx % 3) * 0.14 + Math.random() * 0.08;
         const segLen = scale * 17.5;
         const baseX = new Float32Array(SEG_COUNT);
@@ -721,10 +917,15 @@
         return {
           x,
           y,
-          vx: Math.cos(angle) * 1.25,
-          vy: Math.sin(angle) * 1.25,
+          angle,
+          speed,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          baseScale: scale,
           scale,
           segLen,
+          eatenCount: 0,
+          breedName: BREED_NAMES[idx % 5],
           baseX,
           baseY,
           segX,
@@ -737,15 +938,113 @@
       }
 
       /* =========================================================
-       * Obstacles, Pellets, Ripples, Ambient Bubbles
+       * Obstacles, Pellets, Ripples, Lotus Pads, Floating Words & Sound
        * ========================================================= */
       const obstacles = [];
       const pellets = [];
       const ripples = [];
       const bubbles = [];
+      const lotusPads = [];
+      const floatChars = [];
+      const pendingChars = [];
+      let rainTimer = 0;
+
+      const PENTATONIC_HZ = [587.33, 659.25, 739.99, 880.0, 987.77, 1174.66];
+      let audioCtx = null;
+      function getAudio() {
+        if (!state.sound) return null;
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === "suspended") audioCtx.resume();
+          return audioCtx;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function playDropNote(soft = false) {
+        const ac = getAudio();
+        if (!ac) return;
+        const now = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        const f = PENTATONIC_HZ[Math.floor(Math.random() * PENTATONIC_HZ.length)];
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f * (soft ? 1.0 : 0.85), now);
+        osc.frequency.exponentialRampToValueAtTime(f * (soft ? 1.18 : 0.58), now + 0.14);
+        gain.gain.setValueAtTime(soft ? 0.018 : 0.045, now);
+        gain.gain.exponentialRampToValueAtTime(0.0005, now + 0.18);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(now);
+        osc.stop(now + 0.19);
+      }
+
+      function playTypeClick() {
+        const ac = getAudio();
+        if (!ac) return;
+        const now = ac.currentTime;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(320 + Math.random() * 80, now);
+        osc.frequency.exponentialRampToValueAtTime(110, now + 0.03);
+        gain.gain.setValueAtTime(0.05, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.035);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      }
+
+      function buildLotusPads() {
+        lotusPads.length = 0;
+        const minSide = Math.min(W, H);
+        const defs = [
+          [0.12, 0.18, 0.078, 0.55, true],
+          [0.19, 0.25, 0.048, 2.25, false],
+          [0.87, 0.78, 0.088, -1.15, true],
+          [0.79, 0.85, 0.052, 1.35, false],
+          [0.15, 0.80, 0.062, 3.60, false]
+        ];
+        for (const [fx, fy, fr, rot, hasBlossom] of defs) {
+          const hx = W * fx;
+          const hy = H * fy;
+          lotusPads.push({
+            x: hx,
+            y: hy,
+            homeX: hx,
+            homeY: hy,
+            vx: 0,
+            vy: 0,
+            r: Math.max(28, minSide * fr),
+            rot,
+            notch: 0.26,
+            hasBlossom
+          });
+        }
+      }
+
+      function dropTextToPond(text) {
+        const clean = [...text.trim()];
+        if (clean.length === 0) return;
+        const span = Math.min(W * 0.62, clean.length * Math.max(cellW * 2.4, 24));
+        const startX = W * 0.5 - span * 0.5;
+        const baseY = H * (0.42 + Math.random() * 0.16);
+        const stepX = clean.length > 1 ? span / (clean.length - 1) : 0;
+        for (let i = 0; i < clean.length; i++) {
+          if (clean[i] === " ") continue;
+          pendingChars.push({
+            ch: clean[i],
+            x: startX + i * stepX,
+            y: baseY + Math.sin(i * 0.55) * 10,
+            delay: i * 0.105
+          });
+        }
+      }
 
       function spawnRipple(x, y, maxR = 72, strength = 1.0) {
-        if (ripples.length > 32) ripples.shift();
+        if (ripples.length > 36) ripples.shift();
         ripples.push({ x, y, r: 6, maxR, alpha: strength });
       }
 
@@ -780,8 +1079,11 @@
             phase: Math.random() * Math.PI * 2
           });
         }
+        buildLotusPads();
         pellets.length = 0;
         ripples.length = 0;
+        floatChars.length = 0;
+        pendingChars.length = 0;
       }
 
       /* =========================================================
@@ -790,18 +1092,17 @@
       function stepSimulation(dtNorm, elapsed) {
         const HC = state.heroCount;
         const margin = 82;
+        const heroMargin = Math.min(165, Math.min(W, H) * 0.22);
 
-        // 1. Update Hero Goldfish
+        // 1. Update Hero Goldfish (Smooth Heading Steering + Joint-Bend Clamp)
         for (let h = 0; h < HC; h++) {
           const g = heroFish[h];
-          let fx = Math.cos(elapsed * 0.45 + g.seed) * 0.025;
-          let fy = Math.sin(elapsed * 0.38 + g.seed * 1.3) * 0.025;
+          let fx = Math.cos(elapsed * 0.40 + g.seed) * 0.018;
+          let fy = Math.sin(elapsed * 0.34 + g.seed * 1.3) * 0.018;
 
-          // Slight organic wandering turn
-          const spd = Math.hypot(g.vx, g.vy) || 1;
-          const dirX = g.vx / spd;
-          const dirY = g.vy / spd;
-          const wander = Math.sin(elapsed * 0.8 + g.seed) * 0.028 + g.turnBias * 0.25;
+          const dirX = Math.cos(g.angle);
+          const dirY = Math.sin(g.angle);
+          const wander = Math.sin(elapsed * 0.7 + g.seed) * 0.022 + g.turnBias * 0.2;
           fx += -dirY * wander;
           fy += dirX * wander;
 
@@ -820,10 +1121,29 @@
               const d = Math.sqrt(bestD2) || 1;
               if (d < 22 * g.scale) {
                 bestP.eaten = true;
+                g.eatenCount++;
+                g.scale = Math.min(g.baseScale * 1.38, g.scale + 0.035);
+                g.segLen = g.scale * 17.5;
                 spawnRipple(bestP.x, bestP.y, 64, 0.9);
+                playDropNote(false);
               } else {
-                fx += ((bestP.x - g.x) / d) * 0.11;
-                fy += ((bestP.y - g.y) / d) * 0.11;
+                fx += ((bestP.x - g.x) / d) * 0.10;
+                fy += ((bestP.y - g.y) / d) * 0.10;
+              }
+            }
+          } else if (floatChars.length > 0) {
+            // Mild curiosity toward freshly dropped ink characters
+            for (let f = 0; f < floatChars.length; f++) {
+              const fc = floatChars[f];
+              if (fc.life / fc.maxLife < 0.72) continue;
+              const dx = fc.x - g.x;
+              const dy = fc.y - g.y;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < 200 * 200 && d2 > 40 * 40) {
+                const d = Math.sqrt(d2);
+                fx += (dx / d) * 0.035;
+                fy += (dy / d) * 0.035;
+                break;
               }
             }
           }
@@ -835,23 +1155,29 @@
             const dx = g.x - o.x;
             const dy = g.y - o.y;
             const d2 = dx * dx + dy * dy;
-            if (d2 < 95 * 95 && d2 > 0.1) {
+            if (d2 < 105 * 105 && d2 > 0.1) {
               const d = Math.sqrt(d2);
-              const str = (1 - d / 95) * 0.09;
+              const str = (1 - d / 105) * 0.09;
               fx += (dx / d) * str;
               fy += (dy / d) * str;
             }
           }
 
-          // Cursor splash / repel
-          if (pointer.active && pointer.mode === "splash") {
+          // Cursor vortex / splash interaction
+          if (pointer.active) {
             const dx = g.x - pointer.x;
             const dy = g.y - pointer.y;
             const d2 = dx * dx + dy * dy;
-            if (d2 < 180 * 180 && d2 > 1) {
+            if (pointer.mode === "splash" && d2 < 185 * 185 && d2 > 1) {
               const d = Math.sqrt(d2);
-              fx += (dx / d) * (1 - d / 180) * 0.24;
-              fy += (dy / d) * (1 - d / 180) * 0.24;
+              fx += (dx / d) * (1 - d / 185) * 0.22;
+              fy += (dy / d) * (1 - d / 185) * 0.22;
+            } else if (pointer.mode === "vortex" && d2 < 240 * 240 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const str = (1 - d / 240) * 0.16;
+              // Tangential swirl + slight inward pull
+              fx += (-dy / d) * str - (dx / d) * str * 0.32;
+              fy += (dx / d) * str - (dy / d) * str * 0.32;
             }
           }
 
@@ -860,39 +1186,52 @@
             const obs = obstacles[o];
             const dx = g.x - obs.x;
             const dy = g.y - obs.y;
-            const avoidR = obs.r + 58;
+            const avoidR = obs.r + 68;
             const d2 = dx * dx + dy * dy;
             if (d2 < avoidR * avoidR && d2 > 0.1) {
               const d = Math.sqrt(d2);
               const nx = dx / d;
               const ny = dy / d;
-              const str = (1 - d / avoidR) * 0.38;
+              const str = (1 - d / avoidR) * 0.32;
               const sign = (dirX * ny - dirY * nx) >= 0 ? 1 : -1;
-              fx += nx * str - ny * sign * str * 0.5;
-              fy += ny * str + nx * sign * str * 0.5;
+              fx += nx * str - ny * sign * str * 0.55;
+              fy += ny * str + nx * sign * str * 0.55;
             }
           }
 
-          // Soft boundary turn
+          // Smooth wall & corner avoidance so goldfish never wedge into corners
           if (state.softWalls) {
-            if (g.x < margin) fx += ((margin - g.x) / margin) * 0.18;
-            else if (g.x > W - margin) fx -= ((g.x - (W - margin)) / margin) * 0.18;
-            if (g.y < margin) fy += ((margin - g.y) / margin) * 0.18;
-            else if (g.y > H - margin) fy -= ((g.y - (H - margin)) / margin) * 0.18;
+            let wallX = 0, wallY = 0;
+            if (g.x < heroMargin) wallX = (heroMargin - g.x) / heroMargin;
+            else if (g.x > W - heroMargin) wallX = -((g.x - (W - heroMargin)) / heroMargin);
+            if (g.y < heroMargin) wallY = (heroMargin - g.y) / heroMargin;
+            else if (g.y > H - heroMargin) wallY = -((g.y - (H - heroMargin)) / heroMargin);
+
+            fx += wallX * 0.24;
+            fy += wallY * 0.24;
+            // Extra center pull when simultaneously near two walls (corner)
+            if (Math.abs(wallX) > 0.25 && Math.abs(wallY) > 0.25) {
+              const cx = W * 0.5 - g.x;
+              const cy = H * 0.5 - g.y;
+              const cd = Math.hypot(cx, cy) || 1;
+              fx += (cx / cd) * 0.18;
+              fy += (cy / cd) * 0.18;
+            }
           }
 
-          g.vx += fx * dtNorm;
-          g.vy += fy * dtNorm;
-          const nSpd = Math.hypot(g.vx, g.vy) || 0.001;
-          const minHeroSpd = 0.85;
-          const maxHeroSpd = 1.75;
-          if (nSpd > maxHeroSpd) {
-            g.vx = (g.vx / nSpd) * maxHeroSpd;
-            g.vy = (g.vy / nSpd) * maxHeroSpd;
-          } else if (nSpd < minHeroSpd) {
-            g.vx = (g.vx / nSpd) * minHeroSpd;
-            g.vy = (g.vy / nSpd) * minHeroSpd;
-          }
+          const desiredVx = g.vx + fx * dtNorm;
+          const desiredVy = g.vy + fy * dtNorm;
+          const desiredAngle = Math.atan2(desiredVy, desiredVx);
+          const angleDiff = wrapAngle(desiredAngle - g.angle);
+          const maxTurn = 0.042 * dtNorm;
+          const clampedTurn = Math.max(-maxTurn, Math.min(maxTurn, angleDiff));
+          g.angle = wrapAngle(g.angle + clampedTurn);
+
+          const rawSpd = Math.hypot(desiredVx, desiredVy);
+          const targetSpd = Math.max(0.88, Math.min(1.65, rawSpd));
+          g.speed += (targetSpd - g.speed) * 0.08 * dtNorm;
+          g.vx = Math.cos(g.angle) * g.speed;
+          g.vy = Math.sin(g.angle) * g.speed;
 
           g.x += g.vx * dtNorm;
           g.y += g.vy * dtNorm;
@@ -904,35 +1243,42 @@
             if (g.y < -80) { g.y += H + 160; wrapped = true; }
             else if (g.y > H + 80) { g.y -= H + 160; wrapped = true; }
             if (wrapped) {
-              const a = Math.atan2(g.vy, g.vx);
               for (let k = 0; k < SEG_COUNT; k++) {
-                const sxp = g.x - Math.cos(a) * k * g.segLen;
-                const syp = g.y - Math.sin(a) * k * g.segLen;
+                const sxp = g.x - Math.cos(g.angle) * k * g.segLen;
+                const syp = g.y - Math.sin(g.angle) * k * g.segLen;
                 g.baseX[k] = sxp;
                 g.baseY[k] = syp;
                 g.segX[k] = sxp;
                 g.segY[k] = syp;
               }
             }
+          } else {
+            // Soft safety clamp inside viewport
+            if (g.x < 18) g.x = 18; else if (g.x > W - 18) g.x = W - 18;
+            if (g.y < 18) g.y = 18; else if (g.y > H - 18) g.y = H - 18;
           }
 
-          // Serene ~0.55 Hz swimming undulation
-          g.phase += (0.026 + nSpd * 0.012) * dtNorm;
+          // Serene ~0.5 Hz swimming undulation modulated by Tail Speed
+          g.phase += (0.024 + g.speed * 0.011) * state.tailSpeed * dtNorm;
 
-          // 1) Pure follow-the-leader centerline (zero cumulative wave distortion)
+          // 1) Pure centerline with per-joint maximum angle clamp (±0.24 rad prevents hairpin kinks!)
           g.baseX[0] = g.x;
           g.baseY[0] = g.y;
           for (let k = 1; k < SEG_COUNT; k++) {
             const prevX = g.baseX[k - 1];
             const prevY = g.baseY[k - 1];
-            const dx = g.baseX[k] - prevX;
-            const dy = g.baseY[k] - prevY;
-            const d = Math.hypot(dx, dy) || 0.001;
-            g.baseX[k] = prevX + (dx / d) * g.segLen;
-            g.baseY[k] = prevY + (dy / d) * g.segLen;
+            const parentAngle = k === 1
+              ? wrapAngle(g.angle + Math.PI)
+              : Math.atan2(g.baseY[k - 1] - g.baseY[k - 2], g.baseX[k - 1] - g.baseX[k - 2]);
+            const rawAngle = Math.atan2(g.baseY[k] - prevY, g.baseX[k] - prevX);
+            const diff = Math.max(-0.24, Math.min(0.24, wrapAngle(rawAngle - parentAngle)));
+            const clampedAng = parentAngle + diff;
+            g.baseX[k] = prevX + Math.cos(clampedAng) * g.segLen;
+            g.baseY[k] = prevY + Math.sin(clampedAng) * g.segLen;
           }
 
-          // 2) Non-cumulative lateral swim wave (head steady, tail sweeps gracefully)
+          // 2) Non-cumulative lateral swim wave, gently damped during sharp turns
+          const turnAtten = 1 / (1 + Math.abs(clampedTurn) * 14);
           g.segX[0] = g.baseX[0];
           g.segY[0] = g.baseY[0];
           for (let k = 1; k < SEG_COUNT; k++) {
@@ -942,7 +1288,7 @@
             const nx = -dy / d;
             const ny = dx / d;
             const frac = k / (SEG_COUNT - 1);
-            const amp = Math.pow(frac, 1.75) * 14.0 * g.scale;
+            const amp = Math.pow(frac, 1.8) * state.tailAmp * g.scale * turnAtten;
             const wave = Math.sin(g.phase - k * 0.52) * amp;
             g.segX[k] = g.baseX[k] + nx * wave;
             g.segY[k] = g.baseY[k] + ny * wave;
@@ -1099,18 +1445,24 @@
             }
           }
 
-          // Cursor hover / splash / feed
+          // Cursor hover / splash / vortex
           if (pointer.inCanvas) {
             const dx = x - pointer.x;
             const dy = y - pointer.y;
             const d2 = dx * dx + dy * dy;
             const isSplash = pointer.active && pointer.mode === "splash";
+            const isVortex = pointer.active && pointer.mode === "vortex";
             if (isSplash && d2 < 170 * 170 && d2 > 1) {
               const d = Math.sqrt(d2);
               const s = (1 - d / 170) * 0.85;
               fax += (dx / d) * s;
               fay += (dy / d) * s;
               sPanic[i] = Math.min(1, sPanic[i] + 0.22);
+            } else if (isVortex && d2 < 230 * 230 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const s = (1 - d / 230) * 0.65;
+              fax += (-dy / d) * s - (dx / d) * s * 0.28;
+              fay += (dx / d) * s - (dy / d) * s * 0.28;
             } else if (!pointer.active && d2 < 110 * 110 && d2 > 1) {
               // Gentle scatter on hover
               const d = Math.sqrt(d2);
@@ -1193,7 +1545,7 @@
         }
         sTrailCursor = (sTrailCursor + 1) % SCHOOL_TRAIL;
 
-        // 3. Pellets, Ripples & Bubbles
+        // 3. Pellets, Ripples, Bubbles, Rain, Lotus Pads & Floating Ink Poetry
         for (let i = pellets.length - 1; i >= 0; i--) {
           pellets[i].life -= 0.0018 * dtNorm;
           if (pellets[i].eaten || pellets[i].life <= 0) pellets.splice(i, 1);
@@ -1213,18 +1565,142 @@
             b.x = Math.random() * W;
           }
         }
+
+        // Gentle Rain Drops
+        if (state.rain) {
+          rainTimer += dtNorm / 60;
+          if (rainTimer >= 0.18 + Math.random() * 0.08) {
+            rainTimer = 0;
+            const rx = W * (0.04 + Math.random() * 0.92);
+            const ry = H * (0.04 + Math.random() * 0.92);
+            spawnRipple(rx, ry, 46 + Math.random() * 24, 0.72);
+            if (Math.random() < 0.45) playDropNote(true);
+            for (let f = 0; f < floatChars.length; f++) {
+              const fc = floatChars[f];
+              const dx = fc.x - rx;
+              const dy = fc.y - ry;
+              const d2 = dx * dx + dy * dy;
+              if (d2 < 85 * 85 && d2 > 1) {
+                const d = Math.sqrt(d2);
+                fc.vx += (dx / d) * 0.55;
+                fc.vy += (dy / d) * 0.55;
+              }
+            }
+          }
+        }
+
+        // Staggered release of typed poetry characters
+        for (let i = pendingChars.length - 1; i >= 0; i--) {
+          const pc = pendingChars[i];
+          pc.delay -= dtNorm / 60;
+          if (pc.delay <= 0) {
+            if (floatChars.length > 72) floatChars.shift();
+            floatChars.push({
+              ch: pc.ch,
+              x: pc.x,
+              y: pc.y,
+              vx: (Math.random() - 0.5) * 0.15,
+              vy: (Math.random() - 0.5) * 0.15,
+              life: 32,
+              maxLife: 32
+            });
+            spawnRipple(pc.x, pc.y, 52, 0.85);
+            playTypeClick();
+            pendingChars.splice(i, 1);
+          }
+        }
+
+        // Floating ink characters nudged by fish & pointer
+        for (let i = floatChars.length - 1; i >= 0; i--) {
+          const fc = floatChars[i];
+          fc.life -= dtNorm / 60;
+          if (fc.life <= 0) {
+            floatChars.splice(i, 1);
+            continue;
+          }
+          for (let h = 0; h < HC; h++) {
+            const g = heroFish[h];
+            const dx = fc.x - g.x;
+            const dy = fc.y - g.y;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < 52 * 52 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              fc.vx += (dx / d) * 0.12 * dtNorm;
+              fc.vy += (dy / d) * 0.12 * dtNorm;
+            }
+          }
+          if (pointer.inCanvas) {
+            const dx = fc.x - pointer.x;
+            const dy = fc.y - pointer.y;
+            const d2 = dx * dx + dy * dy;
+            if (pointer.active && pointer.mode === "vortex" && d2 < 200 * 200 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              const s = (1 - d / 200) * 0.18;
+              fc.vx += (-dy / d) * s * dtNorm;
+              fc.vy += (dx / d) * s * dtNorm;
+            } else if (d2 < 85 * 85 && d2 > 1) {
+              const d = Math.sqrt(d2);
+              fc.vx += (dx / d) * 0.08 * dtNorm;
+              fc.vy += (dy / d) * 0.08 * dtNorm;
+            }
+          }
+          fc.vx *= 0.96;
+          fc.vy *= 0.96;
+          fc.x += fc.vx * dtNorm;
+          fc.y += fc.vy * dtNorm;
+        }
+
+        // Floating Lotus Pads physics (sway + pushable by cursor & fish + spring home)
+        if (state.lotus) {
+          for (let i = 0; i < lotusPads.length; i++) {
+            const pad = lotusPads[i];
+            let ax = (pad.homeX - pad.x) * 0.0022 + Math.sin(elapsed * 0.55 + i) * 0.008;
+            let ay = (pad.homeY - pad.y) * 0.0022 + Math.cos(elapsed * 0.48 + i * 1.4) * 0.008;
+
+            if (pointer.inCanvas) {
+              const dx = pad.x - pointer.x;
+              const dy = pad.y - pointer.y;
+              const d2 = dx * dx + dy * dy;
+              const pushR = pad.r + 54;
+              if (d2 < pushR * pushR && d2 > 1) {
+                const d = Math.sqrt(d2);
+                const s = (1 - d / pushR) * (pointer.active ? 0.14 : 0.05);
+                ax += (dx / d) * s;
+                ay += (dy / d) * s;
+              }
+            }
+            for (let h = 0; h < HC; h++) {
+              const g = heroFish[h];
+              const dx = pad.x - g.x;
+              const dy = pad.y - g.y;
+              const d2 = dx * dx + dy * dy;
+              const rSum = pad.r + 22;
+              if (d2 < rSum * rSum && d2 > 1) {
+                const d = Math.sqrt(d2);
+                ax += (dx / d) * 0.018;
+                ay += (dy / d) * 0.018;
+              }
+            }
+            pad.vx = (pad.vx + ax * dtNorm) * 0.94;
+            pad.vy = (pad.vy + ay * dtNorm) * 0.94;
+            pad.x += pad.vx * dtNorm;
+            pad.y += pad.vy * dtNorm;
+            pad.rot += Math.sin(elapsed * 0.35 + i) * 0.0008 * dtNorm;
+          }
+        }
       }
 
       /* =========================================================
        * Unified ASCII Rasterizer + Color-Bucketed Renderer
        * ========================================================= */
-      function setCell(c, r, chCode, palIdx, z) {
+      function setCell(c, r, chCode, palIdx, z, bgIdx = 0) {
         if (c < 0 || c >= cols || r < 0 || r >= rows) return;
         const idx = r * cols + c;
         if (z >= zBuf[idx]) {
           zBuf[idx] = z;
           charBuf[idx] = chCode;
           palBuf[idx] = palIdx;
+          bgBuf[idx] = bgIdx;
         }
       }
 
@@ -1247,7 +1723,8 @@
         const r0 = Math.max(0, Math.floor((minY - pad) / cellH));
         const r1 = Math.min(rows - 1, Math.ceil((maxY + pad) / cellH));
 
-        const bodyRamp = cs.body;
+        const useBg = state.cellBg && state.charset !== "blocks";
+        const bodyRamp = (!useBg && cs.bodyNoBg) ? cs.bodyNoBg : cs.body;
         const finRamp = cs.fin;
         const eyeCode = cs.eye.charCodeAt(0);
 
@@ -1294,9 +1771,12 @@
             if (bestK === 0 && bestU <= 0 && bestAlong < -2) continue;
             if (bestK === SEG_COUNT - 2 && bestU >= 1 && bestAlong > 1) continue;
 
+            // True Euclidean distance from closest spine point prevents bend/corner flare artifacts
+            const euclidD = Math.sqrt(bestDist2);
             const t = bestT;
-            const d = bestSignedD;
-            const absD = Math.abs(d);
+            const d = (bestSignedD >= 0 ? 1 : -1) * euclidD;
+            const absD = euclidD;
+            const isMixed = state.charset === "mixed";
 
             // 1. Head & Plump Pear Belly (t in [0, 0.54], tapering into a distinct caudal waist)
             if (t <= 0.54) {
@@ -1305,23 +1785,28 @@
 
               // Protruding goldfish eyes near head
               if (t >= 0.085 && t <= 0.165 && absD >= halfW * 0.60 && absD <= halfW * 1.12) {
-                setCell(col, row, eyeCode, 22, 4.6);
+                if (useBg) setCell(col, row, 176, 27, 4.6, 17); // Black eye tile + white glint °
+                else setCell(col, row, eyeCode, 22, 4.6, 0);
                 continue;
               }
 
               if (absD <= halfW && halfW > 0.5) {
                 const normD = d / halfW;
                 const edgeFrac = absD / halfW;
-                let lum = Math.min(0.99, Math.max(0.15, Math.sqrt(Math.max(0, 1 - normD * normD)) * 0.85 - normD * 0.12));
+                let lum = Math.min(0.99, Math.max(0.14, Math.sqrt(Math.max(0, 1 - normD * normD)) * 0.84 - normD * 0.10));
                 if (t >= 0.28 && t <= 0.52 && absD <= cellW * 0.55) {
                   lum = Math.min(0.99, lum + 0.14); // Subtle dorsal ridge
                 }
-                const glyphIdx = edgeFrac > 0.78
+                if (isMixed) {
+                  // Interweave scale texture across blocks + ASCII chars
+                  lum = Math.min(0.99, Math.max(0.08, lum + 0.07 * Math.sin(t * 44) * Math.cos(normD * 5.0)));
+                }
+                const glyphIdx = edgeFrac > 0.80
                   ? Math.max(bodyRamp.length - 3, 0)
                   : Math.min(bodyRamp.length - 1, Math.floor(lum * bodyRamp.length));
                 const chCode = bodyRamp[glyphIdx].charCodeAt(0);
 
-                // Breed coloration (10: vermilion, 13: pearl-ivory, 16: gold-ochre, 19: ink black)
+                // Breed coloration: +0 soft translucent, +1 rich midtone, +2 deep core/rim
                 let basePal = 10;
                 if (g.variant === 0) {
                   const patch = Math.sin(t * 14 + normD * 2.0 + g.seed);
@@ -1337,12 +1822,27 @@
                   const p2 = Math.cos(t * 12 - normD * 2.8 + g.seed * 1.7);
                   basePal = p1 > 0.35 ? 19 : p2 > 0.2 ? 16 : 10;
                 }
-                const shadeOff = edgeFrac > 0.82 ? 2 : lum > 0.65 ? 2 : lum > 0.36 ? 1 : 0;
-                setCell(col, row, chCode, basePal + shadeOff, 4.0);
+
+                if (useBg) {
+                  const bgBase = basePal === 10 ? 5 : basePal === 13 ? 8 : basePal === 16 ? 11 : 14;
+                  const bgOff = lum > 0.62 ? 2 : (lum > 0.28 || edgeFrac > 0.75) ? 1 : 0;
+                  const bgTile = bgBase + bgOff;
+                  let fgPal;
+                  if (bgTile === 7 || bgTile === 13) fgPal = 25;
+                  else if (bgTile === 10 || bgTile === 15 || bgTile === 16) fgPal = 24;
+                  else if (bgTile === 6) fgPal = edgeFrac > 0.78 ? 12 : 26;
+                  else if (bgTile === 12) fgPal = edgeFrac > 0.78 ? 18 : 25;
+                  else if (bgTile === 8 || bgTile === 9) fgPal = 15;
+                  else fgPal = basePal + 2;
+                  setCell(col, row, chCode, fgPal, 4.0, bgTile);
+                } else {
+                  const shadeOff = edgeFrac > 0.82 ? 2 : lum > 0.64 ? 2 : lum > 0.34 ? 1 : 0;
+                  setCell(col, row, chCode, basePal + shadeOff, 4.0, 0);
+                }
                 continue;
               }
 
-              // Sweeping Rounded Pectoral Fins (t in [0.22, 0.42], deterministic glyphs)
+              // Sweeping Rounded Pectoral Fins (t in [0.22, 0.42])
               if (t >= 0.22 && t <= 0.42) {
                 const fu = (t - 0.22) / 0.20;
                 const sway = Math.sin(g.phase * 0.85) * 2.5 * sc;
@@ -1350,8 +1850,11 @@
                 if (absD > halfW && absD <= finOuter) {
                   const finDepth = (absD - halfW) / Math.max(1, finOuter - halfW);
                   const fi = Math.min(finRamp.length - 1, Math.floor((1 - finDepth) * finRamp.length));
-                  const finPal = g.variant === 3 ? 19 : g.variant === 2 ? 17 : g.variant === 1 ? 14 : 11;
-                  setCell(col, row, finRamp[fi].charCodeAt(0), finPal, 3.6);
+                  const baseFin = g.variant === 3 ? 19 : g.variant === 2 ? 16 : g.variant === 1 ? 13 : 10;
+                  const bgBase = baseFin === 10 ? 5 : baseFin === 13 ? 8 : baseFin === 16 ? 11 : 14;
+                  const finPal = baseFin + (finDepth < 0.42 ? 1 : 0);
+                  const bgIdx = (useBg && finDepth < 0.48) ? bgBase : 0;
+                  setCell(col, row, finRamp[fi].charCodeAt(0), finPal, 3.6, bgIdx);
                 }
               }
             } else {
@@ -1361,8 +1864,11 @@
               const tailInner = tv > 0.22 ? maxW * 0.42 * Math.pow((tv - 0.22) / 0.78, 1.15) : -1;
               if (absD <= tailOuter && absD >= tailInner) {
                 const finIdx = Math.min(finRamp.length - 1, Math.floor((1 - tv * 0.85) * finRamp.length));
-                const finPal = g.variant === 3 ? 20 : g.variant === 2 ? 17 : g.variant === 1 ? 14 : 11;
-                setCell(col, row, finRamp[finIdx].charCodeAt(0), finPal, 3.5);
+                const baseFin = g.variant === 3 ? 19 : g.variant === 2 ? 16 : g.variant === 1 ? 13 : 10;
+                const bgBase = baseFin === 10 ? 5 : baseFin === 13 ? 8 : baseFin === 16 ? 11 : 14;
+                const finPal = baseFin + (tv < 0.40 ? 1 : 0);
+                const bgIdx = (useBg && tv < 0.48) ? bgBase : 0;
+                setCell(col, row, finRamp[finIdx].charCodeAt(0), finPal, 3.5, bgIdx);
               }
             }
           }
@@ -1373,6 +1879,9 @@
         const pal = PAPER_PALETTE;
         const cs = CHARSETS[state.charset];
         const caustics = state.causticsStrength;
+        const useBg = state.cellBg && state.charset !== "blocks";
+
+        bgBuf.fill(0, 0, gridSize);
 
         // Clear depth & char buffers (Layer 0: Tranquil water caustics)
         if (caustics > 0.02) {
@@ -1392,6 +1901,7 @@
                 const wi = Math.min(wChars.length - 1, 1 + Math.floor(k * (wChars.length - 1)));
                 charBuf[idx] = wChars[wi].charCodeAt(0);
                 palBuf[idx] = k > 0.65 ? 2 : k > 0.32 ? 1 : 0;
+                if (useBg && k > 0.72) bgBuf[idx] = 1;
               } else {
                 charBuf[idx] = 32;
                 palBuf[idx] = 0;
@@ -1407,7 +1917,7 @@
         const bubbleCode = cs.bubble.charCodeAt(0);
         for (let i = 0; i < bubbles.length; i++) {
           const b = bubbles[i];
-          setCell((b.x / cellW) | 0, (b.y / cellH) | 0, bubbleCode, 3, 0.5);
+          setCell((b.x / cellW) | 0, (b.y / cellH) | 0, bubbleCode, 3, 0.5, 0);
         }
 
         // Expanding splash ripples
@@ -1420,7 +1930,7 @@
             const a = (Math.PI * 2 * s) / steps;
             const rx = rp.x + Math.cos(a) * rp.r;
             const ry = rp.y + Math.sin(a) * rp.r;
-            setCell((rx / cellW) | 0, (ry / cellH) | 0, ch, 3, 0.8);
+            setCell((rx / cellW) | 0, (ry / cellH) | 0, ch, 3, 0.8, 0);
           }
         }
 
@@ -1440,8 +1950,14 @@
               if (d <= obs.r) {
                 const edge = 1 - d / obs.r;
                 const rk = Math.min(rockChars.length - 1, Math.floor(edge * rockChars.length));
-                const pIdx = edge > 0.6 ? 6 : edge > 0.25 ? 5 : 4;
-                setCell(c, r, rockChars[rk].charCodeAt(0), pIdx, 2.0);
+                if (useBg) {
+                  const bgTile = edge > 0.6 ? 4 : edge > 0.25 ? 3 : 2;
+                  const fgPal = edge > 0.25 ? 24 : 5;
+                  setCell(c, r, rockChars[rk].charCodeAt(0), fgPal, 2.0, bgTile);
+                } else {
+                  const pIdx = edge > 0.6 ? 6 : edge > 0.25 ? 5 : 4;
+                  setCell(c, r, rockChars[rk].charCodeAt(0), pIdx, 2.0, 0);
+                }
               }
             }
           }
@@ -1449,7 +1965,7 @@
 
         // Layer 2: Boids Small Goldfish School + Trails
         const N = state.schoolCount;
-        const scChars = cs.school; // [>, <, ^, v, /, \]
+        const scChars = cs.school;
         const trChars = cs.trail;
         for (let i = 0; i < N; i++) {
           if (state.trails) {
@@ -1459,7 +1975,7 @@
               const tc = (sTrailX[base + idxT] / cellW) | 0;
               const tr = (sTrailY[base + idxT] / cellH) | 0;
               const tChar = trChars[Math.min(trChars.length - 1, k)].charCodeAt(0);
-              setCell(tc, tr, tChar, 7, 1.2 + k * 0.05);
+              setCell(tc, tr, tChar, 7, 1.2 + k * 0.05, 0);
             }
           }
 
@@ -1480,14 +1996,15 @@
           else chStr = scChars[5];
 
           const palIdx = sPanic[i] > 0.3 ? 9 : sDepth[i] > 0.55 ? 9 : sDepth[i] > 0.2 ? 8 : 7;
-          setCell(c, r, chStr.charCodeAt(0), palIdx, 2.5 + sDepth[i] * 0.5);
+          const bgIdx = !useBg ? 0 : sPanic[i] > 0.3 ? 5 : sDepth[i] > 0.68 ? 1 : 0;
+          setCell(c, r, chStr.charCodeAt(0), palIdx, 2.5 + sDepth[i] * 0.5, bgIdx);
         }
 
         // Layer 2.5: Food Pellets
         const pelCode = cs.pellet.charCodeAt(0);
         for (let i = 0; i < pellets.length; i++) {
           const p = pellets[i];
-          setCell((p.x / cellW) | 0, (p.y / cellH) | 0, pelCode, 23, 3.2);
+          setCell((p.x / cellW) | 0, (p.y / cellH) | 0, pelCode, 23, 3.2, useBg ? 18 : 0);
         }
 
         // Layer 3: Articulated Hero Goldfish
@@ -1495,11 +2012,104 @@
           rasterizeGoldfish(heroFish[h], cs);
         }
 
-        // Paint Canvas via Color-Bucketed Batches
+        // Layer 4: Floating Typed Ink Poetry
+        for (let i = 0; i < floatChars.length; i++) {
+          const fc = floatChars[i];
+          const lifeFrac = fc.life / fc.maxLife;
+          const palIdx = lifeFrac > 0.35 ? 30 : 31;
+          const bgIdx = (useBg && lifeFrac > 0.70) ? 1 : 0;
+          setCell((fc.x / cellW) | 0, (fc.y / cellH) | 0, fc.ch.charCodeAt(0), palIdx, 5.0, bgIdx);
+        }
+
+        // Layer 5: Floating Lotus Pads & Blossoms (Occludes fish swimming underneath!)
+        if (state.lotus) {
+          const isHanzi = state.charset === "hanzi";
+          const isBlocks = state.charset === "blocks";
+          for (let i = 0; i < lotusPads.length; i++) {
+            const pad = lotusPads[i];
+            const c0 = Math.max(0, Math.floor((pad.x - pad.r) / cellW));
+            const c1 = Math.min(cols - 1, Math.ceil((pad.x + pad.r) / cellW));
+            const r0 = Math.max(0, Math.floor((pad.y - pad.r) / cellH));
+            const r1 = Math.min(rows - 1, Math.ceil((pad.y + pad.r) / cellH));
+            for (let r = r0; r <= r1; r++) {
+              const py = (r + 0.5) * cellH;
+              for (let c = c0; c <= c1; c++) {
+                const px = (c + 0.5) * cellW;
+                const dx = px - pad.x;
+                const dy = py - pad.y;
+                const d = Math.hypot(dx, dy);
+                if (d > pad.r) continue;
+                const ang = Math.atan2(dy, dx);
+                if (Math.abs(wrapAngle(ang - pad.rot)) < pad.notch) continue;
+
+                const normR = d / pad.r;
+                if (pad.hasBlossom && normR < 0.28) {
+                  const bCh = isHanzi ? "莲" : isBlocks ? "✿" : "*";
+                  setCell(c, r, bCh.charCodeAt(0), 11, 5.7, useBg ? 22 : 0);
+                  continue;
+                }
+                const vein = Math.abs(Math.sin((ang - pad.rot) * 6.0)) < 0.16;
+                let chStr;
+                if (isHanzi) chStr = normR > 0.85 ? "叶" : vein ? "脉" : "莲";
+                else if (isBlocks) chStr = normR > 0.85 ? "░" : normR < 0.25 ? "▓" : "▒";
+                else chStr = normR > 0.85 ? "░" : vein ? (Math.abs(dx) > Math.abs(dy) ? "─" : "│") : "▒";
+
+                if (useBg) {
+                  const bgTile = normR > 0.82 ? 19 : normR < 0.30 ? 21 : 20;
+                  const fgPal = bgTile === 21 ? 29 : 28;
+                  setCell(c, r, chStr.charCodeAt(0), fgPal, 5.5, bgTile);
+                } else {
+                  setCell(c, r, chStr.charCodeAt(0), 28, 5.5, 0);
+                }
+              }
+            }
+          }
+        }
+
+        // Layer 6: Top-Right Corner Vermilion ASCII Seal ("戏墨")
+        if (state.seal && cols >= 12 && rows >= 8) {
+          const sc0 = cols - 5;
+          const sr0 = 1;
+          const sealGrid = [
+            ["┌", "─", "─", "┐"],
+            ["│", "戏", "墨", "│"],
+            ["└", "─", "─", "┘"]
+          ];
+          for (let dr = 0; dr < 3; dr++) {
+            for (let dc = 0; dc < 4; dc++) {
+              const ch = sealGrid[dr][dc].charCodeAt(0);
+              if (useBg) setCell(sc0 + dc, sr0 + dr, ch, 24, 6.0, 7);
+              else setCell(sc0 + dc, sr0 + dr, ch, 11, 6.0, 0);
+            }
+          }
+        }
+
+        // Paint Canvas via 2-Pass Color-Bucketed Batches (Pass 1: BG Tiles, Pass 2: FG Chars)
         ctx.fillStyle = pal.bg;
         ctx.fillRect(0, 0, W, H);
 
-        for (let p = 0; p < 24; p++) buckets[p].length = 0;
+        if (useBg) {
+          for (let b = 1; b < bgBuckets.length; b++) bgBuckets[b].length = 0;
+          for (let idx = 0; idx < gridSize; idx++) {
+            const b = bgBuf[idx];
+            if (b > 0) bgBuckets[b].push(idx);
+          }
+          const rw = cellW + 0.5;
+          const rh = cellH + 0.5;
+          for (let b = 1; b < bgBuckets.length; b++) {
+            const list = bgBuckets[b];
+            if (list.length === 0) continue;
+            ctx.fillStyle = pal.bgColors[b];
+            for (let k = 0; k < list.length; k++) {
+              const idx = list[k];
+              const r = (idx / cols) | 0;
+              const c = idx - r * cols;
+              ctx.fillRect(c * cellW, r * cellH, rw, rh);
+            }
+          }
+        }
+
+        for (let p = 0; p < buckets.length; p++) buckets[p].length = 0;
         for (let idx = 0; idx < gridSize; idx++) {
           if (charBuf[idx] !== 32) {
             buckets[palBuf[idx]].push(idx);
@@ -1512,7 +2122,7 @@
         const halfCW = cellW * 0.5;
         const halfCH = cellH * 0.5;
 
-        for (let p = 0; p < 24; p++) {
+        for (let p = 0; p < buckets.length; p++) {
           const list = buckets[p];
           if (list.length === 0) continue;
           ctx.fillStyle = pal.colors[p];
@@ -1553,9 +2163,26 @@
           pointer.lastWallX = x;
           pointer.lastWallY = y;
         } else if (pointer.mode === "feed") {
-          if (pellets.length > 22) pellets.shift();
-          pellets.push({ x, y, life: 1.0, eaten: false });
-          spawnRipple(x, y, 68, 0.95);
+          // Click directly on a Hero Goldfish to inspect breed & growth
+          let inspected = null;
+          for (let h = 0; h < state.heroCount; h++) {
+            const g = heroFish[h];
+            const midX = g.segX[2];
+            const midY = g.segY[2];
+            if (Math.hypot(x - g.x, y - g.y) < 36 || Math.hypot(x - midX, y - midY) < 36) {
+              inspected = g;
+              break;
+            }
+          }
+          if (inspected) {
+            showToast(`${inspected.breedName} · 已食 ${inspected.eatenCount} 饵 · 体型 ${Math.round((inspected.scale / inspected.baseScale) * 100)}%`);
+            spawnRipple(x, y, 56, 0.85);
+          } else {
+            if (pellets.length > 22) pellets.shift();
+            pellets.push({ x, y, life: 1.0, eaten: false });
+            spawnRipple(x, y, 68, 0.95);
+            playDropNote(false);
+          }
         } else {
           spawnRipple(x, y, 88, 1.0);
         }
@@ -1580,7 +2207,7 @@
           if (pellets.length > 22) pellets.shift();
           pellets.push({ x, y, life: 1.0, eaten: false });
           spawnRipple(x, y, 54, 0.8);
-        } else if (pointer.mode === "splash" && Math.random() < 0.25) {
+        } else if ((pointer.mode === "splash" || pointer.mode === "vortex") && Math.random() < 0.25) {
           spawnRipple(x, y, 76, 0.9);
         }
       });
@@ -1601,6 +2228,142 @@
         resizeGrid();
       }
 
+      const DENSITY_LABELS = { sparse: "疏", medium: "中", dense: "密" };
+      const DENSITY_ORDER = ["sparse", "medium", "dense"];
+      function setDensity(name) {
+        state.density = name;
+        document.querySelectorAll("[data-density]").forEach((b) => {
+          b.setAttribute("aria-pressed", String(b.dataset.density === name));
+        });
+        resizeGrid();
+      }
+
+      const slCaustics = document.getElementById("sl-caustics");
+      const outCaustics = document.getElementById("out-caustics");
+      function toggleCaustics() {
+        if (state.causticsStrength > 0.02) {
+          state.prevCaustics = state.causticsStrength;
+          state.causticsStrength = 0;
+        } else {
+          state.causticsStrength = state.prevCaustics > 0.05 ? state.prevCaustics : 0.35;
+        }
+        slCaustics.value = String(state.causticsStrength);
+        outCaustics.textContent = state.causticsStrength.toFixed(2);
+      }
+
+      const btnCellBg = document.getElementById("btn-cell-bg");
+      const swCellBg = document.getElementById("sw-cell-bg");
+      function toggleCellBg() {
+        state.cellBg = !state.cellBg;
+        btnCellBg.setAttribute("aria-pressed", String(state.cellBg));
+        swCellBg.setAttribute("aria-checked", String(state.cellBg));
+      }
+      btnCellBg.addEventListener("click", toggleCellBg);
+      swCellBg.addEventListener("click", toggleCellBg);
+
+      const btnRain = document.getElementById("btn-rain");
+      const swRain = document.getElementById("sw-rain");
+      function toggleRain() {
+        state.rain = !state.rain;
+        btnRain.setAttribute("aria-pressed", String(state.rain));
+        swRain.setAttribute("aria-checked", String(state.rain));
+        showToast(state.rain ? "细雨落池已开启" : "细雨已停");
+      }
+      btnRain.addEventListener("click", toggleRain);
+      swRain.addEventListener("click", toggleRain);
+
+      const typeBar = document.getElementById("type-bar");
+      const btnType = document.getElementById("btn-type");
+      const typeInput = document.getElementById("type-input");
+      function toggleTypeBar(force) {
+        const open = typeof force === "boolean" ? force : !typeBar.classList.contains("open");
+        typeBar.classList.toggle("open", open);
+        btnType.setAttribute("aria-expanded", String(open));
+        btnType.setAttribute("aria-pressed", String(open));
+        if (open) setTimeout(() => typeInput.focus(), 40);
+      }
+      btnType.addEventListener("click", () => toggleTypeBar());
+
+      function submitTypeText() {
+        const v = typeInput.value.trim();
+        if (!v) return;
+        dropTextToPond(v);
+        typeInput.value = "";
+        showToast(`「${v}」已落入池中`);
+      }
+      document.getElementById("btn-type-send").addEventListener("click", submitTypeText);
+      typeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          submitTypeText();
+        } else if (e.key === "Escape") {
+          toggleTypeBar(false);
+          typeInput.blur();
+        }
+      });
+      document.querySelectorAll("[data-phrase]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          dropTextToPond(btn.dataset.phrase);
+          showToast(`「${btn.dataset.phrase}」已落入池中`);
+        });
+      });
+
+      function copyAsciiFrame() {
+        renderAsciiFrame(elapsed);
+        const lines = [];
+        for (let r = 0; r < rows; r++) {
+          let line = "";
+          const off = r * cols;
+          for (let c = 0; c < cols; c++) {
+            line += String.fromCharCode(charBuf[off + c]);
+          }
+          lines.push(line.replace(/\s+$/, ""));
+        }
+        while (lines.length > 0 && lines[0] === "") lines.shift();
+        while (lines.length > 0 && lines[lines.length - 1] === "") lines.pop();
+        const text = lines.join("\n");
+        const onSuccess = () => showToast("已复制当前帧纯文本 ASCII 画");
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(onSuccess).catch(() => fallbackCopy(text, onSuccess));
+        } else {
+          fallbackCopy(text, onSuccess);
+        }
+      }
+      function fallbackCopy(text, onDone) {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (_) {}
+        document.body.removeChild(ta);
+        if (onDone) onDone();
+      }
+      document.getElementById("btn-copy").addEventListener("click", copyAsciiFrame);
+
+      function scatterFood() {
+        for (let i = 0; i < 6; i++) {
+          const x = W * (0.18 + Math.random() * 0.64);
+          const y = H * (0.18 + Math.random() * 0.64);
+          if (pellets.length > 24) pellets.shift();
+          pellets.push({ x, y, life: 1.0, eaten: false });
+          spawnRipple(x, y, 60, 0.9);
+        }
+        playDropNote(false);
+      }
+      document.getElementById("btn-scatter").addEventListener("click", scatterFood);
+
+      function takeScreenshot() {
+        renderAsciiFrame(elapsed);
+        const link = document.createElement("a");
+        link.download = `boids-no3-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("已导出 PNG 截图");
+      }
+      document.getElementById("btn-shot").addEventListener("click", takeScreenshot);
+
       document.querySelectorAll("[data-tool]").forEach((btn) => {
         btn.addEventListener("click", () => {
           state.tool = btn.dataset.tool;
@@ -1610,26 +2373,25 @@
       });
 
       document.querySelectorAll("[data-density]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          state.density = btn.dataset.density;
-          document.querySelectorAll("[data-density]").forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
-          resizeGrid();
-        });
+        btn.addEventListener("click", () => setDensity(btn.dataset.density));
       });
       document.querySelectorAll("[data-charset]").forEach((btn) => {
         btn.addEventListener("click", () => setCharset(btn.dataset.charset));
       });
 
-      function bindSlider(id, outId, key, digits = 0) {
+      function bindSlider(id, outId, key, digits = 0, onInput) {
         const el = document.getElementById(id);
         const out = document.getElementById(outId);
         el.addEventListener("input", () => {
           state[key] = Number(el.value);
           out.textContent = digits > 0 ? state[key].toFixed(digits) : String(state[key]);
+          if (onInput) onInput(state[key]);
         });
       }
       bindSlider("sl-hero", "out-hero", "heroCount", 0);
       bindSlider("sl-school", "out-school", "schoolCount", 0);
+      bindSlider("sl-tail-speed", "out-tail-speed", "tailSpeed", 2);
+      bindSlider("sl-tail-amp", "out-tail-amp", "tailAmp", 1);
       bindSlider("sl-sep", "out-sep", "separation", 2);
       bindSlider("sl-ali", "out-ali", "alignment", 2);
       bindSlider("sl-coh", "out-coh", "cohesion", 2);
@@ -1642,8 +2404,11 @@
           el.setAttribute("aria-checked", String(state[key]));
         });
       }
+      bindSwitch("sw-lotus", "lotus");
+      bindSwitch("sw-seal", "seal");
       bindSwitch("sw-trails", "trails");
       bindSwitch("sw-walls", "softWalls");
+      bindSwitch("sw-sound", "sound");
 
       const btnPause = document.getElementById("btn-pause");
       function togglePause() {
@@ -1652,7 +2417,10 @@
         btnPause.textContent = state.paused ? "继续" : "暂停";
       }
       btnPause.addEventListener("click", togglePause);
-      document.getElementById("btn-reset").addEventListener("click", initPond);
+      document.getElementById("btn-reset").addEventListener("click", () => {
+        initPond();
+        showToast("池塘已重置");
+      });
       document.getElementById("btn-clear-obs").addEventListener("click", () => { obstacles.length = 0; });
 
       const drawer = document.getElementById("inspector");
@@ -1667,19 +2435,42 @@
 
       window.addEventListener("keydown", (e) => {
         if (e.target && e.target.tagName === "INPUT") return;
-        if (e.key === "1") setCharset("classic");
+        if (e.key === "1") setCharset("mixed");
         else if (e.key === "2") setCharset("blocks");
-        else if (e.key === "3") setCharset("hanzi");
+        else if (e.key === "3") setCharset("classic");
+        else if (e.key === "4") setCharset("hanzi");
+        else if (e.key === "t" || e.key === "T") {
+          e.preventDefault();
+          toggleTypeBar();
+        } else if (e.key === "e" || e.key === "E") toggleRain();
+        else if (e.key === "f" || e.key === "F") scatterFood();
+        else if (e.key === "g" || e.key === "G") {
+          const next = DENSITY_ORDER[(DENSITY_ORDER.indexOf(state.density) + 1) % DENSITY_ORDER.length];
+          setDensity(next);
+          showToast(`网格密度: ${DENSITY_LABELS[next]}`);
+        } else if (e.key === "w" || e.key === "W") toggleCaustics();
+        else if (e.key === "b" || e.key === "B") toggleCellBg();
+        else if (e.key === "m" || e.key === "M") {
+          state.sound = !state.sound;
+          document.getElementById("sw-sound").setAttribute("aria-checked", String(state.sound));
+          showToast(state.sound ? "水滴与打字声效已开启" : "已静音");
+        } else if (e.key === "c" || e.key === "C") copyAsciiFrame();
+        else if (e.key === "s" || e.key === "S") takeScreenshot();
         else if (e.key === "p" || e.key === "P") togglePause();
-        else if (e.key === "r" || e.key === "R") initPond();
-        else if (e.key === "i" || e.key === "I") toggleDrawer();
+        else if (e.key === "r" || e.key === "R") {
+          initPond();
+          showToast("池塘已重置");
+        } else if (e.key === "i" || e.key === "I") toggleDrawer();
         else if (e.key === "h" || e.key === "H") {
           state.hudHidden = !state.hudHidden;
           document.body.classList.toggle("hud-hidden", state.hudHidden);
         }
       });
 
-      window.addEventListener("resize", resizeGrid);
+      window.addEventListener("resize", () => {
+        resizeGrid();
+        buildLotusPads();
+      });
 
       /* =========================================================
        * Boot & Main Loop
